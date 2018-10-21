@@ -18,8 +18,8 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
 import Data.Singletons.Prelude.Enum (Succ, sSucc)
-import Data.Singletons.Prelude.List (Sing (SCons, SNil))
-import Data.Singletons.Prelude.Maybe (Sing (SJust, SNothing))
+import Data.Singletons.Prelude.List (SList, Sing (SCons, SNil))
+import Data.Singletons.Prelude.Maybe (SMaybe, Sing (SJust, SNothing))
 import Data.Singletons.Prelude.Show (Show_, sShow_)
 import Data.Singletons.Prelude.Tuple (Sing (STuple2))
 import Data.Singletons.TypeLits (KnownSymbol, Nat, SNat)
@@ -169,7 +169,7 @@ instance GenericConsPart (a :+: b) => GEntityPart (a :+: b) where
 
 data EntityMNOfSnd x where
   EntityMNOfSnd :: forall (sym :: Maybe Symbol) (struct :: Structure).
-    Sing sym -> EntityOf struct -> EntityMNOfSnd '( sym , struct )
+    SMaybe sym -> EntityOf struct -> EntityMNOfSnd '( sym , struct )
 
 type family FillInDefaultNamesFrom (i :: Nat) (xs :: [(Maybe Symbol, Structure)])
     :: [(Symbol, Structure)] where
@@ -205,7 +205,7 @@ stripOutDefaultNames = go (Proxy @1) sing
   go
     :: forall i xs'
      . Proxy i
-    -> Sing xs'
+    -> SList xs'
     -> Tuple (FillInDefaultNamesFrom i xs') EntityOfSnd
     -> Tuple xs' EntityMNOfSnd
   go _ = \case

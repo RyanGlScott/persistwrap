@@ -13,7 +13,7 @@ pickSide
    . SingI xs
   => Tagged (xs ++ ys) f
   -> Either (Tagged xs f) (Tagged ys f)
-pickSide l = case (sing :: Sing xs) of
+pickSide l = case (sing :: SList xs) of
   SNil        -> Right l
   SCons _ xs' -> case l of
     Here  x    -> Left $ Here x
@@ -27,14 +27,14 @@ leftTag = \case
   There (x :: Tagged xs' f) -> There $ leftTag @xs' @ys x
 
 rightTag :: forall xs ys f . SingI xs => Tagged ys f -> Tagged (xs ++ ys) f
-rightTag = case (sing :: Sing xs) of
+rightTag = case (sing :: SList xs) of
   SNil                      -> id
-  SCons _ (xs' :: Sing xs') -> There . withSingI xs' (rightTag @xs' @ys)
+  SCons _ (xs' :: SList xs') -> There . withSingI xs' (rightTag @xs' @ys)
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
-splitTuple t = case (sing :: Sing xs) of
+splitTuple t = case (sing :: SList xs) of
   SNil                      -> (Nil, t)
-  SCons _ (xs' :: Sing xs') -> case t of
+  SCons _ (xs' :: SList xs') -> case t of
     (v `Cons` vs) -> case withSingI xs' $ splitTuple @xs' @ys vs of
       (l, r) -> (v `Cons` l, r)
 

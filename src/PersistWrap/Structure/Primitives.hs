@@ -4,7 +4,7 @@ module PersistWrap.Structure.Primitives where
 
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
-import Data.Singletons (Sing, sing)
+import Data.Singletons (sing)
 import Data.Singletons.TH (singletons)
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
@@ -46,7 +46,7 @@ type family PrimType p where
   PrimType 'PrimObjectId = ByteString
   PrimType 'PrimDbSpecific = ByteString
 
-data SingPrim = forall (p :: PrimName). SingPrim (Sing p) (PrimType p)
+data SingPrim = forall (p :: PrimName). SingPrim (SPrimName p) (PrimType p)
 
 primitive :: PersistValue -> SingPrim
 primitive = \case
