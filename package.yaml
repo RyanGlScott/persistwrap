@@ -38,6 +38,7 @@ default-extensions:
   DataKinds
   DefaultSignatures
   DeriveGeneric
+  DuplicateRecordFields
   EmptyCase
   ExplicitNamespaces
   FlexibleContexts

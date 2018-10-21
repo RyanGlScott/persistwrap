@@ -9,4 +9,4 @@ data Value (c :: Column) where
   V :: PrimType p -> Value ('Column sym 'False p)
   N :: Maybe (PrimType p) -> Value ('Column sym 'True p)
 
-type Row xs = Tuple xs Value
+type Row (sch :: Schema) = Tuple (Cols sch) Value
