@@ -1,4 +1,4 @@
-module PersistWrap.Table.BackEnd.TVar ( Table ) where
+module PersistWrap.Table.BackEnd.TVar ( Entity, Key, Table, WithinTable ) where
 
 import Control.Arrow ((&&&), (***))
 import Control.Concurrent.STM (STM)
