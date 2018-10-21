@@ -21,12 +21,12 @@ type WithinTable tab = Class.WithinTable Table tab
 
 instance Class.MonadTable Table STM where
   newtype Key Table tab = Key {unKey :: TVarMaybeRow (SchemaOf tab)}
-  getEntities :: forall tab . WithinTable tab => STM [Entity tab]
-  getEntities = do
+  getEntities :: forall tab . WithinTable tab => SubRow (SchemaOf tab) -> STM [Entity tab]
+  getEntities restriction = do
     let Table refs = getTable @tab
     result <- readTVar refs >>= mapMaybeM (\k -> fmap (Class.Entity (Key k)) <$> readTVar k)
     writeTVar refs $ map (\Class.Entity{entityKey} -> unKey entityKey) result
-    return result
+    return $ filter (\Class.Entity{entityVal} -> matches restriction entityVal) result
   getRow (Key r) = readTVar r
   insertRow :: forall tab . WithinTable tab => Row (SchemaOf tab) -> STM (Key tab)
   insertRow rowValues = do

@@ -58,3 +58,17 @@ traverseInPrelude fn t = Conkin.fmap (unComposeConst . getFlip) . getCompose <$>
   (Conkin.traverse (Dispose . fmap ComposeConst . fn) t)
 
 newtype ComposeConst a b c = ComposeConst {unComposeConst :: a b}
+
+zipWith :: forall a b c xs. (forall x. a x -> b x -> c x) -> Tuple xs a -> Tuple xs b -> Tuple xs c
+zipWith fn = go
+  where
+    go :: forall xs'. Tuple xs' a -> Tuple xs' b -> Tuple xs' c
+    go Nil Nil = Nil
+    go (x `Cons` xs) (y `Cons` ys) = fn x y `Cons` go xs ys
+
+zipUncheck :: forall a b xs y. (forall x. a x -> b x -> y) -> Tuple xs a -> Tuple xs b -> [y]
+zipUncheck fn = go
+  where
+    go :: forall xs'. Tuple xs' a -> Tuple xs' b -> [y]
+    go Nil Nil = []
+    go (x `Cons` xs) (y `Cons` ys) = fn x y : go xs ys

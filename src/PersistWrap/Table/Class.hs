@@ -15,7 +15,7 @@ data Entity (table :: Schema -> *) (tab :: (*,Schema))
 
 class Monad m => MonadTable (table :: Schema -> *) m | table -> m where
   data Key table :: (*,Schema) -> *
-  getEntities :: forall tab . WithinTable table tab => m [Entity table tab]
+  getEntities :: forall tab . WithinTable table tab => SubRow (SchemaOf tab) -> m [Entity table tab]
   getRow :: forall tab . WithinTable table tab => Key table tab -> m (Maybe (Row (SchemaOf tab)))
   insertRow :: forall tab . WithinTable table tab => Row (SchemaOf tab) -> m (Key table tab)
   -- Returns True if the row was present.
