@@ -43,4 +43,4 @@ data instance Sing ('MapType x) where
 instance SingI s => SingI ('MapType s) where
   sing = SMapType sing
 
-type SStructure = Sing Structure
+type SStructure x = Sing (x :: Structure)

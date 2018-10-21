@@ -22,6 +22,6 @@ instance (SingI name, SingI cols) => SingI ('Schema name cols) where
 type family Cols (sch :: Schema) :: [Column] where
   Cols ('Schema name cols) = cols
 
-type SColumn = Sing Column
+type SColumn x = Sing (x :: Column)
 
 type SchemaOf (tab :: (*,Schema)) = Snd tab
