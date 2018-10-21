@@ -14,32 +14,26 @@ data Structure
   | ListType Structure
   | MapType Structure -- Argument is value type; Key type is always Text
 
-data instance Sing ('Primitive pn) where
+data instance Sing (struct :: Structure) where
   SPrimitive :: SPrimName pn -> Sing ('Primitive pn)
+  SEmpty :: Sing 'EmptyType
+  SUnit :: Sing 'UnitType
+  SSumType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('SumType xs)
+  SProductType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('ProductType xs)
+  SListType :: Sing s -> Sing ('ListType s)
+  SMapType :: Sing s -> Sing ('MapType s)
 instance SingI n => SingI ('Primitive n) where
   sing = SPrimitive sing
-data instance Sing 'EmptyType where
-  SEmpty :: Sing 'EmptyType
 instance SingI 'EmptyType where
   sing = SEmpty
-data instance Sing 'UnitType where
-  SUnit :: Sing 'UnitType
 instance SingI 'UnitType where
   sing = SUnit
-data instance Sing ('SumType xs) where
-  SSumType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('SumType xs)
 instance SingI xs => SingI ('SumType xs) where
   sing = SSumType sing
-data instance Sing ('ProductType xs) where
-  SProductType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('ProductType xs)
 instance SingI xs => SingI ('ProductType xs) where
   sing = SProductType sing
-data instance Sing ('ListType x) where
-  SListType :: Sing s -> Sing ('ListType s)
 instance SingI s => SingI ('ListType s) where
   sing = SListType sing
-data instance Sing ('MapType x) where
-  SMapType :: Sing s -> Sing ('MapType s)
 instance SingI s => SingI ('MapType s) where
   sing = SMapType sing
 
