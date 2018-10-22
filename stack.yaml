@@ -38,8 +38,8 @@ packages:
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- git: https://github.com/dspies-leapyear/conkin
-  commit: 79e025e1400881f44a26654bea03a17ac5cfef1a
+- git: https://github.com/rampion/conkin
+  commit: d25675a99ff8cc0cd6a918c3d3d28a5fc1fc22f4
 - stm-2.5.0.0
 
 # Override default flag values for local packages and extra-deps
