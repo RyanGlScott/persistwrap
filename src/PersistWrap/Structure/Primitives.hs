@@ -6,7 +6,7 @@ module PersistWrap.Structure.Primitives where
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Singletons (sing)
-import Data.Singletons.TH (singletons, singDecideInstance)
+import Data.Singletons.TH (singletons, sCases, singDecideInstance)
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
@@ -67,21 +67,7 @@ deriveConstraint
   => SPrimName p
   -> (c (PrimType p) => y)
   -> y
-deriveConstraint p cont = case p of
-  SPrimText       -> cont
-  SPrimByteString -> cont
-  SPrimInt64      -> cont
-  SPrimDouble     -> cont
-  SPrimRational   -> cont
-  SPrimBool       -> cont
-  SPrimDay        -> cont
-  SPrimTimeOfDay  -> cont
-  SPrimUTCTime    -> cont
-  SPrimNull       -> cont
-  SPrimList       -> cont
-  SPrimMap        -> cont
-  SPrimObjectId   -> cont
-  SPrimDbSpecific -> cont
+deriveConstraint p cont = $(sCases ''PrimName [| p |] [| cont |])
 
 data SingPrim = forall (p :: PrimName). SingPrim (SPrimName p) (PrimType p)
 

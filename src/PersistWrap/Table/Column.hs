@@ -10,12 +10,9 @@ import Data.Singletons.TypeLits (SSymbol, Symbol)
 
 import PersistWrap.Structure (PrimName, SPrimName)
 
-data BaseColumn where
-  Prim :: PrimName -> BaseColumn
-  ForeignKey :: Symbol -> BaseColumn
-  JSON :: BaseColumn
-data Column = Column {name :: Symbol, nullability :: Bool, ctype :: BaseColumn}
-data Schema = Schema {name :: Symbol, cols :: [Column]}
+data BaseColumn = Prim PrimName | ForeignKey Symbol | JSON
+data Column = Column Symbol Bool BaseColumn
+data Schema = Schema Symbol [Column]
 
 data instance Sing (bc :: BaseColumn) where
   SPrim :: SPrimName pn -> Sing ('Prim pn)
