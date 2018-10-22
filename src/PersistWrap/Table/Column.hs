@@ -55,3 +55,5 @@ $(singletonsOnly [d|
 type TabSchema (tab :: (*,Schema)) = Snd tab
 type TabName tab = SchemaName (TabSchema tab)
 type TabCols tab = SchemaCols (TabSchema tab)
+
+newtype SSchemaCon schema = SSchemaCon {unSSchemaCon :: SSchema schema}

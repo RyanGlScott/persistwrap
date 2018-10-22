@@ -1,4 +1,4 @@
-module PersistWrap.Table.BackEnd.TVar ( SSchemaCon(..), TVarDMLT, STMTransaction, withEmptyTables ) where
+module PersistWrap.Table.BackEnd.TVar ( TVarDMLT, STMTransaction, withEmptyTables ) where
 
 import Conkin (Tuple)
 import qualified Conkin
@@ -101,8 +101,6 @@ newtype TVarDMLT s m x = TVarDMLT {unTVarDMLT :: ReaderT (TableMap s) m x}
 instance MonadIO m => MonadDML (TVarDMLT s m) where
   type Transaction (TVarDMLT s m) = STMTransaction s
   atomicTransaction (STMTransaction act) = TVarDMLT $ mapReaderT (liftIO . atomically) act
-
-newtype SSchemaCon schema = SSchemaCon {unSSchemaCon :: SSchema schema}
 
 withEmptyTables
   :: MonadIO m
