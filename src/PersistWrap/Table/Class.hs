@@ -1,45 +1,83 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-
 module PersistWrap.Table.Class where
 
 import Data.Maybe (isJust)
 import Data.Promotion.Prelude (Fst, Snd)
 import Data.Proxy (Proxy (Proxy))
 import Data.Reflection (Reifies, reflect, reify)
+import Data.Singletons (SingI, sing)
+import Data.Singletons.TypeLits (SSymbol, Symbol)
 
+import PersistWrap.Conkin.Extra (HEq)
 import PersistWrap.Table.Column
-import PersistWrap.Table.Row
+import PersistWrap.Table.Row (unrestricted)
+import qualified PersistWrap.Table.Row as Row
 
-data Entity (table :: Schema -> *) (tab :: (*,Schema))
-  = Entity {entityKey :: Key table tab, entityVal :: Row (SchemaOf tab)}
+type TabRow m tab = Row.Row (ForeignKey m) (TabCols tab)
+type TabSubRow m tab = Row.SubRow (ForeignKey m) (TabCols tab)
 
-class Monad m => MonadTable (table :: Schema -> *) m | table -> m where
-  data Key table :: (*,Schema) -> *
-  getEntities :: forall tab . WithinTable table tab => SubRow (SchemaOf tab) -> m [Entity table tab]
-  getRow :: forall tab . WithinTable table tab => Key table tab -> m (Maybe (Row (SchemaOf tab)))
-  insertRow :: forall tab . WithinTable table tab => Row (SchemaOf tab) -> m (Key table tab)
+data Entity m (tab :: (*,Schema))
+  = Entity {entityKey :: Key m tab, entityVal :: TabRow m tab}
+
+data SomeTableNamedOf (table :: Schema -> *) (name :: Symbol)
+  = forall cols. SingI cols => SomeTableNamed (table ('Schema name cols))
+type SomeTableNamed (m :: * -> *) = SomeTableNamedOf (Table m)
+
+class (HEq (ForeignKey m), Monad m) => MonadTable m where
+  data Table m :: Schema -> *
+  data Key m :: (*,Schema) -> *
+  type ForeignKey m :: Symbol -> *
+  getEntitiesProxy :: forall tab . WithinTable m tab
+    => Proxy tab -> TabSubRow m tab -> m [Entity m tab]
+  getRow :: forall tab . WithinTable m tab => Key m tab -> m (Maybe (TabRow m tab))
+  insertRowProxy :: forall tab . WithinTable m tab
+    => Proxy tab -> TabRow m tab -> m (Key m tab)
   -- Returns True if the row was present.
-  deleteRow :: forall tab . WithinTable table tab => Key table tab -> m Bool
+  deleteRow :: forall tab . WithinTable m tab => Key m tab -> m Bool
   stateRow
     :: forall tab b
-     . WithinTable table tab
-    => Key table tab
-    -> (Row (SchemaOf tab) -> (b, Row (SchemaOf tab)))
+     . WithinTable m tab
+    => Key m tab
+    -> (TabRow m tab -> (b, TabRow m tab))
     -> m (Maybe b)
   modifyRow
-    :: forall tab . WithinTable table tab
-    => Key table tab -> (Row (SchemaOf tab) -> Row (SchemaOf tab)) -> m Bool
+    :: forall tab . WithinTable m tab
+    => Key m tab -> (TabRow m tab -> TabRow m tab) -> m Bool
   modifyRow key fn = isJust <$> stateRow key (((), ) . fn)
+  lookupTable :: forall name . SSymbol name -> m (Maybe (SomeTableNamed m name))
+  keyToForeign :: forall tab . WithinTable m tab => Key m tab -> ForeignKey m (TabName tab)
+  foreignToKeyProxy
+    :: forall tab . WithinTable m tab => Proxy tab -> ForeignKey m (TabName tab) -> m (Key m tab)
 
-type WithinTable (table :: Schema -> *) (tab :: (*,Schema))
-  = Reifies (Fst tab) (table (Snd tab))
+type WithinTableOf (table :: Schema -> *) tab =
+  (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))
+type WithinTable m tab = WithinTableOf (Table m) tab
 
 withinTable
-  :: forall table xs y
-   . table xs
-  -> (forall tab' . WithinTable table '(tab',xs) => Proxy '(tab',xs) -> y)
+  :: forall table sch y
+   . SingI sch
+  => table sch
+  -> (forall tab' . WithinTableOf table '(tab',sch) => Proxy '(tab',sch) -> y)
   -> y
-withinTable tab cont = reify tab $ \(_ :: Proxy tab') -> cont (Proxy @'(tab',xs))
+withinTable tab cont = reify tab $ \(_ :: Proxy tab') -> cont (Proxy @'(tab',sch))
 
-getTable :: forall tab table . WithinTable table tab => table (SchemaOf tab)
-getTable = reflect (Proxy @(Fst tab))
+getTable :: forall tab table proxy . WithinTableOf table tab => proxy tab -> table (TabSchema tab)
+getTable _ = reflect (Proxy @(Fst tab))
+
+insertRow
+  :: forall tab m . (MonadTable m, WithinTable m tab) => TabRow m tab -> m (Key m tab)
+insertRow = insertRowProxy Proxy
+
+getEntities
+  :: forall tab m . (MonadTable m, WithinTable m tab) => TabSubRow m tab -> m [Entity m tab]
+getEntities = getEntitiesProxy Proxy
+
+foreignToKey
+  :: forall tab m . (MonadTable m, WithinTable m tab) => ForeignKey m (TabName tab) -> m (Key m tab)
+foreignToKey = foreignToKeyProxy Proxy
+
+getAllEntities :: forall tab m . (MonadTable m, WithinTable m tab) => m [Entity m tab]
+getAllEntities = getEntities (unrestricted (getSchemaSing (Proxy @tab)))
+
+getSchemaSing :: forall tab table proxy . WithinTableOf table tab
+  => proxy tab -> Sing (TabSchema tab)
+getSchemaSing _ = sing

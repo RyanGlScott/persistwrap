@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module PersistWrap.Structure.Primitives where
@@ -5,7 +6,7 @@ module PersistWrap.Structure.Primitives where
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Singletons (sing)
-import Data.Singletons.TH (singletons)
+import Data.Singletons.TH (singletons, singDecideInstance)
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
@@ -30,6 +31,8 @@ $(singletons [d|
     | PrimDbSpecific
   |])
 
+$(singDecideInstance ''PrimName)
+
 type family PrimType p where
   PrimType 'PrimText = Text
   PrimType 'PrimByteString = ByteString
@@ -45,6 +48,40 @@ type family PrimType p where
   PrimType 'PrimMap = [(Text, PersistValue)]
   PrimType 'PrimObjectId = ByteString
   PrimType 'PrimDbSpecific = ByteString
+
+deriveConstraint
+  :: forall c p y
+   . ( c Text
+     , c ByteString
+     , c Int64
+     , c Double
+     , c Rational
+     , c Bool
+     , c Day
+     , c TimeOfDay
+     , c UTCTime
+     , c ()
+     , c [PersistValue]
+     , c [(Text, PersistValue)]
+     )
+  => SPrimName p
+  -> (c (PrimType p) => y)
+  -> y
+deriveConstraint p cont = case p of
+  SPrimText       -> cont
+  SPrimByteString -> cont
+  SPrimInt64      -> cont
+  SPrimDouble     -> cont
+  SPrimRational   -> cont
+  SPrimBool       -> cont
+  SPrimDay        -> cont
+  SPrimTimeOfDay  -> cont
+  SPrimUTCTime    -> cont
+  SPrimNull       -> cont
+  SPrimList       -> cont
+  SPrimMap        -> cont
+  SPrimObjectId   -> cont
+  SPrimDbSpecific -> cont
 
 data SingPrim = forall (p :: PrimName). SingPrim (SPrimName p) (PrimType p)
 

@@ -19,6 +19,7 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/davidspies/persistwrap#readme>
 
 dependencies:
+- aeson
 - base >= 4.7 && < 5
 - bytestring
 - conkin
@@ -26,12 +27,14 @@ dependencies:
 - containers
 - lens
 - monad-extras
+- mtl
 - persistent
 - reflection
 - singletons
 - stm
 - text
 - time
+- transformers-base
 
 default-extensions:
   ConstraintKinds

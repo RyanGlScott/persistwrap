@@ -235,6 +235,7 @@ language_extensions:
   - InstanceSigs
   - LambdaCase
   - MultiParamTypeClasses
+  - NamedFieldPuns
   - ScopedTypeVariables
   - TupleSections
   - TypeApplications
