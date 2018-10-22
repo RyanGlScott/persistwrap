@@ -70,5 +70,5 @@ getAllEntities :: forall tab m . (MonadTable m, WithinTable m tab) => m [Entity 
 getAllEntities = getEntities (unrestricted (getSchemaSing (Proxy @tab)))
 
 getSchemaSing :: forall tab table proxy . WithinTableOf table tab
-  => proxy tab -> Sing (TabSchema tab)
+  => proxy tab -> SSchema (TabSchema tab)
 getSchemaSing _ = sing

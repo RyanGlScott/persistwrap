@@ -17,9 +17,9 @@ data BaseValue fk (bc :: BaseColumn) where
   JSONV :: JSON.Value -> BaseValue fk 'JSON
 
 instance (HEq fk, SingI bc) => Eq (BaseValue fk bc) where
-  (==) = go (sing :: SBaseColumn bc)
+  (==) = go sing
     where
-      go :: forall. Sing bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
+      go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
       go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Eq n $ pl == pr
       go (SForeignKey sym) (FKV il) (FKV ir) = withKnownSymbol sym $ il ==^ ir
       go SJSON (JSONV vl) (JSONV vr) = vl == vr

@@ -45,7 +45,7 @@ type TableMap s = Map SSymbol (SomeTableNamed s)
 newtype STMTable s x = STMTable (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
 
-data FK name = forall sch. SchemaName sch ~ name => FK (Sing sch) (TVarMaybeRow (SchemaCols sch))
+data FK name = forall sch. SchemaName sch ~ name => FK (SSchema sch) (TVarMaybeRow (SchemaCols sch))
 
 instance HEq FK where
   heq (FK sl l) (FK sr r) = case sl %~ sr of
