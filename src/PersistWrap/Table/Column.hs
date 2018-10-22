@@ -5,7 +5,7 @@ module PersistWrap.Table.Column where
 
 import Data.Singletons (Sing, SingI (..))
 import Data.Singletons.Prelude (SBool, SList, Snd)
-import Data.Singletons.TH (singletonsOnly, singDecideInstances)
+import Data.Singletons.TH (singDecideInstances, singletonsOnly)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
 import PersistWrap.Structure (PrimName, SPrimName)

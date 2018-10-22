@@ -6,7 +6,7 @@ import qualified Data.Aeson as JSON
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.TypeLits (withKnownSymbol)
 
-import PersistWrap.Conkin.Extra (HEq, (==^), singToTuple)
+import PersistWrap.Conkin.Extra (HEq, singToTuple, (==^))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Structure (PrimType, deriveConstraint)
 import PersistWrap.Table.Column
@@ -43,11 +43,7 @@ type Row fk (cols :: [Column]) = Tuple cols (Value fk)
 type SubRow fk (cols :: [Column]) = Tuple cols (MaybeValue fk)
 
 matches
-  :: forall fk xs
-   . (HEq fk, SingI xs)
-  => Tuple xs (MaybeValue fk)
-  -> Tuple xs (Value fk)
-  -> Bool
+  :: forall fk xs . (HEq fk, SingI xs) => Tuple xs (MaybeValue fk) -> Tuple xs (Value fk) -> Bool
 matches l r = and $ Tuple.zipUncheck (\(MV x) y -> maybe True (== y) x) l r
 
 unrestricted :: SSchema schema -> SubRow fk (SchemaCols schema)

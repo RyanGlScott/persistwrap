@@ -6,7 +6,7 @@ module PersistWrap.Structure.Primitives where
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Singletons (sing)
-import Data.Singletons.TH (singletons, sCases, singDecideInstance)
+import Data.Singletons.TH (sCases, singDecideInstance, singletons)
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
