@@ -16,7 +16,7 @@ pickSide l = case (sing :: SList xs) of
   SNil        -> Right l
   SCons _ xs' -> case l of
     Here  x    -> Left $ Here x
-    There rest -> case withSingI xs' $ pickSide rest of
+    There rest -> case withSingI xs' pickSide rest of
       Left  lres -> Left $ There lres
       Right rres -> Right rres
 

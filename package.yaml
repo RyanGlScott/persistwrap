@@ -25,6 +25,7 @@ dependencies:
 - conkin
 - constraints
 - containers
+- dlist
 - lens
 - monad-extras
 - mtl

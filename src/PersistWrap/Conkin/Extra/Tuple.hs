@@ -10,7 +10,7 @@ splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tu
 splitTuple t = case (sing :: SList xs) of
   SNil                       -> (Nil, t)
   SCons _ (xs' :: SList xs') -> case t of
-    (v `Cons` vs) -> case withSingI xs' $ splitTuple @xs' @ys vs of
+    (v `Cons` vs) -> case withSingI xs' (splitTuple @xs' @ys) vs of
       (l, r) -> (v `Cons` l, r)
 
 (++&) :: Tuple xs f -> Tuple ys f -> Tuple (xs ++ ys) f
@@ -27,28 +27,35 @@ tupleToSing = \case
   Nil       -> SNil
   Cons x xs -> SCons x (tupleToSing xs)
 
-zipWith
+zipWithSing
   :: forall a b c xs
    . SingI xs
   => (forall x . SingI x => a x -> b x -> c x)
   -> Tuple xs a
   -> Tuple xs b
   -> Tuple xs c
-zipWith fn = go sing
+zipWithSing fn = go sing
  where
   go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> Tuple xs' c
   go SNil             Nil           Nil           = Nil
-  go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx (fn x y) `Cons` go sxs xs ys
+  go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y `Cons` go sxs xs ys
 
-zipUncheck
+mapUncheckSing :: forall a xs y . SingI xs => (forall x . SingI x => a x -> y) -> Tuple xs a -> [y]
+mapUncheckSing fn = go sing
+ where
+  go :: forall xs' . SList xs' -> Tuple xs' a -> [y]
+  go SNil             Nil           = []
+  go (sx `SCons` sxs) (x `Cons` xs) = withSingI sx fn x : go sxs xs
+
+zipUncheckSing
   :: forall a b xs y
    . SingI xs
   => (forall x . SingI x => a x -> b x -> y)
   -> Tuple xs a
   -> Tuple xs b
   -> [y]
-zipUncheck fn = go sing
+zipUncheckSing fn = go sing
  where
   go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> [y]
   go SNil             Nil           Nil           = []
-  go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx (fn x y) : go sxs xs ys
+  go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y : go sxs xs ys

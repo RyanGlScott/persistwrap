@@ -44,7 +44,7 @@ class (HEq (ForeignKey m), Monad m) => MonadTransaction m where
   lookupTable :: forall name . SSymbol name -> m (Maybe (SomeTableNamed (Table m) name))
   keyToForeign :: forall tab . WithinTable m tab => Key m tab -> ForeignKey m (TabName tab)
   foreignToKey
-    :: forall tab . WithinTable m tab => Proxy tab -> ForeignKey m (TabName tab) -> m (Key m tab)
+    :: forall tab . WithinTable m tab => Proxy tab -> ForeignKey m (TabName tab) -> Key m tab
 
 class MonadTransaction (Transaction m) => MonadDML m where
   type Transaction m :: * -> *

@@ -4,7 +4,6 @@ import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
 import Data.Singletons (SingI, sing, withSingI)
-import Data.Singletons.TypeLits (withKnownSymbol)
 
 import PersistWrap.Conkin.Extra (HEq, singToTuple, (==^))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
@@ -20,8 +19,8 @@ instance (HEq fk, SingI bc) => Eq (BaseValue fk bc) where
   (==) = go sing
     where
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
-      go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Eq n $ pl == pr
-      go (SForeignKey sym) (FKV il) (FKV ir) = withKnownSymbol sym $ il ==^ ir
+      go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Eq n (==) pl pr
+      go (SForeignKey sym) (FKV il) (FKV ir) = withSingI sym (==^) il ir
       go SJSON (JSONV vl) (JSONV vr) = vl == vr
 
 data Value fk (c :: Column) where
@@ -44,7 +43,7 @@ type SubRow fk (cols :: [Column]) = Tuple cols (MaybeValue fk)
 
 matches
   :: forall fk xs . (HEq fk, SingI xs) => Tuple xs (MaybeValue fk) -> Tuple xs (Value fk) -> Bool
-matches l r = and $ Tuple.zipUncheck (\(MV x) y -> maybe True (== y) x) l r
+matches l r = and $ Tuple.zipUncheckSing (\(MV x) y -> maybe True (== y) x) l r
 
 unrestricted :: SSchema schema -> SubRow fk (SchemaCols schema)
 unrestricted (SSchema _ scols) = Conkin.fmap (const $ MV Nothing) (singToTuple scols)

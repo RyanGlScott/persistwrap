@@ -1,27 +1,36 @@
-module PersistWrap.Table.BackEnd.TVar ( TVarDMLT, STMTransaction, withEmptyTables ) where
+module PersistWrap.Table.BackEnd.TVar ( SSchemaCon(..), TVarDMLT, STMTransaction, withEmptyTables ) where
 
+import Conkin (Tuple)
+import qualified Conkin
 import Control.Arrow ((&&&), (***))
 import Control.Concurrent.STM (STM, atomically)
 import Control.Concurrent.STM.TVar
-import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Extra (mapMaybeM)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, mapReaderT, runReaderT)
 import Data.Constraint (Dict (Dict))
 import Data.List (group, sort)
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
-import Data.Singletons (SomeSing (SomeSing), fromSing, sing, withSingI)
+import Data.Singletons (SingI, fromSing, sing, withSingI)
 import Data.Singletons.Decide ((:~:) (..), Decision (..), (%~))
-import Data.Singletons.TypeLits (withKnownSymbol)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
 import Data.Text (Text)
 import Unsafe.Coerce (unsafeCoerce)
 
-import PersistWrap.Conkin.Extra ((:*:) ((:*:)), HEq (..), HOrd (..), Some (Some))
+import PersistWrap.Conkin.Extra
+    ( (:*:) ((:*:))
+    , HEq (..)
+    , HOrd (..)
+    , Some (Some)
+    , htraverse
+    , mapUncheck
+    , mapUncheckSing
+    , tupleToSing
+    )
 import PersistWrap.Conkin.Extra.Map (Map)
 import qualified PersistWrap.Conkin.Extra.Map as Map
-import PersistWrap.Functor.Extra ((<&>))
 import PersistWrap.Table.Class
     ( Entity (..)
     , Key
@@ -37,15 +46,15 @@ import PersistWrap.Table.Row
 
 type TVarMaybeRow xs = TVar (Maybe (Row FK xs))
 
-newtype SSymbol name = SSymbol (S.SSymbol name)
-instance HEq SSymbol where
-  heq (SSymbol x) (SSymbol y) = case x %~ y of
+newtype SSymbolCon name = SSymbolCon (S.SSymbol name)
+instance HEq SSymbolCon where
+  heq (SSymbolCon x) (SSymbolCon y) = case x %~ y of
     Proved dec -> Just $ case dec of {Refl -> Dict}
     Disproved _ -> Nothing
-instance HOrd SSymbol where
-  hcompare (SSymbol x) (SSymbol y) = compare (fromSing x) (fromSing y)
+instance HOrd SSymbolCon where
+  hcompare (SSymbolCon x) (SSymbolCon y) = compare (fromSing x) (fromSing y)
 
-type TableMap s = Map SSymbol (SomeTableNamed (Table (STMTransaction s)))
+type TableMap s = Map SSymbolCon (SomeTableNamed (Table (STMTransaction s)))
 
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
@@ -67,7 +76,7 @@ instance MonadTransaction (STMTransaction s) where
       <- mapMaybeM (\k -> fmap (Entity (Key k)) <$> readTVar k) =<< readTVar refs
     writeTVar refs $ map (unKey . entityKey) result
     return $ case getSchemaSing proxy of
-      SSchema _ scols -> withSingI scols $ filter (matches restriction . entityVal) result
+      SSchema _ scols ->  filter (withSingI scols matches restriction . entityVal) result
   getRow (Key r) = liftBase $ readTVar r
   insertRow proxy rowValues = liftBase $ do
     let Table refs = getTable proxy
@@ -76,9 +85,9 @@ instance MonadTransaction (STMTransaction s) where
     return $ Key newRowKey
   deleteRow (Key r) = liftBase $ stateTVar r $ isJust &&& const Nothing
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
-  lookupTable sname = withKnownSymbol sname $ asks $ Map.lookup (SSymbol sname)
+  lookupTable sname = asks $ withSingI sname Map.lookup (SSymbolCon sname)
   keyToForeign (Key r :: Key (STMTransaction s) tab) = FK (sing :: SSchema (TabSchema tab)) r
-  foreignToKey (_ :: Proxy tab) (FK (_ :: SSchema sch) r) = return $ Key $ coerceSchema r
+  foreignToKey (_ :: Proxy tab) (FK (_ :: SSchema sch) r) = Key $ coerceSchema r
     where
       -- If the names are the same, then the schemas must be the same.
       coerceSchema
@@ -86,27 +95,43 @@ instance MonadTransaction (STMTransaction s) where
         => TVarMaybeRow (SchemaCols sch) -> TVarMaybeRow (TabCols tab)
       coerceSchema = unsafeCoerce
 
-newtype TVarDMLT s m x = TVarDMLT (ReaderT (TableMap s) m x)
+newtype TVarDMLT s m x = TVarDMLT {unTVarDMLT :: ReaderT (TableMap s) m x}
   deriving (Functor, Applicative, Monad, MonadIO)
 
 instance MonadIO m => MonadDML (TVarDMLT s m) where
   type Transaction (TVarDMLT s m) = STMTransaction s
   atomicTransaction (STMTransaction act) = TVarDMLT $ mapReaderT (liftIO . atomically) act
 
-withEmptyTables :: MonadIO m => [SomeSing Schema] -> (forall s . TVarDMLT s m x) -> m x
-withEmptyTables schemas (TVarDMLT action)
-  | anyDuplicates (map schemaName schemas) = error "Schema names are not distinct"
-  | otherwise                              = runReaderT action =<< liftIO (constructMap schemas)
+newtype SSchemaCon schema = SSchemaCon {unSSchemaCon :: SSchema schema}
+
+withEmptyTables
+  :: MonadIO m
+  => Tuple schemas SSchemaCon
+  -> (forall s . Tuple schemas (Table (STMTransaction s)) -> TVarDMLT s m x)
+  -> m x
+withEmptyTables schemas action
+  | anyDuplicates (mapUncheck schemaName schemas) = error "Schema names are not distinct"
+  | otherwise = do
+    tables <- liftIO $ htraverse newTable schemas
+    runReaderT (unTVarDMLT $ action tables)
+               (withSingI (tupleToSing (Conkin.fmap unSSchemaCon schemas)) constructMap tables)
 
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
 
-schemaName :: SomeSing Schema -> Text
-schemaName (SomeSing (SSchema n _)) = fromSing n
+schemaName :: SSchemaCon schema -> Text
+schemaName (SSchemaCon (SSchema n _)) = fromSing n
 
-constructMap :: [SomeSing Schema] -> IO (TableMap s)
-constructMap = fmap Map.fromList . mapM newTable
+constructMap :: SingI schemas => Tuple schemas (Table (STMTransaction s)) -> TableMap s
+constructMap tables = Map.fromList $ mapUncheckSing tableToMapEntry tables
 
-newTable :: SomeSing Schema -> IO (Some (SSymbol :*: SomeTableNamed (Table (STMTransaction s))))
-newTable (SomeSing (SSchema name cols)) = newTVarIO [] <&> \tabContents ->
-  withSingI name $ Some $ SSymbol name :*: SomeTableNamed cols (Table tabContents)
+tableToMapEntry
+  :: forall s schema
+   . SingI schema
+  => Table (STMTransaction s) schema
+  -> Some (SSymbolCon :*: SomeTableNamed (Table (STMTransaction s)))
+tableToMapEntry tab = case sing :: Sing schema of
+  SSchema name cols -> withSingI name Some (SSymbolCon name :*: SomeTableNamed cols tab)
+
+newTable :: proxy schema -> IO (Table (STMTransaction s) schema)
+newTable _ = Table <$> newTVarIO []
