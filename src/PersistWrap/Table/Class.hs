@@ -29,8 +29,7 @@ class (HEq (ForeignKey m), Monad m) => MonadTable m where
   getEntitiesProxy :: forall tab . WithinTable m tab
     => Proxy tab -> TabSubRow m tab -> m [Entity m tab]
   getRow :: forall tab . WithinTable m tab => Key m tab -> m (Maybe (TabRow m tab))
-  insertRowProxy :: forall tab . WithinTable m tab
-    => Proxy tab -> TabRow m tab -> m (Key m tab)
+  insertRow :: forall tab . WithinTable m tab => Proxy tab -> TabRow m tab -> m (Key m tab)
   -- Returns True if the row was present.
   deleteRow :: forall tab . WithinTable m tab => Key m tab -> m Bool
   stateRow
@@ -45,7 +44,7 @@ class (HEq (ForeignKey m), Monad m) => MonadTable m where
   modifyRow key fn = isJust <$> stateRow key (((), ) . fn)
   lookupTable :: forall name . SSymbol name -> m (Maybe (SomeTableNamed m name))
   keyToForeign :: forall tab . WithinTable m tab => Key m tab -> ForeignKey m (TabName tab)
-  foreignToKeyProxy
+  foreignToKey
     :: forall tab . WithinTable m tab => Proxy tab -> ForeignKey m (TabName tab) -> m (Key m tab)
 
 type WithinTableOf (table :: Schema -> *) tab =
@@ -63,17 +62,9 @@ withinTable tab cont = reify tab $ \(_ :: Proxy tab') -> cont (Proxy @'(tab',sch
 getTable :: forall tab table proxy . WithinTableOf table tab => proxy tab -> table (TabSchema tab)
 getTable _ = reflect (Proxy @(Fst tab))
 
-insertRow
-  :: forall tab m . (MonadTable m, WithinTable m tab) => TabRow m tab -> m (Key m tab)
-insertRow = insertRowProxy Proxy
-
 getEntities
   :: forall tab m . (MonadTable m, WithinTable m tab) => TabSubRow m tab -> m [Entity m tab]
 getEntities = getEntitiesProxy Proxy
-
-foreignToKey
-  :: forall tab m . (MonadTable m, WithinTable m tab) => ForeignKey m (TabName tab) -> m (Key m tab)
-foreignToKey = foreignToKeyProxy Proxy
 
 getAllEntities :: forall tab m . (MonadTable m, WithinTable m tab) => m [Entity m tab]
 getAllEntities = getEntities (unrestricted (getSchemaSing (Proxy @tab)))

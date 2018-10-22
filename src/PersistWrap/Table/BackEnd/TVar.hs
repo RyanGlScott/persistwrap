@@ -65,7 +65,7 @@ instance MonadTable (STMTable s) where
       SSchema _ scols -> withSingI scols $
         filter (\Class.Entity{entityVal} -> matches restriction entityVal) result
   getRow (Key r) = liftBase $ readTVar r
-  insertRowProxy proxy rowValues = liftBase $ do
+  insertRow proxy rowValues = liftBase $ do
     let Table refs = getTable proxy
     newRowKey <- newTVar (Just rowValues)
     modifyTVar refs (newRowKey :)
@@ -74,12 +74,11 @@ instance MonadTable (STMTable s) where
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
   lookupTable sname = withKnownSymbol sname $ asks $ Map.lookup (SSymbol sname)
   keyToForeign (Key r :: Key s tab) = FK (sing :: SSchema (TabSchema tab)) r
-  foreignToKeyProxy (_ :: Proxy tab) (FK (_ :: SSchema sch) r) =
-      return $ Key $ coerceSchema r
+  foreignToKey (_ :: Proxy tab) (FK (_ :: SSchema sch) r) = return $ Key $ coerceSchema r
     where
       -- If the names are the same, then the schemas must be the same.
       -- TODO Ensure two tables aren't allowed to have the same name.
       coerceSchema
-        :: SchemaName sch ~ TabName tab
+        :: forall. SchemaName sch ~ TabName tab
         => TVarMaybeRow (SchemaCols sch) -> TVarMaybeRow (TabCols tab)
       coerceSchema = unsafeCoerce
