@@ -26,7 +26,7 @@ class (HEq (ForeignKey m), Monad m) => MonadTable m where
   data Table m :: Schema -> *
   data Key m :: (*,Schema) -> *
   type ForeignKey m :: Symbol -> *
-  getEntitiesProxy :: forall tab . WithinTable m tab
+  getEntities :: forall tab . WithinTable m tab
     => Proxy tab -> TabSubRow m tab -> m [Entity m tab]
   getRow :: forall tab . WithinTable m tab => Key m tab -> m (Maybe (TabRow m tab))
   insertRow :: forall tab . WithinTable m tab => Proxy tab -> TabRow m tab -> m (Key m tab)
@@ -62,12 +62,8 @@ withinTable tab cont = reify tab $ \(_ :: Proxy tab') -> cont (Proxy @'(tab',sch
 getTable :: forall tab table proxy . WithinTableOf table tab => proxy tab -> table (TabSchema tab)
 getTable _ = reflect (Proxy @(Fst tab))
 
-getEntities
-  :: forall tab m . (MonadTable m, WithinTable m tab) => TabSubRow m tab -> m [Entity m tab]
-getEntities = getEntitiesProxy Proxy
-
-getAllEntities :: forall tab m . (MonadTable m, WithinTable m tab) => m [Entity m tab]
-getAllEntities = getEntities (unrestricted (getSchemaSing (Proxy @tab)))
+getAllEntities :: forall tab m . (MonadTable m, WithinTable m tab) => Proxy tab -> m [Entity m tab]
+getAllEntities proxy = getEntities proxy (unrestricted (getSchemaSing proxy))
 
 getSchemaSing :: forall tab table proxy . WithinTableOf table tab
   => proxy tab -> SSchema (TabSchema tab)

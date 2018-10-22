@@ -56,7 +56,7 @@ instance MonadTable (STMTable s) where
   newtype Table (STMTable s) schema = Table (TVar [TVarMaybeRow (SchemaCols schema)])
   newtype Key (STMTable s) tab = Key {unKey :: TVarMaybeRow (TabCols tab)}
   type ForeignKey (STMTable s) = FK
-  getEntitiesProxy (proxy :: Proxy tab) restriction = liftBase $ do
+  getEntities (proxy :: Proxy tab) restriction = liftBase $ do
     let Table refs = getTable proxy
     (result :: [Entity s tab])
       <- mapMaybeM (\k -> fmap (Class.Entity (Key k)) <$> readTVar k) =<< readTVar refs
