@@ -33,6 +33,7 @@ dependencies:
 - reflection
 - singletons
 - stm
+- template-haskell
 - text
 - time
 - transformers-base
