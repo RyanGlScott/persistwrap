@@ -120,8 +120,8 @@ instance BCValue 'Column.JSON where
   type DataType fk 'Column.JSON = JSON.Value
   asBaseValue = JSONV
 instance BCValue ('ForeignKey name) where
-  type DataType fk ('ForeignKey name) = BaseValue fk ('ForeignKey name)
-  asBaseValue = id
+  type DataType fk ('ForeignKey name) = fk name
+  asBaseValue = FKV
 
 asValue
   :: forall name nullability fk bc
