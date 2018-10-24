@@ -27,6 +27,14 @@ tupleToSing = \case
   Nil       -> SNil
   Cons x xs -> SCons x (tupleToSing xs)
 
+fmapSing
+  :: forall a b xs . SingI xs => (forall x . SingI x => a x -> b x) -> Tuple xs a -> Tuple xs b
+fmapSing fn = go sing
+  where
+    go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b
+    go SNil             Nil           = Nil
+    go (sx `SCons` sxs) (x `Cons` xs) = withSingI sx fn x `Cons` go sxs xs
+
 zipWithSing
   :: forall a b c xs
    . SingI xs
@@ -35,17 +43,17 @@ zipWithSing
   -> Tuple xs b
   -> Tuple xs c
 zipWithSing fn = go sing
- where
-  go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> Tuple xs' c
-  go SNil             Nil           Nil           = Nil
-  go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y `Cons` go sxs xs ys
+  where
+    go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> Tuple xs' c
+    go SNil             Nil           Nil           = Nil
+    go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y `Cons` go sxs xs ys
 
 mapUncheckSing :: forall a xs y . SingI xs => (forall x . SingI x => a x -> y) -> Tuple xs a -> [y]
 mapUncheckSing fn = go sing
- where
-  go :: forall xs' . SList xs' -> Tuple xs' a -> [y]
-  go SNil             Nil           = []
-  go (sx `SCons` sxs) (x `Cons` xs) = withSingI sx fn x : go sxs xs
+  where
+    go :: forall xs' . SList xs' -> Tuple xs' a -> [y]
+    go SNil             Nil           = []
+    go (sx `SCons` sxs) (x `Cons` xs) = withSingI sx fn x : go sxs xs
 
 zipUncheckSing
   :: forall a b xs y
@@ -55,7 +63,7 @@ zipUncheckSing
   -> Tuple xs b
   -> [y]
 zipUncheckSing fn = go sing
- where
-  go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> [y]
-  go SNil             Nil           Nil           = []
-  go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y : go sxs xs ys
+  where
+    go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> [y]
+    go SNil             Nil           Nil           = []
+    go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y : go sxs xs ys
