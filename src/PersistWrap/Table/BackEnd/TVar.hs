@@ -1,4 +1,9 @@
-module PersistWrap.Table.BackEnd.TVar ( TVarDMLT, STMTransaction, withEmptyTables ) where
+module PersistWrap.Table.BackEnd.TVar
+    ( TVarDMLT
+    , STMTransaction
+    , withEmptyTables
+    , withEmptyTableProxies
+    ) where
 
 import Conkin (Tuple)
 import qualified Conkin
@@ -37,8 +42,10 @@ import PersistWrap.Table.Class
     , MonadDML
     , MonadTransaction (..)
     , SomeTableNamed (SomeTableNamed)
+    , SomeTableProxy
     , getSchemaSing
     , getTable
+    , withinTables
     )
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column
@@ -113,6 +120,13 @@ withEmptyTables schemas action
     tables <- liftIO $ htraverse newTable schemas
     runReaderT (unTVarDMLT $ action tables)
                (withSingI (tupleToSing (Conkin.fmap unSSchemaCon schemas)) constructMap tables)
+
+withEmptyTableProxies
+  :: (SingI schemas, MonadIO m)
+  => Tuple schemas SSchemaCon
+  -> (forall s . Tuple schemas (SomeTableProxy (Table (STMTransaction s))) -> TVarDMLT s m x)
+  -> m x
+withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` action)
 
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort

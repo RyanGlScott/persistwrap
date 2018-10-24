@@ -1,5 +1,6 @@
 module PersistWrap.Table.Class where
 
+import Conkin (Tuple)
 import Data.Maybe (isJust)
 import Data.Promotion.Prelude (Fst, Snd)
 import Data.Proxy (Proxy (Proxy))
@@ -8,6 +9,7 @@ import Data.Singletons (SingI, sing)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
 import PersistWrap.Conkin.Extra (HEq)
+import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Table.Column
 import PersistWrap.Table.Row (unrestricted)
 import qualified PersistWrap.Table.Row as Row
@@ -62,10 +64,22 @@ withinTable
   -> y
 withinTable tab cont = reify tab $ \(_ :: Proxy tab') -> cont (Proxy @'(tab',sch))
 
+data SomeTableProxy table sch
+  = forall tab. (TabSchema tab ~ sch, WithinTableOf table tab) => STP (Proxy tab)
+
+withinTables
+  :: forall table schemas y
+   . SingI schemas
+  => Tuple schemas table
+  -> (Tuple schemas (SomeTableProxy table) -> y)
+  -> y
+withinTables tables cont = cont $ Tuple.fmapSing (`withinTable` STP) tables
+
 getTable :: forall tab table proxy . WithinTableOf table tab => proxy tab -> table (TabSchema tab)
 getTable _ = reflect (Proxy @(Fst tab))
 
-getAllEntities :: forall tab m . (MonadTransaction m, WithinTable m tab) => Proxy tab -> m [Entity m tab]
+getAllEntities
+  :: forall tab m . (MonadTransaction m, WithinTable m tab) => Proxy tab -> m [Entity m tab]
 getAllEntities proxy = getEntities proxy (unrestricted (getSchemaSing proxy))
 
 getSchemaSing
