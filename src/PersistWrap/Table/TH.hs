@@ -7,22 +7,22 @@ module PersistWrap.Table.TH
     , schema
     ) where
 
-import Conkin (Tuple(..))
+import Conkin (Tuple (..))
 import qualified Data.Aeson as JSON
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
-import Database.Persist.Types (PersistValue (..))
 import Data.Singletons (sing)
 import Data.Singletons.Prelude
 import Data.Singletons.TypeLits
 import Data.Text (Text)
-import Data.Time (UTCTime, TimeOfDay, Day)
-import Language.Haskell.TH (Exp(VarE, ListE), Q, TyLit (StrTyLit), Type (LitT))
+import Data.Time (Day, TimeOfDay, UTCTime)
+import Database.Persist.Types (PersistValue (..))
+import Language.Haskell.TH (Exp (ListE, VarE), Q, TyLit (StrTyLit), Type (LitT))
 
 import PersistWrap.Structure hiding (List, Map, Prim)
 import PersistWrap.Table.Column hiding (JSON)
 import qualified PersistWrap.Table.Column as Column
-import PersistWrap.Table.Row (BaseValue(..), Value(..))
+import PersistWrap.Table.Row (BaseValue (..), Value (..))
 
 data SimpleColUnnamedType
   = Text

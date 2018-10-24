@@ -2,8 +2,8 @@
 
 module PersistWrap.Conkin.Extra.Tuple.TH where
 
-import Conkin (Tuple(Cons, Nil))
-import Language.Haskell.TH (Exp(ListE), Q)
+import Conkin (Tuple (Cons, Nil))
+import Language.Haskell.TH (Exp (ListE), Q)
 
 tuple :: Q Exp -> Q Exp
 tuple = (=<<) $ \case

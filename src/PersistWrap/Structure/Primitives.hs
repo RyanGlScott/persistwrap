@@ -1,12 +1,14 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Structure.Primitives where
 
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Singletons (sing)
-import Data.Singletons.TH (sCases, singDecideInstance, singletons)
+import Data.Singletons.Prelude
+import Data.Singletons.TH (sCases, singDecideInstance, singEqInstance, singOrdInstance, singletons)
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
@@ -32,6 +34,8 @@ $(singletons [d|
   |])
 
 $(singDecideInstance ''PrimName)
+$(singEqInstance ''PrimName)
+$(singOrdInstance ''PrimName)
 
 type family PrimType p where
   PrimType 'PrimText = Text

@@ -20,12 +20,14 @@ import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
 import Data.Singletons.Decide ((:~:) (..), Decision (..), (%~))
+import Data.Singletons.Prelude hiding (Map)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
 import Data.Text (Text)
 import Unsafe.Coerce (unsafeCoerce)
 
 import PersistWrap.Conkin.Extra
     ( (:*:) ((:*:))
+    , Always (..)
     , HEq (..)
     , HOrd (..)
     , Some (Some)
@@ -68,10 +70,15 @@ newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
 
 data FK name = forall sch. SchemaName sch ~ name => FK (SSchema sch) (TVarMaybeRow (SchemaCols sch))
 
+instance Eq (FK name) where
+  (==) (FK sl l) (FK sr r) = case sl %~ sr of
+    Proved Refl -> l == r
+    Disproved{} -> False
+instance Always Eq FK where dict = Dict
 instance HEq FK where
   heq (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> if l == r then Just Dict else Nothing
-    _ -> Nothing
+    Disproved{} -> Nothing
 
 instance MonadTransaction (STMTransaction s) where
   newtype Table (STMTransaction s) schema = Table (TVar [TVarMaybeRow (SchemaCols schema)])

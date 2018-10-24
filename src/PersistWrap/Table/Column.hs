@@ -3,11 +3,14 @@
 
 module PersistWrap.Table.Column where
 
+import Data.Constraint (Dict (Dict))
 import Data.Singletons (Sing, SingI (..))
-import Data.Singletons.Prelude (SBool, SList, Snd)
-import Data.Singletons.TH (singDecideInstances, singletonsOnly)
+import Data.Singletons.Decide ((:~:) (Refl), Decision (..), (%~))
+import Data.Singletons.Prelude
+import Data.Singletons.TH (singDecideInstances, singEqInstances, singOrdInstances, singletonsOnly)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
+import PersistWrap.Conkin.Extra (HEq (..), HOrd (..))
 import PersistWrap.Structure (PrimName, SPrimName)
 
 data BaseColumn = Prim PrimName | ForeignKey Symbol | JSON
@@ -44,6 +47,8 @@ instance (SingI name, SingI cols) => SingI ('Schema name cols) where
 type SSchema x = Sing (x :: Schema)
 
 $(singDecideInstances [''BaseColumn, ''Column, ''Schema])
+$(singEqInstances [''BaseColumn, ''Column, ''Schema])
+$(singOrdInstances [''BaseColumn, ''Column, ''Schema])
 
 $(singletonsOnly [d|
   schemaCols :: Schema -> [Column]
@@ -57,3 +62,10 @@ type TabName tab = SchemaName (TabSchema tab)
 type TabCols tab = SchemaCols (TabSchema tab)
 
 newtype SSchemaCon schema = SSchemaCon {unSSchemaCon :: SSchema schema}
+
+instance HEq SSchemaCon where
+  heq (SSchemaCon x) (SSchemaCon y) = case x %~ y of
+    Proved Refl -> Just Dict
+    Disproved{} -> Nothing
+instance HOrd SSchemaCon where
+  hcompare (SSchemaCon x) (SSchemaCon y) = fromSing $ sCompare x y
