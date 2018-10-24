@@ -1,14 +1,36 @@
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 import Conkin (Tuple(..))
-import Control.Monad (join)
+import Control.Monad (forM_, join)
+import Control.Monad.State (execStateT)
+import qualified Control.Monad.State as State
 import qualified Data.Aeson as JSON
+import Data.List (find)
 import Test.Hspec
 
 import PersistWrap.Conkin.Extra.Tuple.TH (tuple)
 import PersistWrap.Table.Class
 import PersistWrap.Table.TH
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
+
+newtype NoShow a = NoShow a
+  deriving (Eq)
+instance Show (NoShow a) where
+  show = const "<no show instance>"
+
+removeInd :: Int -> [a] -> [a]
+removeInd i xs = take i xs ++ drop (i + 1) xs
+
+sameElements :: forall a. Eq a => [a] -> [a] -> Bool
+sameElements xs ys = maybe False null $ (`execStateT` ys) $ forM_ xs $ \x ->
+  do
+    ys' <- State.get
+    (i, _) <- State.lift $ find ((== x) . snd) (zip [0..] ys')
+    State.put $ removeInd i ys'
+
+shouldBeNSIgnoreOrder :: (HasCallStack, Eq a) => [a] -> [a] -> Expectation
+shouldBeNSIgnoreOrder x y = (map NoShow x, map NoShow y) `shouldSatisfy` uncurry sameElements
 
 main :: IO ()
 main = hspec $ describe "Tables" $ it "should insert rows" $ do
@@ -20,7 +42,7 @@ main = hspec $ describe "Tables" $ it "should insert rows" $ do
         ]
       |])
     $ \(STP t1Proxy `Cons` STP t2Proxy `Cons` STP t3Proxy `Cons` STP conProxy `Cons` Nil) -> do
-        (_fk1, _fk3) <- atomicTransaction $ do
+        (fk1, fk3) <- atomicTransaction $ do
           k1 <- insertRow t1Proxy $(row [| [10] |])
           let fk1 = keyToForeign k1
           _ <- insertRow t1Proxy $(row [| [null] |])
@@ -30,11 +52,20 @@ main = hspec $ describe "Tables" $ it "should insert rows" $ do
           _ <- insertRow conProxy $(row [| [fk1, fk3] |])
           _ <- insertRow conProxy $(row [| [fk1, null] |])
           return (fk1, fk3)
-        (_t1Rows, _t2Rows, _t3Rows, _t4Rows) <- atomicTransaction $ do
+        (t1Rows, t2Rows, t3Rows, conRows) <- atomicTransaction $ do
           t1Rows <- getAllEntities t1Proxy
           t2Rows <- getAllEntities t2Proxy
-          t3Rows <- getAllEntities t2Proxy
+          t3Rows <- getAllEntities t3Proxy
           conRows <- getAllEntities conProxy
-          return (t1Rows, t2Rows, t3Rows, conRows)
-        return (return () :: IO ()) -- TODO Assert something meaningful
+          return
+            ( map entityVal t1Rows
+            , map entityVal t2Rows
+            , map entityVal t3Rows
+            , map entityVal conRows
+            )
+        return $ do
+          t1Rows `shouldBeNSIgnoreOrder` [$(row [| [10] |]), $(row [| [null] |])]
+          t2Rows `shouldBeNSIgnoreOrder` [$(row [| [] |])]
+          t3Rows `shouldBeNSIgnoreOrder` [$(row [| [False, JSON.String "jsontext"] |])]
+          conRows `shouldBeNSIgnoreOrder` [$(row [| [fk1, fk3] |]), $(row [| [fk1, null] |])]
   return () :: IO ()
