@@ -11,7 +11,6 @@ import Test.Hspec
 import PersistWrap.Conkin.Extra.Tuple.TH (tuple)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 import PersistWrap.Table.Class
-import PersistWrap.Table.Row
 import PersistWrap.Table.TH
 
 newtype NoShow a = NoShow a
@@ -65,7 +64,7 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
           t1Rows <- getAllEntities t1Proxy
           t2Rows <- getAllEntities t2Proxy
           t3Rows <- getAllEntities t3Proxy
-          false3s <- getEntities t3Proxy $(tuple [| [MV (Just (V (PV False))), MV Nothing] |])
+          false3s <- getEntities t3Proxy $(matcher [| [False, any] |])
           conRows <- getAllEntities conProxy
           return
             ( map entityVal t1Rows

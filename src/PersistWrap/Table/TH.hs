@@ -3,6 +3,7 @@
 module PersistWrap.Table.TH
     ( SimpleColUnnamedType(..)
     , SimpleColType(..)
+    , matcher
     , row
     , schema
     ) where
@@ -22,7 +23,7 @@ import Language.Haskell.TH (Exp (ListE, VarE), Q, TyLit (StrTyLit), Type (LitT))
 import PersistWrap.Structure hiding (List, Map, Prim)
 import PersistWrap.Table.Column hiding (JSON)
 import qualified PersistWrap.Table.Column as Column
-import PersistWrap.Table.Row (BaseValue (..), Value (..))
+import PersistWrap.Table.Row
 
 data SimpleColUnnamedType
   = Text
@@ -133,15 +134,23 @@ asValue = case (sing :: SBool nullability) of
   STrue  -> N . Just . asBaseValue
 
 row :: Q Exp -> Q Exp
-row = (=<<) $ \case
+row = genRow $ \x -> case x of
+  VarE n | n == 'null -> [| N Nothing |]
+  _                  -> [| asValue $(return x) |]
+
+matcher :: Q Exp -> Q Exp
+matcher = genRow $ \x -> case x of
+  VarE n | n == 'any -> [| MV Nothing |]
+  VarE n | n == 'null -> [| MV $ Just $ N Nothing |]
+  _                  -> [| MV $ Just $ asValue $(return x) |]
+
+genRow :: (Exp -> Q Exp) -> Q Exp -> Q Exp
+genRow valueCase = (=<<) $ \case
   ListE exps -> do
     let go = \case
           []     -> [| Nil |]
           x : xs -> do
-            x' <- case x of
-              VarE n | n == 'null -> [| N Nothing |]
-              _                  -> [| asValue $(return x) |]
+            x' <- valueCase x
             [| $(return x') `Cons` $(go xs) |]
     go exps
   e -> error $ "Not a list expression: " ++ show e
---
