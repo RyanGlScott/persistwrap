@@ -40,38 +40,38 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
         , $(schema "connection" ["key1" ::: Key "tab1", "key3" ::: Nullable (Key "tab3")])
         ]
       |])
-    $ \(STP t1Proxy `Cons` STP t2Proxy `Cons` STP t3Proxy `Cons` STP conProxy `Cons` Nil) -> do
+    $ \(STP t1 `Cons` STP t2 `Cons` STP t3 `Cons` STP t4 `Cons` Nil) -> do
         (fk1, fk3, assertions) <- atomicTransaction $ do
-          k1 <- insertRow t1Proxy $(row [| [10] |])
+          k1 <- insertRow t1 $(row [| [10] |])
           let fk1 = keyToForeign k1
-          _ <- insertRow t1Proxy $(row [| [null] |])
-          k2 <- insertRow t2Proxy Nil
-          _ <- insertRow t2Proxy $(row [| [] |])
+          _ <- insertRow t1 $(row [| [null] |])
+          k2 <- insertRow t2 Nil
+          _ <- insertRow t2 $(row [| [] |])
           deleted1 <- deleteRow k2
           deleted2 <- deleteRow k2
           let assertion1 = do
                 deleted1 `shouldBe` True
                 deleted2 `shouldBe` False
-          k3 <- insertRow t3Proxy $(row [| [False, JSON.String "jsontext"] |])
-          _ <- insertRow t3Proxy $(row [| [True, JSON.String "anotherstring"] |])
+          k3 <- insertRow t3 $(row [| [False, JSON.String "jsontext"] |])
+          _ <- insertRow t3 $(row [| [True, JSON.String "anotherstring"] |])
           let fk3 = keyToForeign k3
-          conk <- insertRow conProxy $(row [| [fk1, null] |])
-          _ <- insertRow conProxy $(row [| [fk1, null] |])
+          conk <- insertRow t4 $(row [| [fk1, null] |])
+          _ <- insertRow t4 $(row [| [fk1, null] |])
           modified <- modifyRow conk $ const $(row [| [fk1, fk3] |])
           let assertion2 = modified `shouldBe` True
           return (fk1, fk3, assertion1 >> assertion2)
-        (t1Rows, t2Rows, t3Rows, false3s, conRows) <- atomicTransaction $ do
-          t1Rows <- getAllEntities t1Proxy
-          t2Rows <- getAllEntities t2Proxy
-          t3Rows <- getAllEntities t3Proxy
-          false3s <- getEntities t3Proxy $(matcher [| [False, any] |])
-          conRows <- getAllEntities conProxy
+        (t1Rows, t2Rows, t3Rows, t3False, t4Rows) <- atomicTransaction $ do
+          t1Rows <- getAllEntities t1
+          t2Rows <- getAllEntities t2
+          t3Rows <- getAllEntities t3
+          t3False <- getEntities t3 $(matcher [| [False, any] |])
+          t4Rows <- getAllEntities t4
           return
             ( map entityVal t1Rows
             , map entityVal t2Rows
             , map entityVal t3Rows
-            , map entityVal false3s
-            , map entityVal conRows
+            , map entityVal t3False
+            , map entityVal t4Rows
             )
         return $ do
           assertions
@@ -81,6 +81,6 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
             [ $(row [| [False, JSON.String "jsontext"] |])
             , $(row [| [True, JSON.String "anotherstring"] |])
             ]
-          false3s `shouldBeNSIgnoreOrder` [$(row [| [False, JSON.String "jsontext"] |])]
-          conRows `shouldBeNSIgnoreOrder` [$(row [| [fk1, fk3] |]), $(row [| [fk1, null] |])]
+          t3False `shouldBeNSIgnoreOrder` [$(row [| [False, JSON.String "jsontext"] |])]
+          t4Rows `shouldBeNSIgnoreOrder` [$(row [| [fk1, fk3] |]), $(row [| [fk1, null] |])]
   assertions
