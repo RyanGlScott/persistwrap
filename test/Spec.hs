@@ -21,12 +21,11 @@ instance Show (NoShow a) where
 removeInd :: Int -> [a] -> [a]
 removeInd i xs = take i xs ++ drop (i + 1) xs
 
-sameElements :: forall a. Eq a => [a] -> [a] -> Bool
-sameElements xs ys = maybe False null $ (`execStateT` ys) $ forM_ xs $ \x ->
-  do
-    ys' <- State.get
-    (i, _) <- State.lift $ find ((== x) . snd) (zip [0..] ys')
-    State.put $ removeInd i ys'
+sameElements :: forall a . Eq a => [a] -> [a] -> Bool
+sameElements xs ys = maybe False null $ (`execStateT` ys) $ forM_ xs $ \x -> do
+  ys'    <- State.get
+  (i, _) <- State.lift $ find ((== x) . snd) (zip [0 ..] ys')
+  State.put $ removeInd i ys'
 
 shouldBeNSIgnoreOrder :: (HasCallStack, Eq a) => [a] -> [a] -> Expectation
 shouldBeNSIgnoreOrder x y = (map NoShow x, map NoShow y) `shouldSatisfy` uncurry sameElements
