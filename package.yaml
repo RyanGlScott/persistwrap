@@ -56,6 +56,7 @@ default-extensions:
   LambdaCase
   MultiParamTypeClasses
   NamedFieldPuns
+  OverloadedStrings
   RankNTypes
   RecordWildCards
   ScopedTypeVariables
@@ -82,4 +83,5 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - hspec
     - persistwrap
