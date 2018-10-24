@@ -136,11 +136,12 @@ row :: Q Exp -> Q Exp
 row = (=<<) $ \case
   ListE exps -> do
     let go = \case
-          [] -> [| Nil |]
+          []     -> [| Nil |]
           x : xs -> do
             x' <- case x of
-                    VarE n | n == 'null -> [| N Nothing |]
-                    _ -> [| asValue $(return x) |]
+              VarE n | n == 'null -> [| N Nothing |]
+              _                  -> [| asValue $(return x) |]
             [| $(return x') `Cons` $(go xs) |]
     go exps
   e -> error $ "Not a list expression: " ++ show e
+--

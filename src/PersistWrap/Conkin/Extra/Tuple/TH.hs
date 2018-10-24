@@ -9,7 +9,7 @@ tuple :: Q Exp -> Q Exp
 tuple = (=<<) $ \case
   ListE exps -> do
     let go = \case
-          [] -> [| Nil |]
+          []     -> [| Nil |]
           x : xs -> [| $(return x) `Cons` $(go xs) |]
     go exps
   e -> error $ "Not a list expression: " ++ show e

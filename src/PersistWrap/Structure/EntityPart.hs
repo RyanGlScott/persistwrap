@@ -181,19 +181,19 @@ type FillInDefaultNames xs = FillInDefaultNamesFrom 1 xs
 
 fillInDefaultNames :: Tuple xs EntityMNOfSnd -> Tuple (FillInDefaultNames xs) EntityOfSnd
 fillInDefaultNames = go (sing :: SNat 1)
- where
-  go
-    :: forall i xs'
-     . SNat i
-    -> Tuple xs' EntityMNOfSnd
-    -> Tuple (FillInDefaultNamesFrom i xs') EntityOfSnd
-  go singi = \case
-    Nil -> Nil
-    EntityMNOfSnd ssym x `Cons` xs ->
-      let key = case ssym of
-            SNothing   -> sShow_ singi
-            SJust symx -> symx
-      in  EntityOfSnd key x `Cons` go (sSucc singi) xs
+  where
+    go
+      :: forall i xs'
+       . SNat i
+      -> Tuple xs' EntityMNOfSnd
+      -> Tuple (FillInDefaultNamesFrom i xs') EntityOfSnd
+    go singi = \case
+      Nil -> Nil
+      EntityMNOfSnd ssym x `Cons` xs ->
+        let key = case ssym of
+              SNothing   -> sShow_ singi
+              SJust symx -> symx
+        in  EntityOfSnd key x `Cons` go (sSucc singi) xs
 
 stripOutDefaultNames
   :: forall (xs :: [(Maybe Symbol, Structure)])
@@ -201,17 +201,17 @@ stripOutDefaultNames
   => Tuple (FillInDefaultNames xs) EntityOfSnd
   -> Tuple xs EntityMNOfSnd
 stripOutDefaultNames = go (Proxy @1) sing
- where
-  go
-    :: forall i xs'
-     . Proxy i
-    -> SList xs'
-    -> Tuple (FillInDefaultNamesFrom i xs') EntityOfSnd
-    -> Tuple xs' EntityMNOfSnd
-  go _ = \case
-    SNil                           -> const Nil
-    STuple2 msymx _ `SCons` singxs -> \(EntityOfSnd _ structx `Cons` xs) ->
-      EntityMNOfSnd msymx structx `Cons` go (Proxy @(Succ i)) singxs xs
+  where
+    go
+      :: forall i xs'
+       . Proxy i
+      -> SList xs'
+      -> Tuple (FillInDefaultNamesFrom i xs') EntityOfSnd
+      -> Tuple xs' EntityMNOfSnd
+    go _ = \case
+      SNil                           -> const Nil
+      STuple2 msymx _ `SCons` singxs -> \(EntityOfSnd _ structx `Cons` xs) ->
+        EntityMNOfSnd msymx structx `Cons` go (Proxy @(Succ i)) singxs xs
 
 class SingI (GenericRecList f) => GenericRecPart f where
   type GenericRecList f :: [(Maybe Symbol, Structure)]
