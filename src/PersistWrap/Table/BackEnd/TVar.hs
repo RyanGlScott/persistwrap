@@ -23,7 +23,6 @@ import Data.Singletons.Decide ((:~:) (..), Decision (..), (%~))
 import Data.Singletons.Prelude hiding (Map)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
 import Data.Text (Text)
-import Unsafe.Coerce (unsafeCoerce)
 
 import PersistWrap.Conkin.Extra
     ( (:*:) ((:*:))
@@ -101,13 +100,16 @@ instance MonadTransaction (STMTransaction s) where
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
   lookupTable sname = asks $ withSingI sname Map.lookup (SSymbolCon sname)
   keyToForeign (Key r :: Key (STMTransaction s) tab) = FK (sing :: SSchema (TabSchema tab)) r
-  foreignToKey (_ :: Proxy tab) (FK (_ :: SSchema sch) r) = Key $ coerceSchema r
+  foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
       -- If the names are the same, then the schemas must be the same.
       coerceSchema
         :: forall. SchemaName sch ~ TabName tab
         => TVarMaybeRow (SchemaCols sch) -> TVarMaybeRow (TabCols tab)
-      coerceSchema = unsafeCoerce
+      coerceSchema = case sing :: SSchema (TabSchema tab) of
+        SSchema _ tabCols -> case schCols %~ tabCols of
+          Proved Refl -> id
+          Disproved{} -> error "Two tables with the same name and different schemas"
 
 newtype TVarDMLT s m x = TVarDMLT {unTVarDMLT :: ReaderT (TableMap s) m x}
   deriving (Functor, Applicative, Monad, MonadIO)
