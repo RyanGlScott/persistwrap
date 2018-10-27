@@ -28,7 +28,6 @@ import qualified Data.Text as Text
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Time.LocalTime (TimeOfDay)
-import Data.Void (Void)
 import GHC.Generics as Generics
 
 import PersistWrap.Conkin.Extra
@@ -126,10 +125,6 @@ class SingI (GStructureOf f) => GEntityPart f where
   gFromEntity :: EntityOf (GStructureOf f) -> f x
   gToEntity :: f x -> EntityOf (GStructureOf f)
 
-instance GEntityPart V1 where
-  type GStructureOf V1 = 'EmptyType
-  gFromEntity = \case {}
-  gToEntity = \case {}
 instance GEntityPart U1 where
   type GStructureOf U1 = 'UnitType
   gFromEntity Unit = U1
@@ -259,8 +254,6 @@ genericFromEntity
   :: forall a . (Generic a, GEntityPart (Rep a)) => EntityOf (GStructureOf (Rep a)) -> a
 genericFromEntity = Generics.to . gFromEntity
 
-instance EntityPart Void where
-  type StructureOf Void = 'EmptyType
 instance EntityPart () where
   type StructureOf () = 'UnitType
 instance (EntityPart a, EntityPart b) => EntityPart (a,b) where

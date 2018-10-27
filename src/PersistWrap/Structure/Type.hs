@@ -8,7 +8,6 @@ import PersistWrap.Structure.Primitives
 data Structure
   = Primitive PrimName
   | UnitType
-  | EmptyType
   | SumType [(Symbol, Structure)]
   | ProductType [(Symbol, Structure)]
   | ListType Structure
@@ -16,7 +15,6 @@ data Structure
 
 data instance Sing (struct :: Structure) where
   SPrimitive :: SPrimName pn -> Sing ('Primitive pn)
-  SEmpty :: Sing 'EmptyType
   SUnit :: Sing 'UnitType
   SSumType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('SumType xs)
   SProductType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('ProductType xs)
@@ -24,8 +22,6 @@ data instance Sing (struct :: Structure) where
   SMapType :: Sing s -> Sing ('MapType s)
 instance SingI n => SingI ('Primitive n) where
   sing = SPrimitive sing
-instance SingI 'EmptyType where
-  sing = SEmpty
 instance SingI 'UnitType where
   sing = SUnit
 instance SingI xs => SingI ('SumType xs) where
