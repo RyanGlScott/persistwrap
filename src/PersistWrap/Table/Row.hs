@@ -1,21 +1,21 @@
 module PersistWrap.Table.Row where
 
-import Conkin (Tagged, Tuple)
+import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
-import Data.Proxy (Proxy)
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (Sing(SCons))
 
 import PersistWrap.Aeson.Extra ()
-import PersistWrap.Conkin.Extra (Always, AlwaysTagged(AT), compare1, singToTuple, (==*))
+import PersistWrap.Conkin.Extra (Always, compare1, singToTuple, (==*))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Structure (PrimType, deriveConstraint)
 import PersistWrap.Table.Column
+import PersistWrap.Table.EnumVal
 
 data BaseValue fk (bc :: BaseColumn) where
   PV :: PrimType p -> BaseValue fk ('Prim p)
-  EV :: Tagged (name ': names) Proxy -> BaseValue fk ('Enum name names)
+  EV :: EnumVal (name ': names) -> BaseValue fk ('Enum name names)
   FKV :: fk otherTableName -> BaseValue fk ('ForeignKey otherTableName)
   JSONV :: JSON.Value -> BaseValue fk 'JSON
 
@@ -24,7 +24,7 @@ instance (Always Eq fk, SingI bc) => Eq (BaseValue fk bc) where
     where
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
       go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Eq n (==) pl pr
-      go (SEnum opt opts) (EV x) (EV y) = withSingI (opt `SCons` opts) (==) (AT x) (AT y)
+      go (SEnum opt opts) (EV x) (EV y) = withSingI (opt `SCons` opts) (==) x y
       go (SForeignKey sym) (FKV il) (FKV ir) = withSingI sym (==*) il ir
       go SJSON (JSONV vl) (JSONV vr) = vl == vr
 
@@ -33,7 +33,7 @@ instance (Always Eq fk, Always Ord fk, SingI bc) => Ord (BaseValue fk bc) where
     where
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Ordering
       go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Ord n compare pl pr
-      go (SEnum opt opts) (EV x) (EV y) = withSingI (opt `SCons` opts) compare (AT x) (AT y)
+      go (SEnum opt opts) (EV x) (EV y) = withSingI (opt `SCons` opts) compare x y
       go (SForeignKey sym) (FKV il) (FKV ir) = withSingI sym compare1 il ir
       go SJSON (JSONV vl) (JSONV vr) = vl `compare` vr
 

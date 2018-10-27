@@ -10,7 +10,7 @@ import Test.Hspec
 
 import PersistWrap.Conkin.Extra.Tuple.TH (tuple)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
-import PersistWrap.Table.Class
+import PersistWrap.Table hiding (Enum, JSON)
 import PersistWrap.Table.TH
 
 newtype NoShow a = NoShow a

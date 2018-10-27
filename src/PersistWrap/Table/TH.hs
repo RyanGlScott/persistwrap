@@ -1,19 +1,14 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Table.TH
     ( SimpleColUnnamedType(..)
     , SimpleColType(..)
-    , enum
     , matcher
     , row
     , schema
     ) where
 
-import Prelude hiding (Enum)
-
-import Conkin (Tagged(..), Tuple (..))
+import Conkin (Tuple (..))
 import qualified Data.Aeson as JSON
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
@@ -28,6 +23,7 @@ import Language.Haskell.TH (Exp (ListE, VarE), Q, TyLit (StrTyLit), Type (..))
 import PersistWrap.Structure hiding (List, Map, Prim)
 import PersistWrap.Table.Column hiding (Enum, JSON)
 import qualified PersistWrap.Table.Column as Column
+import PersistWrap.Table.EnumVal
 import PersistWrap.Table.Row
 
 data SimpleColUnnamedType
@@ -134,19 +130,8 @@ instance BCValue ('Prim 'PrimMap) where
   type DataType fk ('Prim 'PrimMap) = [(Text, PersistValue)]
   asBaseValue = PV
 instance BCValue ('Column.Enum name names) where
-  type DataType fk ('Column.Enum name names) = Tagged (name ': names) Proxy
+  type DataType fk ('Column.Enum name names) = EnumVal (name ': names)
   asBaseValue = EV
-
-class IsMember (name :: Symbol) (xs :: [Symbol]) where
-  enum :: Tagged xs Proxy
-instance IsMemberH (name == x) name (x ': xs) => IsMember name (x ': xs) where
-  enum = enumh @(name == x) @name
-class IsMemberH (current :: Bool) (name :: Symbol) (xs :: [Symbol]) where
-  enumh :: Tagged xs Proxy
-instance x ~ name => IsMemberH 'True name (x ': xs) where
-  enumh = Here (Proxy @name)
-instance IsMember name xs => IsMemberH 'False name (x ': xs) where
-  enumh = There (enum @name)
 
 instance BCValue 'Column.JSON where
   type DataType fk 'Column.JSON = JSON.Value
