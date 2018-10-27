@@ -23,6 +23,7 @@ import Data.Singletons.Decide ((:~:) (..), Decision (..), (%~))
 import Data.Singletons.Prelude hiding (Map)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
 import Data.Text (Text)
+import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
     ( (:*:) ((:*:))
@@ -68,6 +69,10 @@ newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
 
 data FK name = forall sch. SchemaName sch ~ name => FK (SSchema sch) (TVarMaybeRow (SchemaCols sch))
+
+instance Show (FK name) where
+  show (FK (SSchema schname _) _) = "<foreign key: " ++ Text.unpack (fromSing schname) ++ ">"
+instance Always Show FK where dict = Dict
 
 instance Eq (FK name) where
   (==) (FK sl l) (FK sr r) = case sl %~ sr of

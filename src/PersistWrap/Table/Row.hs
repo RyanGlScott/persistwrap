@@ -7,7 +7,7 @@ import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (Sing(SCons))
 
 import PersistWrap.Aeson.Extra ()
-import PersistWrap.Conkin.Extra (Always, compare1, singToTuple, (==*))
+import PersistWrap.Conkin.Extra (Always, compare1, singToTuple, showsPrec1, (==*))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Structure (PrimType, deriveConstraint)
 import PersistWrap.Table.Column
@@ -18,6 +18,13 @@ data BaseValue fk (bc :: BaseColumn) where
   EV :: EnumVal (name ': names) -> BaseValue fk ('Enum name names)
   FKV :: fk otherTableName -> BaseValue fk ('ForeignKey otherTableName)
   JSONV :: JSON.Value -> BaseValue fk 'JSON
+
+instance (SingI bc, Always Show fk) => Show (BaseValue fk bc) where
+  showsPrec d bv = showParen (d > 10) $ case (sing :: SBaseColumn bc, bv) of
+    (SPrim sp, PV p) -> showString "PV " . deriveConstraint @Show sp showsPrec 11 p
+    (SEnum n1 nr, EV ev) -> showString "EV " . withSingI (n1 `SCons` nr) showsPrec 11 ev
+    (SForeignKey sfk, FKV fk) -> showString "FKV " . withSingI sfk showsPrec1 11 fk
+    (SJSON, JSONV v) -> showString "JSONV " . showsPrec 11 v
 
 instance (Always Eq fk, SingI bc) => Eq (BaseValue fk bc) where
   (==) = go sing
@@ -41,6 +48,11 @@ instance (Always Eq fk, Always Ord fk, SingI bc) => Ord (BaseValue fk bc) where
 data Value fk (c :: Column) where
   V :: BaseValue fk bc -> Value fk ('Column sym 'False bc)
   N :: Maybe (BaseValue fk bc) -> Value fk ('Column sym 'True bc)
+
+instance (Always Show fk, SingI c) => Show (Value fk c) where
+  showsPrec d v0 = showParen (d > 10) $ case (sing :: SColumn c, v0) of
+    (SColumn _ _ sbc, V v) -> showString "V " . withSingI sbc showsPrec 11 v
+    (SColumn _ _ sbc, N v) -> showString "N " . withSingI sbc showsPrec 11 v
 
 instance (Always Eq fk, SingI c) => Eq (Value fk c) where
   (==) = case (sing :: SColumn c) of

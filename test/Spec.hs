@@ -13,11 +13,6 @@ import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 import PersistWrap.Table hiding (Enum, JSON)
 import PersistWrap.Table.TH
 
-newtype NoShow a = NoShow a
-  deriving (Eq)
-instance Show (NoShow a) where
-  show = const "<no show instance>"
-
 removeInd :: Int -> [a] -> [a]
 removeInd i xs = take i xs ++ drop (i + 1) xs
 
@@ -27,8 +22,8 @@ sameElements xs ys = maybe False null $ (`execStateT` ys) $ forM_ xs $ \x -> do
   (i, _) <- State.lift $ find ((== x) . snd) (zip [0 ..] ys')
   State.put $ removeInd i ys'
 
-shouldBeNSIgnoreOrder :: (HasCallStack, Eq a) => [a] -> [a] -> Expectation
-shouldBeNSIgnoreOrder x y = (map NoShow x, map NoShow y) `shouldSatisfy` uncurry sameElements
+shouldBeIgnoreOrder :: (HasCallStack, Eq a, Show a) => [a] -> [a] -> Expectation
+shouldBeIgnoreOrder x y = (x, y) `shouldSatisfy` uncurry sameElements
 
 main :: IO ()
 main = hspec $ describe "Tables" $ it "should do row operations" $ do
@@ -78,12 +73,12 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
             )
         return $ do
           assertions
-          t1Rows `shouldBeNSIgnoreOrder` [$(row [| [10] |]), $(row [| [null] |])]
-          t2Rows `shouldBeNSIgnoreOrder` [Nil]
-          t3Rows `shouldBeNSIgnoreOrder`
+          t1Rows `shouldBeIgnoreOrder` [$(row [| [10] |]), $(row [| [null] |])]
+          t2Rows `shouldBeIgnoreOrder` [Nil]
+          t3Rows `shouldBeIgnoreOrder`
             [ $(row [| [False, enum @"a", JSON.String "jsontext"] |])
             , $(row [| [True, enum @"Belgium", JSON.String "anotherstring"] |])
             ]
-          t3False `shouldBeNSIgnoreOrder` [$(row [| [False, enum @"a", JSON.String "jsontext"] |])]
-          t4Rows `shouldBeNSIgnoreOrder` [$(row [| [fk1, fk3] |]), $(row [| [fk1, null] |])]
+          t3False `shouldBeIgnoreOrder` [$(row [| [False, enum @"a", JSON.String "jsontext"] |])]
+          t4Rows `shouldBeIgnoreOrder` [$(row [| [fk1, fk3] |]), $(row [| [fk1, null] |])]
   assertions

@@ -20,3 +20,6 @@ instance Always Ord Proxy where dict = Dict
 
 compare1 :: forall f x. (Always Ord f, SingI x) => f x -> f x -> Ordering
 compare1 = case (dict :: Dict (Ord (f x))) of Dict -> compare
+
+showsPrec1 :: forall f x. (Always Show f, SingI x) => Int -> f x -> ShowS
+showsPrec1 = case (dict :: Dict (Show (f x))) of Dict -> showsPrec
