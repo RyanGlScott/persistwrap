@@ -130,14 +130,18 @@ instance GEntityPart U1 where
   gFromEntity Unit = U1
   gToEntity U1 = Unit
 
-class SingI (GenericConsList f) => GenericConsPart f where
-  type GenericConsList f :: [(Symbol, Structure)]
+class SingI (GenericConsTail f) => GenericConsPart f where
+  type GenericConsHead f :: (Symbol, Structure)
+  type GenericConsTail f :: [(Symbol, Structure)]
   fromTag :: Tagged (GenericConsList f) EntityOfSnd -> f x
   toTag :: f x -> Tagged (GenericConsList f) EntityOfSnd
 
+type GenericConsList f = GenericConsHead f ': GenericConsTail f
+
 instance (GEntityPart a, KnownSymbol na)
     => GenericConsPart (C1 ('MetaCons na fa sa) a) where
-  type GenericConsList (C1 ('MetaCons na fa sa) a) = '[ '(na, GStructureOf a) ]
+  type GenericConsHead (C1 ('MetaCons na fa sa) a) = '(na, GStructureOf a)
+  type GenericConsTail (C1 ('MetaCons na fa sa) a) = '[]
   fromTag = \case
     Here (EntityOfSnd _ x) -> M1 $ gFromEntity x
     There x -> case x of {}
@@ -146,10 +150,12 @@ instance (GEntityPart a, KnownSymbol na)
 instance
     ( GenericConsPart a
     , GenericConsPart b
-    , SingI (GenericConsList a ++ GenericConsList b)
+    , SingI (GenericConsHead a)
+    , SingI (GenericConsTail a ++ GenericConsList b)
     )
     => GenericConsPart (a :+: b) where
-  type GenericConsList (a :+: b) = GenericConsList a ++ GenericConsList b
+  type GenericConsHead (a :+: b) = GenericConsHead a
+  type GenericConsTail (a :+: b) = GenericConsTail a ++ GenericConsList b
   fromTag x = case pickSide x of
     Left l  -> L1 $ fromTag l
     Right r -> R1 $ fromTag r
@@ -157,8 +163,8 @@ instance
     L1 l -> leftTag @(GenericConsList a) @(GenericConsList b) $ toTag l
     R1 r -> rightTag @(GenericConsList a) @(GenericConsList b) $ toTag r
 
-instance GenericConsPart (a :+: b) => GEntityPart (a :+: b) where
-  type GStructureOf (a :+: b) = 'SumType (GenericConsList (a :+: b))
+instance (SingI (GenericConsHead a), GenericConsPart (a :+: b)) => GEntityPart (a :+: b) where
+  type GStructureOf (a :+: b) = 'SumType (GenericConsHead (a :+: b)) (GenericConsTail (a :+: b))
   gFromEntity (Sum x) = fromTag x
   gToEntity x = Sum $ toTag x
 
@@ -269,8 +275,8 @@ instance (EntityPart a, EntityPart b, EntityPart c, EntityPart d, EntityPart e, 
 instance (EntityPart a, EntityPart b, EntityPart c, EntityPart d, EntityPart e, EntityPart f, EntityPart g) => EntityPart (a,b,c,d,e,f,g) where
   type StructureOf (a,b,c,d,e,f,g) = GStructureOf (Rep (a,b,c,d,e,f,g))
 instance (EntityPart a, EntityPart b) => EntityPart (Either a b) where
-  type StructureOf (Either a b) = 'SumType '[ '("Left", StructureOf a) , '("Right", StructureOf b) ]
+  type StructureOf (Either a b) = 'SumType '("Left", StructureOf a) '[ '("Right", StructureOf b) ]
 instance EntityPart x => EntityPart (Maybe x) where
-  type StructureOf (Maybe x) = 'SumType '[ '("Nothing", 'UnitType) , '("Just", StructureOf x) ]
+  type StructureOf (Maybe x) = 'SumType '("Nothing", 'UnitType) '[ '("Just", StructureOf x) ]
 instance EntityPart x => EntityPart (Identity x) where
   type StructureOf (Identity x) = StructureOf x

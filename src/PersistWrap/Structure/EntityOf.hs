@@ -22,7 +22,7 @@ import PersistWrap.Structure.Type (Structure (..))
 data EntityOf (struct :: Structure) where
   Prim :: PrimType p -> EntityOf ('Primitive p)
   Unit :: EntityOf 'UnitType
-  Sum :: Tagged xs EntityOfSnd -> EntityOf ('SumType xs)
+  Sum :: Tagged (x ': xs) EntityOfSnd -> EntityOf ('SumType x xs)
   Product :: Tuple xs EntityOfSnd -> EntityOf ('ProductType xs)
   List :: [EntityOf x] -> EntityOf ('ListType x)
   Map :: Map Text (EntityOf x) -> EntityOf ('MapType x)

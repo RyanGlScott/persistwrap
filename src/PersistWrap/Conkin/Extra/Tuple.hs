@@ -67,3 +67,6 @@ zipUncheckSing fn = go sing
     go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> [y]
     go SNil             Nil           Nil           = []
     go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y : go sxs xs ys
+
+tail :: Tuple (x ': xs) f -> Tuple xs f
+tail (_ `Cons` xs) = xs

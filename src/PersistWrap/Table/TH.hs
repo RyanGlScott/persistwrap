@@ -1,14 +1,19 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Table.TH
     ( SimpleColUnnamedType(..)
     , SimpleColType(..)
+    , enum
     , matcher
     , row
     , schema
     ) where
 
-import Conkin (Tuple (..))
+import Prelude hiding (Enum)
+
+import Conkin (Tagged(..), Tuple (..))
 import qualified Data.Aeson as JSON
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
@@ -18,10 +23,10 @@ import Data.Singletons.TypeLits
 import Data.Text (Text)
 import Data.Time (Day, TimeOfDay, UTCTime)
 import Database.Persist.Types (PersistValue (..))
-import Language.Haskell.TH (Exp (ListE, VarE), Q, TyLit (StrTyLit), Type (LitT))
+import Language.Haskell.TH (Exp (ListE, VarE), Q, TyLit (StrTyLit), Type (..))
 
 import PersistWrap.Structure hiding (List, Map, Prim)
-import PersistWrap.Table.Column hiding (JSON)
+import PersistWrap.Table.Column hiding (Enum, JSON)
 import qualified PersistWrap.Table.Column as Column
 import PersistWrap.Table.Row
 
@@ -40,11 +45,15 @@ data SimpleColUnnamedType
   | Map
   | ObjectId
   | DbSpecific
+  | Enum [String]
   | JSON
   | Key String
   | Nullable SimpleColUnnamedType
 
 data SimpleColType = (:::) String SimpleColUnnamedType
+
+promotedListT :: [Type] -> Type
+promotedListT = foldr (AppT . AppT PromotedConsT) PromotedNilT
 
 toSColumnExpr :: SimpleColType -> Q Exp
 toSColumnExpr (name ::: untype) =
@@ -68,6 +77,13 @@ toSColumnExpr (name ::: untype) =
       Map        -> [t| 'Prim 'PrimMap |]
       ObjectId   -> [t| 'Prim 'PrimObjectId |]
       DbSpecific -> [t| 'Prim 'PrimDbSpecific |]
+      Enum []    -> error "Empty enum options"
+      Enum (opt : opts)
+        -> [t|
+              'Column.Enum
+                $(return $ LitT (StrTyLit opt))
+                $(return $ promotedListT (map (LitT . StrTyLit) opts))
+            |]
       JSON       -> [t| 'Column.JSON |]
       Key      s -> [t| 'ForeignKey $(return $ LitT (StrTyLit s)) |]
       Nullable n -> bt n
@@ -117,6 +133,21 @@ instance BCValue ('Prim 'PrimList) where
 instance BCValue ('Prim 'PrimMap) where
   type DataType fk ('Prim 'PrimMap) = [(Text, PersistValue)]
   asBaseValue = PV
+instance BCValue ('Column.Enum name names) where
+  type DataType fk ('Column.Enum name names) = Tagged (name ': names) Proxy
+  asBaseValue = EV
+
+class IsMember (name :: Symbol) (xs :: [Symbol]) where
+  enum :: Tagged xs Proxy
+instance IsMemberH (name == x) name (x ': xs) => IsMember name (x ': xs) where
+  enum = enumh @(name == x) @name
+class IsMemberH (current :: Bool) (name :: Symbol) (xs :: [Symbol]) where
+  enumh :: Tagged xs Proxy
+instance x ~ name => IsMemberH 'True name (x ': xs) where
+  enumh = Here (Proxy @name)
+instance IsMember name xs => IsMemberH 'False name (x ': xs) where
+  enumh = There (enum @name)
+
 instance BCValue 'Column.JSON where
   type DataType fk 'Column.JSON = JSON.Value
   asBaseValue = JSONV

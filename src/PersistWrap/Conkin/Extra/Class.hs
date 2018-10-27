@@ -4,6 +4,7 @@ module PersistWrap.Conkin.Extra.Class where
 
 import Data.Constraint (Dict (Dict))
 import Data.Functor.Const (Const)
+import Data.Proxy (Proxy)
 import Data.Singletons (SingI)
 
 class Always c f where
@@ -11,6 +12,8 @@ class Always c f where
 
 instance Eq x => Always Eq (Const x) where dict = Dict
 instance Ord x => Always Ord (Const x) where dict = Dict
+instance Always Eq Proxy where dict = Dict
+instance Always Ord Proxy where dict = Dict
 
 (==*) :: forall f x. (Always Eq f, SingI x) => f x -> f x -> Bool
 (==*) = case dict :: Dict (Eq (f x)) of Dict -> (==)

@@ -35,7 +35,11 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
   assertions :: Expectation <- BackEnd.withEmptyTableProxies $(tuple [|
         [ $(schema "tab1" ["abc" ::: Nullable Int64])
         , $(schema "tab2" [])
-        , $(schema "tab3" ["hello" ::: Bool, "world" ::: JSON])
+        , $(schema "tab3"
+              [ "hello" ::: Bool
+              , "there" ::: Enum ["a", "b", "Belgium"]
+              ,  "world" ::: JSON
+              ])
         , $(schema "connection" ["key1" ::: Key "tab1", "key3" ::: Nullable (Key "tab3")])
         ]
       |])
@@ -51,8 +55,8 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
           let assertion1 = do
                 deleted1 `shouldBe` True
                 deleted2 `shouldBe` False
-          k3 <- insertRow t3 $(row [| [False, JSON.String "jsontext"] |])
-          _ <- insertRow t3 $(row [| [True, JSON.String "anotherstring"] |])
+          k3 <- insertRow t3 $(row [| [False, enum @"a", JSON.String "jsontext"] |])
+          _ <- insertRow t3 $(row [| [True, enum @"Belgium", JSON.String "anotherstring"] |])
           let fk3 = keyToForeign k3
           conk <- insertRow t4 $(row [| [fk1, null] |])
           _ <- insertRow t4 $(row [| [fk1, null] |])
@@ -63,7 +67,7 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
           t1Rows <- getAllEntities t1
           t2Rows <- getAllEntities t2
           t3Rows <- getAllEntities t3
-          t3False <- getEntities t3 $(matcher [| [False, any] |])
+          t3False <- getEntities t3 $(matcher [| [False, any, any] |])
           t4Rows <- getAllEntities t4
           return
             ( map entityVal t1Rows
@@ -77,9 +81,9 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
           t1Rows `shouldBeNSIgnoreOrder` [$(row [| [10] |]), $(row [| [null] |])]
           t2Rows `shouldBeNSIgnoreOrder` [Nil]
           t3Rows `shouldBeNSIgnoreOrder`
-            [ $(row [| [False, JSON.String "jsontext"] |])
-            , $(row [| [True, JSON.String "anotherstring"] |])
+            [ $(row [| [False, enum @"a", JSON.String "jsontext"] |])
+            , $(row [| [True, enum @"Belgium", JSON.String "anotherstring"] |])
             ]
-          t3False `shouldBeNSIgnoreOrder` [$(row [| [False, JSON.String "jsontext"] |])]
+          t3False `shouldBeNSIgnoreOrder` [$(row [| [False, enum @"a", JSON.String "jsontext"] |])]
           t4Rows `shouldBeNSIgnoreOrder` [$(row [| [fk1, fk3] |]), $(row [| [fk1, null] |])]
   assertions

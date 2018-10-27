@@ -13,16 +13,19 @@ import Data.Singletons.TypeLits (SSymbol, Symbol)
 import PersistWrap.Conkin.Extra (HEq (..), HOrd (..))
 import PersistWrap.Structure (PrimName, SPrimName)
 
-data BaseColumn = Prim PrimName | ForeignKey Symbol | JSON
+data BaseColumn = Prim PrimName | Enum Symbol [Symbol] | ForeignKey Symbol | JSON
 data Column = Column Symbol Bool BaseColumn
 data Schema = Schema Symbol [Column]
 
 data instance Sing (bc :: BaseColumn) where
   SPrim :: SPrimName pn -> Sing ('Prim pn)
+  SEnum :: SSymbol x -> SList xs -> Sing ('Enum x xs)
   SForeignKey :: SSymbol n -> Sing ('ForeignKey n)
   SJSON :: Sing 'JSON
 instance SingI pn => SingI ('Prim pn) where
   sing = SPrim sing
+instance (SingI x, SingI xs) => SingI ('Enum x xs) where
+  sing = SEnum sing sing
 instance SingI n => SingI ('ForeignKey n) where
   sing = SForeignKey sing
 instance SingI 'JSON where
@@ -51,11 +54,16 @@ $(singEqInstances [''BaseColumn, ''Column, ''Schema])
 $(singOrdInstances [''BaseColumn, ''Column, ''Schema])
 
 $(singletonsOnly [d|
+  colName :: Column -> Symbol
+  colName (Column name _ _) = name
   schemaCols :: Schema -> [Column]
   schemaCols (Schema _ cs) = cs
   schemaName :: Schema -> Symbol
   schemaName (Schema n _) = n
   |])
+
+type family RenamedCol (name :: Symbol) (col :: Column) :: Column where
+  RenamedCol name ('Column oldName nullability val) = 'Column name nullability val
 
 type TabSchema (tab :: (*,Schema)) = Snd tab
 type TabName tab = SchemaName (TabSchema tab)
