@@ -15,7 +15,7 @@ data Structure
 
 data instance Sing (struct :: Structure) where
   SPrimitive :: SPrimName pn -> Sing ('Primitive pn)
-  SUnit :: Sing 'UnitType
+  SUnitType :: Sing 'UnitType
   SSumType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('SumType xs)
   SProductType :: Sing (xs :: [(Symbol, Structure)]) -> Sing ('ProductType xs)
   SListType :: Sing s -> Sing ('ListType s)
@@ -23,7 +23,7 @@ data instance Sing (struct :: Structure) where
 instance SingI n => SingI ('Primitive n) where
   sing = SPrimitive sing
 instance SingI 'UnitType where
-  sing = SUnit
+  sing = SUnitType
 instance SingI xs => SingI ('SumType xs) where
   sing = SSumType sing
 instance SingI xs => SingI ('ProductType xs) where
