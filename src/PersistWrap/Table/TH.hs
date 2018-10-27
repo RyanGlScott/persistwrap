@@ -53,7 +53,7 @@ promotedListT = foldr (AppT . AppT PromotedConsT) PromotedNilT
 
 toSColumnExpr :: SimpleColType -> Q Exp
 toSColumnExpr (name ::: untype) =
-    [| sing :: SColumn ('Column $(return (LitT (StrTyLit name))) $(nullability) $(bt untype)) |]
+    [| sing :: STuple2 '( $(return $ LitT (StrTyLit name)) , 'Column $(nullability) $(bt untype)) |]
   where
     nullability = case untype of
       Nullable{} -> [t| 'True |]
@@ -141,24 +141,24 @@ instance BCValue ('ForeignKey name) where
   asBaseValue = FKV
 
 asValue
-  :: forall name nullability fk bc
+  :: forall nullability fk bc
    . (SingI nullability, BCValue bc)
   => DataType fk bc
-  -> Value fk ( 'Column name nullability bc)
+  -> Value fk ( 'Column nullability bc)
 asValue = case (sing :: SBool nullability) of
   SFalse -> V . asBaseValue
   STrue  -> N . Just . asBaseValue
 
 row :: Q Exp -> Q Exp
 row = genRow $ \x -> case x of
-  VarE n | n == 'null -> [| N Nothing |]
-  _                  -> [| asValue $(return x) |]
+  VarE n | n == 'null -> [| ValueSnd $ N Nothing |]
+  _                  -> [| ValueSnd $ asValue $(return x) |]
 
 matcher :: Q Exp -> Q Exp
 matcher = genRow $ \x -> case x of
-  VarE n | n == 'any -> [| MV Nothing |]
-  VarE n | n == 'null -> [| MV $ Just $ N Nothing |]
-  _                  -> [| MV $ Just $ asValue $(return x) |]
+  VarE n | n == 'any -> [| MaybeValueSnd Nothing |]
+  VarE n | n == 'null -> [| MaybeValueSnd $ Just $ N Nothing |]
+  _                  -> [| MaybeValueSnd $ Just $ asValue $(return x) |]
 
 genRow :: (Exp -> Q Exp) -> Q Exp -> Q Exp
 genRow valueCase = (=<<) $ \case

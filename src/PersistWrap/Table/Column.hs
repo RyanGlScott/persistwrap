@@ -14,8 +14,8 @@ import PersistWrap.Conkin.Extra (HEq (..), HOrd (..))
 import PersistWrap.Structure (PrimName, SPrimName)
 
 data BaseColumn = Prim PrimName | Enum Symbol [Symbol] | ForeignKey Symbol | JSON
-data Column = Column Symbol Bool BaseColumn
-data Schema = Schema Symbol [Column]
+data Column = Column Bool BaseColumn
+data Schema = Schema Symbol [(Symbol,Column)]
 
 data instance Sing (bc :: BaseColumn) where
   SPrim :: SPrimName pn -> Sing ('Prim pn)
@@ -34,13 +34,11 @@ type SBaseColumn x = Sing (x :: BaseColumn)
 
 data instance Sing (x :: Column) where
   SColumn
-    :: SSymbol name
-    -> SBool nullability
+    :: SBool nullability
     -> SBaseColumn ctype
-    -> Sing ('Column name nullability ctype)
-instance (SingI name, SingI nullability, SingI ctype)
-    => SingI ('Column name nullability ctype) where
-  sing = SColumn sing sing sing
+    -> Sing ('Column nullability ctype)
+instance (SingI nullability, SingI ctype) => SingI ('Column nullability ctype) where
+  sing = SColumn sing sing
 type SColumn x = Sing (x :: Column)
 
 data instance Sing (sch :: Schema) where
@@ -54,16 +52,11 @@ $(singEqInstances [''BaseColumn, ''Column, ''Schema])
 $(singOrdInstances [''BaseColumn, ''Column, ''Schema])
 
 $(singletonsOnly [d|
-  colName :: Column -> Symbol
-  colName (Column name _ _) = name
-  schemaCols :: Schema -> [Column]
+  schemaCols :: Schema -> [(Symbol, Column)]
   schemaCols (Schema _ cs) = cs
   schemaName :: Schema -> Symbol
   schemaName (Schema n _) = n
   |])
-
-type family RenamedCol (name :: Symbol) (col :: Column) :: Column where
-  RenamedCol name ('Column oldName nullability val) = 'Column name nullability val
 
 type TabSchema (tab :: (*,Schema)) = Snd tab
 type TabName tab = SchemaName (TabSchema tab)

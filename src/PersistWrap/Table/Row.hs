@@ -1,10 +1,13 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module PersistWrap.Table.Row where
 
 import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
 import Data.Singletons (SingI, sing, withSingI)
-import Data.Singletons.Prelude (Sing(SCons))
+import Data.Singletons.Prelude (Sing(SCons, STuple2), STuple2, Fst)
+import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Aeson.Extra ()
 import PersistWrap.Conkin.Extra (Always, compare1, singToTuple, showsPrec1, (==*))
@@ -46,44 +49,69 @@ instance (Always Eq fk, Always Ord fk, SingI bc) => Ord (BaseValue fk bc) where
 
 
 data Value fk (c :: Column) where
-  V :: BaseValue fk bc -> Value fk ('Column sym 'False bc)
-  N :: Maybe (BaseValue fk bc) -> Value fk ('Column sym 'True bc)
+  V :: BaseValue fk bc -> Value fk ('Column 'False bc)
+  N :: Maybe (BaseValue fk bc) -> Value fk ('Column 'True bc)
 
 instance (Always Show fk, SingI c) => Show (Value fk c) where
   showsPrec d v0 = showParen (d > 10) $ case (sing :: SColumn c, v0) of
-    (SColumn _ _ sbc, V v) -> showString "V " . withSingI sbc showsPrec 11 v
-    (SColumn _ _ sbc, N v) -> showString "N " . withSingI sbc showsPrec 11 v
+    (SColumn _ sbc, V v) -> showString "V " . withSingI sbc showsPrec 11 v
+    (SColumn _ sbc, N v) -> showString "N " . withSingI sbc showsPrec 11 v
 
 instance (Always Eq fk, SingI c) => Eq (Value fk c) where
   (==) = case (sing :: SColumn c) of
-      SColumn _ _ sctype -> withSingI sctype go
+      SColumn _ sctype -> withSingI sctype go
     where
-      go :: forall bc sym n. SingI bc
-        => Value fk ('Column sym n bc) -> Value fk ('Column sym n bc) -> Bool
+      go :: forall bc n. SingI bc
+        => Value fk ('Column n bc) -> Value fk ('Column n bc) -> Bool
       go (N x) (N y) = x == y
       go (V x) (V y) = x == y
 
 instance (Always Eq fk, Always Ord fk, SingI c) => Ord (Value fk c) where
   compare = case (sing :: SColumn c) of
-      SColumn _ _ sctype -> withSingI sctype go
+      SColumn _ sctype -> withSingI sctype go
     where
-      go :: forall bc sym n. SingI bc
-        => Value fk ('Column sym n bc) -> Value fk ('Column sym n bc) -> Ordering
+      go :: forall bc n. SingI bc
+        => Value fk ('Column n bc) -> Value fk ('Column n bc) -> Ordering
       go (N x) (N y) = compare x y
       go (V x) (V y) = compare x y
 
-newtype MaybeValue fk (c :: Column) = MV (Maybe (Value fk c))
+data ValueSnd fk (nc :: (Symbol,Column)) where
+  ValueSnd :: Value fk col -> ValueSnd fk '(name,col)
+instance (Always Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
+  (==) (ValueSnd x) (ValueSnd y) = colEq @(Fst nc) x y
+instance (Always Show fk, SingI nc) => Show (ValueSnd fk nc) where
+  showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing :: Sing nc of
+    STuple2 _ scol -> withSingI scol (showsPrec 11 x)
 
-type Row fk (cols :: [Column]) = Tuple cols (Value fk)
-type SubRow fk (cols :: [Column]) = Tuple cols (MaybeValue fk)
+data MaybeValueSnd fk (nc :: (Symbol,Column)) where
+  MaybeValueSnd :: Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)
+
+type Row fk (cols :: [(Symbol,Column)]) = Tuple cols (ValueSnd fk)
+type SubRow fk (cols :: [(Symbol,Column)]) = Tuple cols (MaybeValueSnd fk)
 
 matches
   :: forall fk xs
    . (Always Eq fk, SingI xs)
-  => Tuple xs (MaybeValue fk)
-  -> Tuple xs (Value fk)
+  => Tuple xs (MaybeValueSnd fk)
+  -> Tuple xs (ValueSnd fk)
   -> Bool
-matches l r = and $ Tuple.zipUncheckSing (\(MV x) y -> maybe True (== y) x) l r
+matches l r = and $ Tuple.zipUncheckSing
+  (\(MaybeValueSnd x0) y -> case x0 of
+    Nothing -> True
+    Just x  -> ValueSnd x == y
+  )
+  l
+  r
+
+colEq
+  :: forall name col fk
+   . (Always Eq fk, SingI '((name :: Symbol),(col :: Column)))
+  => Value fk col
+  -> Value fk col
+  -> Bool
+colEq = case sing :: STuple2 '(name,col) of
+  STuple2 _ (sc :: SColumn col) -> withSingI sc (==)
 
 unrestricted :: SSchema schema -> SubRow fk (SchemaCols schema)
-unrestricted (SSchema _ scols) = Conkin.fmap (const $ MV Nothing) (singToTuple scols)
+unrestricted (SSchema _ scols) =
+  Conkin.fmap (\(STuple2 _ _) -> MaybeValueSnd Nothing) (singToTuple scols)
