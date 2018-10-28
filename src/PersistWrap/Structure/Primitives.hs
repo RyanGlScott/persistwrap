@@ -13,7 +13,7 @@ import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Time.LocalTime (TimeOfDay)
-import Database.Persist.Types (PersistValue (..))
+import Database.Persist.Types (PersistValue(..))
 
 $(singletons [d|
   data PrimName

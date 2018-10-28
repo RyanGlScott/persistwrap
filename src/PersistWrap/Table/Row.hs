@@ -6,11 +6,11 @@ import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
 import Data.Singletons (SingI, sing, withSingI)
-import Data.Singletons.Prelude (Sing(SCons, STuple2), STuple2, Fst)
+import Data.Singletons.Prelude (Fst, STuple2, Sing(SCons, STuple2))
 import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Aeson.Extra ()
-import PersistWrap.Conkin.Extra (Always, compare1, singToTuple, showsPrec1, (==*))
+import PersistWrap.Conkin.Extra (Always, compare1, showsPrec1, singToTuple, (==*))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Structure (PrimType, deriveConstraint)
 import PersistWrap.Table.Column

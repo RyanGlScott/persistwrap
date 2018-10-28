@@ -4,24 +4,24 @@ module PersistWrap.Structure.EntityPart
     ( EntityPart(..)
     ) where
 
-import Conkin (Tagged (..), Tuple (..))
+import Conkin (Tagged(..), Tuple(..))
 import Control.Arrow ((***))
 import Data.ByteString (ByteString)
 import Data.Coerce (Coercible, coerce)
-import Data.Functor.Identity (Identity (..))
+import Data.Functor.Identity (Identity(..))
 import Data.Int (Int64)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Promotion.Prelude (type (++), Symbol)
-import Data.Proxy (Proxy (Proxy))
+import Data.Proxy (Proxy(Proxy))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
 import Data.Singletons.Prelude.Enum (Succ, sSucc)
-import Data.Singletons.Prelude.List (SList, Sing (SCons, SNil))
-import Data.Singletons.Prelude.Maybe (SMaybe, Sing (SJust, SNothing))
+import Data.Singletons.Prelude.List (SList, Sing(SCons, SNil))
+import Data.Singletons.Prelude.Maybe (SMaybe, Sing(SJust, SNothing))
 import Data.Singletons.Prelude.Show (Show_, sShow_)
-import Data.Singletons.Prelude.Tuple (Sing (STuple2))
+import Data.Singletons.Prelude.Tuple (Sing(STuple2))
 import Data.Singletons.TypeLits (KnownSymbol, Nat, SNat)
 import Data.Text (Text)
 import qualified Data.Text as Text

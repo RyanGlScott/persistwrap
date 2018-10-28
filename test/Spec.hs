@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-import Conkin (Tuple (..))
+import Conkin (Tuple(..))
 import Control.Monad (forM_)
 import Control.Monad.State (execStateT)
 import qualified Control.Monad.State as State
@@ -9,8 +9,8 @@ import Data.List (find)
 import Test.Hspec
 
 import PersistWrap.Conkin.Extra.Tuple.TH (tuple)
-import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 import PersistWrap.Table hiding (Enum, JSON)
+import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 import PersistWrap.Table.TH
 
 removeInd :: Int -> [a] -> [a]

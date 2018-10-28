@@ -2,7 +2,7 @@
 
 module PersistWrap.Conkin.Extra.Class where
 
-import Data.Constraint (Dict (Dict))
+import Data.Constraint (Dict(Dict))
 import Data.Functor.Const (Const)
 import Data.Proxy (Proxy)
 import Data.Singletons (SingI)

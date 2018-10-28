@@ -9,7 +9,7 @@ module PersistWrap.Table.EnumVal
 import Conkin (Tagged(..))
 import Data.Proxy (Proxy(Proxy))
 import Data.Singletons (SingI, fromSing, sing)
-import Data.Singletons.Prelude (type (==), Sing(SCons, SNil), SList)
+import Data.Singletons.Prelude (type (==), SList, Sing(SCons, SNil))
 import Data.Singletons.TypeLits (Symbol)
 import Data.Text (Text)
 

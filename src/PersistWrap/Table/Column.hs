@@ -3,14 +3,14 @@
 
 module PersistWrap.Table.Column where
 
-import Data.Constraint (Dict (Dict))
-import Data.Singletons (Sing, SingI (..))
-import Data.Singletons.Decide ((:~:) (Refl), Decision (..), (%~))
+import Data.Constraint (Dict(Dict))
+import Data.Singletons (Sing, SingI(..))
+import Data.Singletons.Decide ((:~:)(Refl), Decision(..), (%~))
 import Data.Singletons.Prelude
 import Data.Singletons.TH (singDecideInstances, singEqInstances, singOrdInstances, singletonsOnly)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
-import PersistWrap.Conkin.Extra (HEq (..), HOrd (..))
+import PersistWrap.Conkin.Extra (HEq(..), HOrd(..))
 import PersistWrap.Structure (PrimName, SPrimName)
 
 data BaseColumn = Prim PrimName | Enum Symbol [Symbol] | ForeignKey Symbol | JSON

@@ -3,9 +3,9 @@
 
 module PersistWrap.Conkin.Extra.Tagged where
 
-import Conkin (Tagged (..))
+import Conkin (Tagged(..))
 import Data.Singletons (SingI, sing, withSingI)
-import Data.Singletons.Prelude (type (++), SList, Sing (SCons, SNil))
+import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
 pickSide
   :: forall (xs :: [k]) (ys :: [k]) (f :: k -> *)

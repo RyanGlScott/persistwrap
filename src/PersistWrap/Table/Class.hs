@@ -3,7 +3,7 @@ module PersistWrap.Table.Class where
 import Conkin (Tuple)
 import Data.Maybe (isJust)
 import Data.Promotion.Prelude (Fst, Snd)
-import Data.Proxy (Proxy (Proxy))
+import Data.Proxy (Proxy(Proxy))
 import Data.Reflection (Reifies, reflect, reify)
 import Data.Singletons (SingI, sing)
 import Data.Singletons.TypeLits (SSymbol, Symbol)

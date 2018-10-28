@@ -7,7 +7,7 @@ module PersistWrap.Conkin.Extra
   , module X
   ) where
 
-import Conkin (Dispose (..), getFlip)
+import Conkin (Dispose(..), getFlip)
 import qualified Conkin
 import qualified Data.DList as DList
 import Data.Functor.Compose (getCompose)

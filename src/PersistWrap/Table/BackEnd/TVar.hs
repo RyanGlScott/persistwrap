@@ -14,23 +14,23 @@ import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, mapReaderT, runReaderT)
-import Data.Constraint (Dict (Dict))
+import Data.Constraint (Dict(Dict))
 import Data.List (group, sort)
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
-import Data.Singletons.Decide ((:~:) (..), Decision (..), (%~))
+import Data.Singletons.Decide ((:~:)(..), Decision(..), (%~))
 import Data.Singletons.Prelude hiding (Map)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
 import Data.Text (Text)
 import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
-    ( (:*:) ((:*:))
-    , Always (..)
-    , HEq (..)
-    , HOrd (..)
-    , Some (Some)
+    ( (:*:)((:*:))
+    , Always(..)
+    , HEq(..)
+    , HOrd(..)
+    , Some(Some)
     , htraverse
     , mapUncheck
     , mapUncheckSing
@@ -39,11 +39,11 @@ import PersistWrap.Conkin.Extra
 import PersistWrap.Conkin.Extra.Map (Map)
 import qualified PersistWrap.Conkin.Extra.Map as Map
 import PersistWrap.Table.Class
-    ( Entity (..)
+    ( Entity(..)
     , Key
     , MonadDML
-    , MonadTransaction (..)
-    , SomeTableNamed (SomeTableNamed)
+    , MonadTransaction(..)
+    , SomeTableNamed(SomeTableNamed)
     , SomeTableProxy
     , getSchemaSing
     , getTable

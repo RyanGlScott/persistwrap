@@ -8,16 +8,16 @@ module PersistWrap.Structure.EntityOf
     , field
     ) where
 
-import Conkin (Tagged (..), Tuple (..))
+import Conkin (Tagged(..), Tuple(..))
 import Control.Lens (Lens', (<&>))
 import Data.Map (Map)
 import Data.Promotion.Prelude.Eq (type (==))
-import Data.Proxy (Proxy (Proxy))
+import Data.Proxy (Proxy(Proxy))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 import Data.Text (Text)
 
 import PersistWrap.Structure.Primitives (PrimType)
-import PersistWrap.Structure.Type (Structure (..))
+import PersistWrap.Structure.Type (Structure(..))
 
 data EntityOf (struct :: Structure) where
   Prim :: PrimType p -> EntityOf ('Primitive p)

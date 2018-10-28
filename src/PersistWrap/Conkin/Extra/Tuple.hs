@@ -2,9 +2,9 @@
 
 module PersistWrap.Conkin.Extra.Tuple where
 
-import Conkin (Tuple (..))
+import Conkin (Tuple(..))
 import Data.Singletons (Sing, SingI, sing, withSingI)
-import Data.Singletons.Prelude (type (++), SList, Sing (SCons, SNil))
+import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
 splitTuple t = case (sing :: SList xs) of
