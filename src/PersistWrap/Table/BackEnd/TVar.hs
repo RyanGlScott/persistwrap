@@ -6,7 +6,6 @@ module PersistWrap.Table.BackEnd.TVar
     ) where
 
 import Conkin (Tuple)
-import qualified Conkin
 import Control.Arrow ((&&&), (***))
 import Control.Concurrent.STM (STM, atomically)
 import Control.Concurrent.STM.TVar
@@ -34,7 +33,7 @@ import PersistWrap.Conkin.Extra
     , htraverse
     , mapUncheck
     , mapUncheckSing
-    , tupleToSing
+    , singToTuple
     )
 import PersistWrap.Conkin.Extra.Map (Map)
 import qualified PersistWrap.Conkin.Extra.Map as Map
@@ -125,19 +124,21 @@ instance MonadIO m => MonadDML (TVarDMLT s m) where
 
 withEmptyTables
   :: MonadIO m
-  => Tuple schemas SSchemaCon
+  => SList (schemas :: [Schema])
   -> (forall s . Tuple schemas (Table (STMTransaction s)) -> TVarDMLT s m x)
   -> m x
-withEmptyTables schemas action
-  | anyDuplicates (mapUncheck schemaName schemas) = error "Schema names are not distinct"
+withEmptyTables sschemas action
+  | anyDuplicates (mapUncheck schemaName schemasTuple) = error "Schema names are not distinct"
   | otherwise = do
-    tables <- liftIO $ htraverse newTable schemas
+    tables <- liftIO $ htraverse newTable schemasTuple
     runReaderT (unTVarDMLT $ action tables)
-               (withSingI (tupleToSing (Conkin.fmap unSSchemaCon schemas)) constructMap tables)
+               (withSingI sschemas constructMap tables)
+  where
+    schemasTuple = singToTuple sschemas
 
 withEmptyTableProxies
   :: (SingI schemas, MonadIO m)
-  => Tuple schemas SSchemaCon
+  => SList schemas
   -> (forall s . Tuple schemas (SomeTableProxy (Table (STMTransaction s))) -> TVarDMLT s m x)
   -> m x
 withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` action)
@@ -145,8 +146,8 @@ withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` a
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
 
-schemaName :: SSchemaCon schema -> Text
-schemaName (SSchemaCon (SSchema n _)) = fromSing n
+schemaName :: SSchema schema -> Text
+schemaName (SSchema n _) = fromSing n
 
 constructMap :: SingI schemas => Tuple schemas (Table (STMTransaction s)) -> TableMap s
 constructMap tables = Map.fromList $ mapUncheckSing tableToMapEntry tables

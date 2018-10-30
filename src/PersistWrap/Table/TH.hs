@@ -14,7 +14,6 @@ import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Singletons (sing)
 import Data.Singletons.Prelude
-import Data.Singletons.TypeLits
 import Data.Text (Text)
 import Data.Time (Day, TimeOfDay, UTCTime)
 import Database.Persist.Types (PersistValue(..))
@@ -51,9 +50,9 @@ data SimpleColType = (:::) String SimpleColUnnamedType
 promotedListT :: [Type] -> Type
 promotedListT = foldr (AppT . AppT PromotedConsT) PromotedNilT
 
-toSColumnExpr :: SimpleColType -> Q Exp
-toSColumnExpr (name ::: untype) =
-    [| sing :: STuple2 '( $(return $ LitT (StrTyLit name)) , 'Column $(nullability) $(bt untype)) |]
+toColumnType :: SimpleColType -> Q Type
+toColumnType (name ::: untype) =
+    [t| '( $(return $ LitT (StrTyLit name)) , 'Column $(nullability) $(bt untype)) |]
   where
     nullability = case untype of
       Nullable{} -> [t| 'True |]
@@ -84,14 +83,12 @@ toSColumnExpr (name ::: untype) =
       Key      s -> [t| 'ForeignKey $(return $ LitT (StrTyLit s)) |]
       Nullable n -> bt n
 
-schema :: String -> [SimpleColType] -> Q Exp
-schema s exps = do
+schema :: String -> [SimpleColType] -> Q Type
+schema s xs0 = do
   let go = \case
-        []     -> [| SNil |]
-        x : xs -> do
-          x' <- toSColumnExpr x
-          [| $(return x') `SCons` $(go xs) |]
-  [| SSchemaCon $ SSchema (SSym :: SSymbol $(return $ LitT (StrTyLit s))) $(go exps) |]
+        []     -> [t| '[] |]
+        x : xs -> [t| $(toColumnType x) ': $(go xs) |]
+  [t| 'Schema $(return $ LitT (StrTyLit s)) $(go xs0) |]
 
 class BCValue (bc :: BaseColumn) where
   type DataType (fk :: Symbol -> *) bc :: *

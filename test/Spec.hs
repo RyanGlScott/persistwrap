@@ -6,9 +6,10 @@ import Control.Monad.State (execStateT)
 import qualified Control.Monad.State as State
 import qualified Data.Aeson as JSON
 import Data.List (find)
+import Data.Singletons (sing)
+import Data.Singletons.Prelude (SList)
 import Test.Hspec
 
-import PersistWrap.Conkin.Extra.Tuple.TH (tuple)
 import PersistWrap.Table hiding (Enum, JSON)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 import PersistWrap.Table.TH
@@ -27,8 +28,9 @@ shouldBeIgnoreOrder x y = (x, y) `shouldSatisfy` uncurry sameElements
 
 main :: IO ()
 main = hspec $ describe "Tables" $ it "should do row operations" $ do
-  assertions :: Expectation <- BackEnd.withEmptyTableProxies $(tuple [|
-        [ $(schema "tab1" ["abc" ::: Nullable Int64])
+  assertions :: Expectation <- BackEnd.withEmptyTableProxies
+      (sing :: SList
+        '[ $(schema "tab1" ["abc" ::: Nullable Int64])
         , $(schema "tab2" [])
         , $(schema "tab3"
               [ "hello" ::: Bool
@@ -37,7 +39,7 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
               ])
         , $(schema "connection" ["key1" ::: Key "tab1", "key3" ::: Nullable (Key "tab3")])
         ]
-      |])
+      )
     $ \(STP t1 `Cons` STP t2 `Cons` STP t3 `Cons` STP t4 `Cons` Nil) -> do
         (fk1, fk3, assertions) <- atomicTransaction $ do
           k1 <- insertRow t1 $(row [| [10] |])
