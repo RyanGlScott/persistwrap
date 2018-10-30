@@ -25,18 +25,9 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
-    ( (:*:)((:*:))
-    , Always(..)
-    , HEq(..)
-    , HOrd(..)
-    , Some(Some)
-    , htraverse
-    , mapUncheck
-    , mapUncheckSing
-    , singToTuple
-    )
-import PersistWrap.Conkin.Extra.Map (Map)
-import qualified PersistWrap.Conkin.Extra.Map as Map
+    (Always(..), HEq(..), HOrd(..), Some(Some), htraverse, mapUncheck, mapUncheckSing, singToTuple)
+import PersistWrap.Conkin.Extra.SymMap (SymMap)
+import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
 import PersistWrap.Table.Class
     ( Entity(..)
     , Key
@@ -62,7 +53,7 @@ instance HEq SSymbolCon where
 instance HOrd SSymbolCon where
   hcompare (SSymbolCon x) (SSymbolCon y) = compare (fromSing x) (fromSing y)
 
-type TableMap s = Map SSymbolCon (SomeTableNamed (Table (STMTransaction s)))
+type TableMap s = SymMap (SomeTableNamed (Table (STMTransaction s)))
 
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
@@ -102,7 +93,7 @@ instance MonadTransaction (STMTransaction s) where
     return $ Key newRowKey
   deleteRow (Key r) = liftBase $ stateTVar r $ isJust &&& const Nothing
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
-  lookupTable sname = asks $ withSingI sname Map.lookup (SSymbolCon sname)
+  lookupTable sname = asks $ SymMap.lookup sname
   keyToForeign (Key r :: Key (STMTransaction s) tab) = FK (sing :: SSchema (TabSchema tab)) r
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
@@ -131,10 +122,8 @@ withEmptyTables sschemas action
   | anyDuplicates (mapUncheck schemaName schemasTuple) = error "Schema names are not distinct"
   | otherwise = do
     tables <- liftIO $ htraverse newTable schemasTuple
-    runReaderT (unTVarDMLT $ action tables)
-               (withSingI sschemas constructMap tables)
-  where
-    schemasTuple = singToTuple sschemas
+    runReaderT (unTVarDMLT $ action tables) (withSingI sschemas constructMap tables)
+  where schemasTuple = singToTuple sschemas
 
 withEmptyTableProxies
   :: (SingI schemas, MonadIO m)
@@ -150,15 +139,15 @@ schemaName :: SSchema schema -> Text
 schemaName (SSchema n _) = fromSing n
 
 constructMap :: SingI schemas => Tuple schemas (Table (STMTransaction s)) -> TableMap s
-constructMap tables = Map.fromList $ mapUncheckSing tableToMapEntry tables
+constructMap tables = SymMap.fromList $ mapUncheckSing tableToMapEntry tables
 
 tableToMapEntry
   :: forall s schema
    . SingI schema
   => Table (STMTransaction s) schema
-  -> Some (SSymbolCon :*: SomeTableNamed (Table (STMTransaction s)))
+  -> Some (SomeTableNamed (Table (STMTransaction s)))
 tableToMapEntry tab = case sing :: Sing schema of
-  SSchema name cols -> withSingI name Some (SSymbolCon name :*: SomeTableNamed cols tab)
+  SSchema name cols -> withSingI name Some (SomeTableNamed cols tab)
 
 newTable :: proxy schema -> IO (Table (STMTransaction s) schema)
 newTable _ = Table <$> newTVarIO []
