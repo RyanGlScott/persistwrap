@@ -13,7 +13,6 @@ import qualified Data.DList as DList
 import Data.Functor.Compose (getCompose)
 
 import PersistWrap.Conkin.Extra.Class as X
-import PersistWrap.Conkin.Extra.FTuple as X
 import PersistWrap.Conkin.Extra.Some as X
 import PersistWrap.Conkin.Extra.Tagged as X
 import PersistWrap.Conkin.Extra.Tuple as X
