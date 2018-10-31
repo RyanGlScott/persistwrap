@@ -18,7 +18,7 @@ import Data.Singletons.TypeLits (SSymbol, Symbol)
 import PersistWrap.Structure.Primitives (PrimType)
 import PersistWrap.Structure.Type (Structure(..))
 
-data EntityOf (struct :: Structure) where
+data EntityOf (struct :: Structure Symbol) where
   Prim :: PrimType p -> EntityOf ('Primitive p)
   Unit :: EntityOf 'UnitType
   Sum :: Tagged (x ': xs) EntityOfSnd -> EntityOf ('SumType x xs)
@@ -39,7 +39,7 @@ field
   -> Lens' (EntityOf ( 'ProductType xs)) (EntityOf struct)
 field sym fn (Product x) = Product <$> entry sym fn x
 
-class KeyOccursIn (sym :: Symbol) (struct :: Structure) (xs :: [(Symbol,Structure)])
+class KeyOccursIn (sym :: Symbol) (struct :: Structure Symbol) (xs :: [(Symbol,Structure Symbol)])
     | sym xs -> struct where
   entry :: SSymbol sym -> Lens' (Tuple xs EntityOfSnd) (EntityOf struct)
 
@@ -50,9 +50,9 @@ instance SubOccurs (symk == symx) symk structk structx xs
 class SubOccurs
     (current :: Bool)
     (symk :: Symbol)
-    (structk :: Structure)
-    (structx :: Structure)
-    (xs :: [(Symbol,Structure)])
+    (structk :: Structure Symbol)
+    (structx :: Structure Symbol)
+    (xs :: [(Symbol,Structure Symbol)])
     | current symk structx xs -> structk where
   subEntry :: forall symx
     . Proxy current

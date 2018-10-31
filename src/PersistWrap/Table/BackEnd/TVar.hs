@@ -115,7 +115,7 @@ instance MonadIO m => MonadDML (TVarDMLT s m) where
 
 withEmptyTables
   :: MonadIO m
-  => SList (schemas :: [Schema])
+  => SList (schemas :: [Schema Symbol])
   -> (forall s . Tuple schemas (Table (STMTransaction s)) -> TVarDMLT s m x)
   -> m x
 withEmptyTables sschemas action
@@ -135,7 +135,7 @@ withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` a
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
 
-schemaName :: SSchema schema -> Text
+schemaName :: SSchema (schema :: Schema Symbol) -> Text
 schemaName (SSchema n _) = fromSing n
 
 constructMap :: SingI schemas => Tuple schemas (Table (STMTransaction s)) -> TableMap s

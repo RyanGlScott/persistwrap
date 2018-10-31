@@ -37,7 +37,7 @@ import PersistWrap.Structure.Primitives
 import PersistWrap.Structure.Type
 
 class SingI (StructureOf t) => EntityPart t where
-  type StructureOf t :: Structure
+  type StructureOf t :: Structure Symbol
   fromEntity :: EntityOf (StructureOf t) -> t
   default fromEntity :: (Generic t, GEntityPart (Rep t), StructureOf t ~ GStructureOf (Rep t))
     => EntityOf (StructureOf t) -> t
@@ -127,7 +127,7 @@ instance EntityMapKey Text where
   type KeyRep Text = 'PrimText
 
 class SingI (GStructureOf f) => GEntityPart f where
-  type GStructureOf f :: Structure
+  type GStructureOf f :: Structure Symbol
   gFromEntity :: EntityOf (GStructureOf f) -> f x
   gToEntity :: f x -> EntityOf (GStructureOf f)
 
@@ -137,8 +137,8 @@ instance GEntityPart U1 where
   gToEntity U1 = Unit
 
 class SingI (GenericConsTail f) => GenericConsPart f where
-  type GenericConsHead f :: (Symbol, Structure)
-  type GenericConsTail f :: [(Symbol, Structure)]
+  type GenericConsHead f :: (Symbol, Structure Symbol)
+  type GenericConsTail f :: [(Symbol, Structure Symbol)]
   fromTag :: Tagged (GenericConsList f) EntityOfSnd -> f x
   toTag :: f x -> Tagged (GenericConsList f) EntityOfSnd
 
@@ -175,11 +175,11 @@ instance (SingI (GenericConsHead a), GenericConsPart (a :+: b)) => GEntityPart (
   gToEntity x = Sum $ toTag x
 
 data EntityMNOfSnd x where
-  EntityMNOfSnd :: forall (sym :: Maybe Symbol) (struct :: Structure).
+  EntityMNOfSnd :: forall (sym :: Maybe Symbol) (struct :: Structure Symbol).
     SMaybe sym -> EntityOf struct -> EntityMNOfSnd '( sym , struct )
 
-type family FillInDefaultNamesFrom (i :: Nat) (xs :: [(Maybe Symbol, Structure)])
-    :: [(Symbol, Structure)] where
+type family FillInDefaultNamesFrom (i :: Nat) (xs :: [(Maybe Symbol, Structure Symbol)])
+    :: [(Symbol, Structure Symbol)] where
   FillInDefaultNamesFrom i '[] = '[]
   FillInDefaultNamesFrom i ( x ': xs )
     = FirstFromMaybe (Show_ i) x ': FillInDefaultNamesFrom (Succ i) xs
@@ -203,7 +203,7 @@ fillInDefaultNames = go (sing :: SNat 1)
         in  EntityOfSnd key x `Cons` go (sSucc singi) xs
 
 stripOutDefaultNames
-  :: forall (xs :: [(Maybe Symbol, Structure)])
+  :: forall (xs :: [(Maybe Symbol, Structure Symbol)])
    . SingI xs
   => Tuple (FillInDefaultNames xs) EntityOfSnd
   -> Tuple xs EntityMNOfSnd
@@ -221,7 +221,7 @@ stripOutDefaultNames = go (Proxy @1) sing
         EntityMNOfSnd msymx structx `Cons` go (Proxy @(Succ i)) singxs xs
 
 class SingI (GenericRecList f) => GenericRecPart f where
-  type GenericRecList f :: [(Maybe Symbol, Structure)]
+  type GenericRecList f :: [(Maybe Symbol, Structure Symbol)]
   fromField :: Tuple (GenericRecList f) EntityMNOfSnd -> f x
   toField :: f x -> Tuple (GenericRecList f) EntityMNOfSnd
 

@@ -17,15 +17,15 @@ import qualified PersistWrap.Table.Row as Row
 type TabRow m tab = Row.Row (ForeignKey m) (TabCols tab)
 type TabSubRow m tab = Row.SubRow (ForeignKey m) (TabCols tab)
 
-data Entity m (tab :: (*,Schema))
+data Entity m (tab :: (*,Schema Symbol))
   = Entity {entityKey :: Key m tab, entityVal :: TabRow m tab}
 
-data SomeTableNamed (table :: Schema -> *) (name :: Symbol)
+data SomeTableNamed (table :: Schema Symbol -> *) (name :: Symbol)
   = forall cols. SomeTableNamed (Sing cols) (table ('Schema name cols))
 
 class (HEq (ForeignKey m), Monad m) => MonadTransaction m where
-  data Table m :: Schema -> *
-  data Key m :: (*,Schema) -> *
+  data Table m :: Schema Symbol -> *
+  data Key m :: (*,Schema Symbol) -> *
   type ForeignKey m :: Symbol -> *
   getEntities :: forall tab . WithinTable m tab
     => Proxy tab -> TabSubRow m tab -> m [Entity m tab]
@@ -52,7 +52,7 @@ class MonadTransaction (Transaction m) => MonadDML m where
   type Transaction m :: * -> *
   atomicTransaction :: Transaction m y -> m y
 
-type WithinTableOf (table :: Schema -> *) tab =
+type WithinTableOf (table :: Schema Symbol -> *) tab =
   (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))
 type WithinTable m tab = WithinTableOf (Table m) tab
 

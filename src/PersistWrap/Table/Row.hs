@@ -16,7 +16,7 @@ import PersistWrap.Structure (PrimType, deriveConstraint)
 import PersistWrap.Table.Column
 import PersistWrap.Table.EnumVal
 
-data BaseValue fk (bc :: BaseColumn) where
+data BaseValue fk (bc :: BaseColumn Symbol) where
   PV :: PrimType p -> BaseValue fk ('Prim p)
   EV :: EnumVal (name ': names) -> BaseValue fk ('Enum name names)
   FKV :: fk otherTableName -> BaseValue fk ('ForeignKey otherTableName)
@@ -48,7 +48,7 @@ instance (Always Eq fk, Always Ord fk, SingI bc) => Ord (BaseValue fk bc) where
       go SJSON (JSONV vl) (JSONV vr) = vl `compare` vr
 
 
-data Value fk (c :: Column) where
+data Value fk (c :: Column Symbol) where
   V :: BaseValue fk bc -> Value fk ('Column 'False bc)
   N :: Maybe (BaseValue fk bc) -> Value fk ('Column 'True bc)
 
@@ -75,7 +75,7 @@ instance (Always Eq fk, Always Ord fk, SingI c) => Ord (Value fk c) where
       go (N x) (N y) = compare x y
       go (V x) (V y) = compare x y
 
-data ValueSnd fk (nc :: (Symbol,Column)) where
+data ValueSnd fk (nc :: (Symbol,Column Symbol)) where
   ValueSnd :: Value fk col -> ValueSnd fk '(name,col)
 instance (Always Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
   (==) (ValueSnd x) (ValueSnd y) = colEq @(Fst nc) x y
@@ -83,11 +83,11 @@ instance (Always Show fk, SingI nc) => Show (ValueSnd fk nc) where
   showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing :: Sing nc of
     STuple2 _ scol -> withSingI scol (showsPrec 11 x)
 
-data MaybeValueSnd fk (nc :: (Symbol,Column)) where
+data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
   MaybeValueSnd :: Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)
 
-type Row fk (cols :: [(Symbol,Column)]) = Tuple cols (ValueSnd fk)
-type SubRow fk (cols :: [(Symbol,Column)]) = Tuple cols (MaybeValueSnd fk)
+type Row fk (cols :: [(Symbol,Column Symbol)]) = Tuple cols (ValueSnd fk)
+type SubRow fk (cols :: [(Symbol,Column Symbol)]) = Tuple cols (MaybeValueSnd fk)
 
 matches
   :: forall fk xs
@@ -105,7 +105,7 @@ matches l r = and $ Tuple.zipUncheckSing
 
 colEq
   :: forall name col fk
-   . (Always Eq fk, SingI '((name :: Symbol),(col :: Column)))
+   . (Always Eq fk, SingI '((name :: Symbol),(col :: Column Symbol)))
   => Value fk col
   -> Value fk col
   -> Bool

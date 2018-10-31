@@ -90,7 +90,7 @@ schema s xs0 = do
         x : xs -> [t| $(toColumnType x) ': $(go xs) |]
   [t| 'Schema $(return $ LitT (StrTyLit s)) $(go xs0) |]
 
-class BCValue (bc :: BaseColumn) where
+class BCValue (bc :: BaseColumn Symbol) where
   type DataType (fk :: Symbol -> *) bc :: *
   asBaseValue :: DataType fk bc -> BaseValue fk bc
 instance BCValue ('Prim 'PrimText) where
