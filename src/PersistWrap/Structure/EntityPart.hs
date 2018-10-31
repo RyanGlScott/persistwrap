@@ -97,9 +97,13 @@ instance EntityPart v => EntityPart [v] where
   fromEntity (List xs) = map fromEntity xs
   toEntity xs = List $ map toEntity xs
 instance (Ord k, EntityMapKey k, EntityPart v) => EntityPart (Map k v) where
-  type StructureOf (Map k v) = 'MapType (StructureOf v)
-  fromEntity (Map m) = Map.fromList . map (fromText *** fromEntity) . Map.toList $ m
-  toEntity m = Map $ Map.fromList . map (toText *** toEntity) . Map.toList $ m
+  type StructureOf (Map k v) = 'MapType (KeyRep k) (StructureOf v)
+  fromEntity (Map m) = Map.fromList $ map (fromKeyRep *** fromEntity) $ Map.toList m
+  toEntity m =
+    Map
+      $ deriveConstraint @Ord (sing :: SPrimName (KeyRep k)) Map.fromList
+      $ map (toKeyRep *** toEntity)
+      $ Map.toList m
 instance (Ord k, EntityPart k) => EntityPart (Set k) where
   type StructureOf (Set k) = 'ListType (StructureOf k)
   fromEntity (List s) = Set.fromList $ map fromEntity s
@@ -110,15 +114,17 @@ instance SingI structure => EntityPart (EntityOf structure) where
   fromEntity = id
   toEntity = id
 
-class EntityPart k => EntityMapKey k where
-  fromText :: Text -> k
-  default fromText :: Coercible Text k => Text -> k
-  fromText = coerce
-  toText :: k -> Text
-  default toText :: Coercible Text k => k -> Text
-  toText = coerce
+class (SingI (KeyRep k), EntityPart k )=> EntityMapKey k where
+  type KeyRep k :: PrimName
+  fromKeyRep :: PrimType (KeyRep k) -> k
+  default fromKeyRep :: Coercible (PrimType (KeyRep k)) k => PrimType (KeyRep k) -> k
+  fromKeyRep = coerce
+  toKeyRep :: k -> PrimType (KeyRep k)
+  default toKeyRep :: Coercible (PrimType (KeyRep k)) k => k -> PrimType (KeyRep k)
+  toKeyRep = coerce
 
-instance EntityMapKey Text
+instance EntityMapKey Text where
+  type KeyRep Text = 'PrimText
 
 class SingI (GStructureOf f) => GEntityPart f where
   type GStructureOf f :: Structure

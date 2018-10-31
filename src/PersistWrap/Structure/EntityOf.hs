@@ -14,7 +14,6 @@ import Data.Map (Map)
 import Data.Promotion.Prelude.Eq (type (==))
 import Data.Proxy (Proxy(Proxy))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
-import Data.Text (Text)
 
 import PersistWrap.Structure.Primitives (PrimType)
 import PersistWrap.Structure.Type (Structure(..))
@@ -25,7 +24,7 @@ data EntityOf (struct :: Structure) where
   Sum :: Tagged (x ': xs) EntityOfSnd -> EntityOf ('SumType x xs)
   Product :: Tuple xs EntityOfSnd -> EntityOf ('ProductType xs)
   List :: [EntityOf x] -> EntityOf ('ListType x)
-  Map :: Map Text (EntityOf x) -> EntityOf ('MapType x)
+  Map :: Map (PrimType k) (EntityOf v) -> EntityOf ('MapType k v)
 
 data EntityOfSnd x where
   EntityOfSnd :: SSymbol sym -> EntityOf struct -> EntityOfSnd '(sym, struct)
