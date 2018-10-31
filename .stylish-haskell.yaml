@@ -237,6 +237,7 @@ language_extensions:
   - LambdaCase
   - MultiParamTypeClasses
   - NamedFieldPuns
+  - PolyKinds
   - ScopedTypeVariables
   - TupleSections
   - TypeApplications
