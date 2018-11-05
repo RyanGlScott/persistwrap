@@ -28,7 +28,7 @@ empty :: SymMap v
 empty = SymMap Map.empty
 
 singleton :: forall x v . SingI x => v x -> SymMap v
-singleton v = SymMap (Map.singleton (SomeSing (sing :: SSymbol x)) (Some v))
+singleton v = SymMap (Map.singleton (SomeSing $ sing @_ @x) (Some v))
 
 union :: SymMap v -> SymMap v -> SymMap v
 union (SymMap x) (SymMap y) = SymMap $ Map.union x y
@@ -38,14 +38,14 @@ difference (SymMap x) (SymMap y) = SymMap $ Map.difference x y
 (\\) = difference
 
 insert :: forall x v . SingI x => v x -> SymMap v -> SymMap v
-insert v (SymMap m) = SymMap $ Map.insert (SomeSing (sing :: SSymbol x)) (Some v) m
+insert v (SymMap m) = SymMap $ Map.insert (SomeSing $ sing @_ @x) (Some v) m
 
 delete :: SSymbol x -> SymMap v -> SymMap v
 delete sx (SymMap m) = SymMap $ Map.delete (SomeSing sx) m
 
 lookup :: forall x v . SSymbol x -> SymMap v -> Maybe (v x)
 lookup k (SymMap m) =
-  (\(Some (v :: v x')) -> case (sing :: SSymbol x') %~ k of
+  (\(Some (v :: v x')) -> case sing @_ @x' %~ k of
       Disproved{} -> error "Bad value in Map"
       Proved Refl -> v
     )
@@ -56,7 +56,7 @@ lookup k (SymMap m) =
 
 fromList :: forall v . [Some v] -> SymMap v
 fromList xs =
-  SymMap $ Map.fromList $ map (\(Some (v :: v x)) -> (SomeSing (sing :: SSymbol x), Some v)) xs
+  SymMap $ Map.fromList $ map (\(Some (v :: v x)) -> (SomeSing $ sing @_ @x, Some v)) xs
 
 toList :: forall v . SymMap v -> [Some v]
 toList (SymMap m) = map snd $ Map.toList m

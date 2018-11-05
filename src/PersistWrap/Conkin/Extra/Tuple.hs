@@ -1,13 +1,20 @@
+{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE PolyKinds #-}
 
 module PersistWrap.Conkin.Extra.Tuple where
 
 import Conkin (Tuple(..))
+import Data.List (find)
+import Data.List.NonEmpty (NonEmpty(..))
+import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
+import PersistWrap.Conkin.Extra.Class (Always(..), compare1)
+import PersistWrap.Conkin.Extra.Traversal (mapUncheck)
+
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
-splitTuple t = case (sing :: SList xs) of
+splitTuple t = case sing @_ @xs of
   SNil                       -> (Nil, t)
   SCons _ (xs' :: SList xs') -> case t of
     (v `Cons` vs) -> case withSingI xs' (splitTuple @xs' @ys) vs of
@@ -55,6 +62,9 @@ mapUncheckSing fn = go sing
     go SNil             Nil           = []
     go (sx `SCons` sxs) (x `Cons` xs) = withSingI sx fn x : go sxs xs
 
+mapUncheckNonEmpty :: forall a x xs y . (forall x' . a x' -> y) -> Tuple (x ': xs) a -> NonEmpty y
+mapUncheckNonEmpty fn (x0 `Cons` xs0) = fn x0 :| mapUncheck fn xs0
+
 zipUncheckSing
   :: forall a b xs y
    . SingI xs
@@ -70,3 +80,6 @@ zipUncheckSing fn = go sing
 
 tail :: Tuple (x ': xs) f -> Tuple xs f
 tail (_ `Cons` xs) = xs
+
+compareAlwaysTuples :: (SingI xs, Always Ord f) => Tuple xs f -> Tuple xs f -> Ordering
+compareAlwaysTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1 x y
