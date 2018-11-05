@@ -8,7 +8,7 @@ import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Singletons (sing)
 import Data.Singletons.Prelude
-import Data.Singletons.TH (sCases, singDecideInstance, singEqInstance, singOrdInstance, singletons)
+import Data.Singletons.TH
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
@@ -31,6 +31,7 @@ $(singletons [d|
     | PrimMap
     | PrimObjectId
     | PrimDbSpecific
+    deriving Show
   |])
 
 $(singDecideInstance ''PrimName)

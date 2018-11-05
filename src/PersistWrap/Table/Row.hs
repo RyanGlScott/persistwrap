@@ -6,7 +6,7 @@ import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
 import Data.Singletons (SingI, sing, withSingI)
-import Data.Singletons.Prelude (Fst, STuple2, Sing(SCons, STuple2))
+import Data.Singletons.Prelude (Fst, Sing(SCons, STuple2))
 import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Aeson.Extra ()
@@ -23,7 +23,7 @@ data BaseValue fk (bc :: BaseColumn Symbol) where
   JSONV :: JSON.Value -> BaseValue fk 'JSON
 
 instance (SingI bc, Always Show fk) => Show (BaseValue fk bc) where
-  showsPrec d bv = showParen (d > 10) $ case (sing :: SBaseColumn bc, bv) of
+  showsPrec d bv = showParen (d > 10) $ case (sing @_ @bc, bv) of
     (SPrim sp, PV p) -> showString "PV " . deriveConstraint @Show sp showsPrec 11 p
     (SEnum n1 nr, EV ev) -> showString "EV " . withSingI (n1 `SCons` nr) showsPrec 11 ev
     (SForeignKey sfk, FKV fk) -> showString "FKV " . withSingI sfk showsPrec1 11 fk
@@ -53,12 +53,12 @@ data Value fk (c :: Column Symbol) where
   N :: Maybe (BaseValue fk bc) -> Value fk ('Column 'True bc)
 
 instance (Always Show fk, SingI c) => Show (Value fk c) where
-  showsPrec d v0 = showParen (d > 10) $ case (sing :: SColumn c, v0) of
+  showsPrec d v0 = showParen (d > 10) $ case (sing @_ @c, v0) of
     (SColumn _ sbc, V v) -> showString "V " . withSingI sbc showsPrec 11 v
     (SColumn _ sbc, N v) -> showString "N " . withSingI sbc showsPrec 11 v
 
 instance (Always Eq fk, SingI c) => Eq (Value fk c) where
-  (==) = case (sing :: SColumn c) of
+  (==) = case sing @_ @c of
       SColumn _ sctype -> withSingI sctype go
     where
       go :: forall bc n. SingI bc
@@ -67,7 +67,7 @@ instance (Always Eq fk, SingI c) => Eq (Value fk c) where
       go (V x) (V y) = x == y
 
 instance (Always Eq fk, Always Ord fk, SingI c) => Ord (Value fk c) where
-  compare = case (sing :: SColumn c) of
+  compare = case sing @_ @c of
       SColumn _ sctype -> withSingI sctype go
     where
       go :: forall bc n. SingI bc
@@ -80,7 +80,7 @@ data ValueSnd fk (nc :: (Symbol,Column Symbol)) where
 instance (Always Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
   (==) (ValueSnd x) (ValueSnd y) = colEq @(Fst nc) x y
 instance (Always Show fk, SingI nc) => Show (ValueSnd fk nc) where
-  showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing :: Sing nc of
+  showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing @_ @nc of
     STuple2 _ scol -> withSingI scol (showsPrec 11 x)
 
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
@@ -109,7 +109,7 @@ colEq
   => Value fk col
   -> Value fk col
   -> Bool
-colEq = case sing :: STuple2 '(name,col) of
+colEq = case sing @_ @'(name,col) of
   STuple2 _ (sc :: SColumn col) -> withSingI sc (==)
 
 unrestricted :: SSchema schema -> SubRow fk (SchemaCols schema)

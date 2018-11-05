@@ -1,13 +1,14 @@
+{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Structure.EntityPart
     ( EntityPart(..)
+    , GStructureOf
     ) where
 
 import Conkin (Tagged(..), Tuple(..))
 import Control.Arrow ((***))
 import Data.ByteString (ByteString)
-import Data.Coerce (Coercible, coerce)
 import Data.Functor.Identity (Identity(..))
 import Data.Int (Int64)
 import Data.Map (Map)
@@ -84,25 +85,25 @@ instance EntityPart UTCTime where
   fromEntity (Prim x) = x
   toEntity = Prim
 instance EntityPart Int where
-  type StructureOf Int = 'Primitive 'PrimInt64
-  fromEntity (Prim x) = fromIntegral x
-  toEntity = Prim . fromIntegral
+  type StructureOf Int = StructureOf Int64
+  fromEntity x = fromIntegral (fromEntity x :: Int64)
+  toEntity x = toEntity (fromIntegral x :: Int64)
 instance EntityPart Integer where
-  type StructureOf Integer = 'Primitive 'PrimText
-  fromEntity (Prim x) = read $ Text.unpack x
-  toEntity = Prim . Text.pack . show
+  type StructureOf Integer = StructureOf Text
+  fromEntity x = read $ Text.unpack (fromEntity x)
+  toEntity x = toEntity (Text.pack $ show x)
 
 instance EntityPart v => EntityPart [v] where
   type StructureOf [v] = 'ListType (StructureOf v)
   fromEntity (List xs) = map fromEntity xs
   toEntity xs = List $ map toEntity xs
-instance (Ord k, EntityMapKey k, EntityPart v) => EntityPart (Map k v) where
-  type StructureOf (Map k v) = 'MapType (KeyRep k) (StructureOf v)
-  fromEntity (Map m) = Map.fromList $ map (fromKeyRep *** fromEntity) $ Map.toList m
+instance (Ord k, EntityPart k, EntityPart v) => EntityPart (Map k v) where
+  type StructureOf (Map k v) = 'MapType (StructureOf k) (StructureOf v)
+  fromEntity (Map m) = Map.fromList $ map (fromEntity *** fromEntity) $ Map.toList m
   toEntity m =
     Map
-      $ deriveConstraint @Ord (sing :: SPrimName (KeyRep k)) Map.fromList
-      $ map (toKeyRep *** toEntity)
+      $ Map.fromList
+      $ map (toEntity *** toEntity)
       $ Map.toList m
 instance (Ord k, EntityPart k) => EntityPart (Set k) where
   type StructureOf (Set k) = 'ListType (StructureOf k)
@@ -113,18 +114,6 @@ instance SingI structure => EntityPart (EntityOf structure) where
   type StructureOf (EntityOf structure) = structure
   fromEntity = id
   toEntity = id
-
-class (SingI (KeyRep k), EntityPart k )=> EntityMapKey k where
-  type KeyRep k :: PrimName
-  fromKeyRep :: PrimType (KeyRep k) -> k
-  default fromKeyRep :: Coercible (PrimType (KeyRep k)) k => PrimType (KeyRep k) -> k
-  fromKeyRep = coerce
-  toKeyRep :: k -> PrimType (KeyRep k)
-  default toKeyRep :: Coercible (PrimType (KeyRep k)) k => k -> PrimType (KeyRep k)
-  toKeyRep = coerce
-
-instance EntityMapKey Text where
-  type KeyRep Text = 'PrimText
 
 class SingI (GStructureOf f) => GEntityPart f where
   type GStructureOf f :: Structure Symbol
@@ -187,7 +176,7 @@ type family FillInDefaultNamesFrom (i :: Nat) (xs :: [(Maybe Symbol, Structure S
 type FillInDefaultNames xs = FillInDefaultNamesFrom 1 xs
 
 fillInDefaultNames :: Tuple xs EntityMNOfSnd -> Tuple (FillInDefaultNames xs) EntityOfSnd
-fillInDefaultNames = go (sing :: SNat 1)
+fillInDefaultNames = go $ sing @_ @1
   where
     go
       :: forall i xs'

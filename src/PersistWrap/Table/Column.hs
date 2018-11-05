@@ -6,7 +6,6 @@ module PersistWrap.Table.Column where
 
 import Data.Singletons.Prelude
 import Data.Singletons.TH
-    (singDecideInstances, singEqInstances, singOrdInstances, singletons, singletonsOnly)
 import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Structure (PrimName)
@@ -17,9 +16,14 @@ $(singletons [d|
   data Schema text = Schema text [(text,Column text)]
   |])
 
+deriving instance Show text => Show (BaseColumn text)
+deriving instance Show text => Show (Column text)
+deriving instance Show text => Show (Schema text)
+
 $(singDecideInstances [''BaseColumn, ''Column, ''Schema])
 $(singEqInstances [''BaseColumn, ''Column, ''Schema])
 $(singOrdInstances [''BaseColumn, ''Column, ''Schema])
+$(singShowInstances [''BaseColumn, ''Column, ''Schema])
 
 $(singletonsOnly [d|
   schemaCols :: Schema Symbol -> [(Symbol, Column Symbol)]

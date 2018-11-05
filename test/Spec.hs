@@ -7,7 +7,6 @@ import qualified Control.Monad.State as State
 import qualified Data.Aeson as JSON
 import Data.List (find)
 import Data.Singletons (sing)
-import Data.Singletons.Prelude (SList)
 import Test.Hspec
 
 import PersistWrap.Table hiding (Enum, JSON)
@@ -29,7 +28,7 @@ shouldBeIgnoreOrder x y = (x, y) `shouldSatisfy` uncurry sameElements
 main :: IO ()
 main = hspec $ describe "Tables" $ it "should do row operations" $ do
   assertions :: Expectation <- BackEnd.withEmptyTableProxies
-      (sing :: SList
+      (sing @_ @
         '[ $(schema "tab1" ["abc" ::: Nullable Int64])
         , $(schema "tab2" [])
         , $(schema "tab3"

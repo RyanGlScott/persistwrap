@@ -94,14 +94,14 @@ instance MonadTransaction (STMTransaction s) where
   deleteRow (Key r) = liftBase $ stateTVar r $ isJust &&& const Nothing
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
   lookupTable sname = asks $ SymMap.lookup sname
-  keyToForeign (Key r :: Key (STMTransaction s) tab) = FK (sing :: SSchema (TabSchema tab)) r
+  keyToForeign (Key r :: Key (STMTransaction s) tab) = FK (sing @_ @(TabSchema tab)) r
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
       -- If the names are the same, then the schemas must be the same.
       coerceSchema
         :: forall. SchemaName sch ~ TabName tab
         => TVarMaybeRow (SchemaCols sch) -> TVarMaybeRow (TabCols tab)
-      coerceSchema = case sing :: SSchema (TabSchema tab) of
+      coerceSchema = case sing @_ @(TabSchema tab) of
         SSchema _ tabCols -> case schCols %~ tabCols of
           Proved Refl -> id
           Disproved{} -> error "Two tables with the same name and different schemas"
@@ -146,7 +146,7 @@ tableToMapEntry
    . SingI schema
   => Table (STMTransaction s) schema
   -> Some (SomeTableNamed (Table (STMTransaction s)))
-tableToMapEntry tab = case sing :: Sing schema of
+tableToMapEntry tab = case sing @_ @schema of
   SSchema name cols -> withSingI name Some (SomeTableNamed cols tab)
 
 newTable :: proxy schema -> IO (Table (STMTransaction s) schema)

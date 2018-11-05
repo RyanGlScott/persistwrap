@@ -14,5 +14,5 @@ $(singletons [d|
     | SumType (text, Structure text) [(text, Structure text)]
     | ProductType [(text, Structure text)]
     | ListType (Structure text)
-    | MapType PrimName (Structure text)
+    | MapType (Structure text) (Structure text)
   |])
