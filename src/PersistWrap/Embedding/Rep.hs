@@ -60,7 +60,7 @@ data SchemaRep fk structure where
   AtMostOneColumnSchema :: ColumnRep fk (EntityOf structure) -> SchemaRep fk structure
   ProductSchema :: Tuple nxs (NamedColumnRep fk) -> SchemaRep fk ('ProductType nxs)
   SumUnIndexedSchema
-    :: Maybe (ColumnRep fk (EntityOf ('SumType nx nxs))) -- Value when all columns are null
+    :: Maybe (Tagged (nx ': nxs) (NamedColumnRep fk)) -- Value when all columns are null
     -> Tuple (nx ': nxs) (NamedColumnRep fk)
     -> SchemaRep fk ('SumType nx nxs)
   SumIndexedSchema :: Tuple (nx ': nxs) (NamedColumnRep fk) -> SchemaRep fk ('SumType nx nxs)
@@ -153,14 +153,13 @@ buildSumRep
   -> SList (x ': xs :: [(Symbol, Structure Symbol)])
   -> BuildRepResult fk ( 'SumType x xs)
 buildSumRep prefix xs = case colReps of
-  ncr `Cons` Nil -> Left $ bimapCol biSum . chooseColumn $ Here ncr
-  _              -> case (unitsCount, nonUnitsCount) of
+  NamedColumnRep name cr `Cons` Nil ->
+    Left $ bimapCol (biSum . Bi Here getSingle . Bi (EntityOfSnd name) (\(EntityOfSnd _ v) -> v)) cr
+  _ -> case (unitsCount, nonUnitsCount) of
     (_, 0)                   -> Left $ buildEnumCol colReps
     (1, 1)                   -> Left $ buildOptionCol colReps
-    (_, _) | unitsCount <= 1 -> Right $ SumUnIndexedSchema
-      (bimapCol biSum . chooseColumn <$> findJust getUnitOption colReps)
-      colReps
-    (_, _) -> Right $ SumIndexedSchema colReps
+    (_, _) | unitsCount <= 1 -> Right $ SumUnIndexedSchema (findJust getUnitOption colReps) colReps
+    (_, _)                   -> Right $ SumIndexedSchema colReps
   where
     colReps       = buildColReps prefix xs
     unitsCount    = length $ filter id $ mapUncheck hasUnitOption colReps
@@ -168,28 +167,6 @@ buildSumRep prefix xs = case colReps of
 
 biSum :: Tagged (x ': xs) EntityOfSnd :<->: EntityOf ( 'SumType x xs)
 biSum = Bi Sum (\(Sum x) -> x)
-
-chooseColumn
-  :: HasCallStack => Tagged xs (NamedColumnRep fk) -> ColumnRep fk (Tagged xs EntityOfSnd)
-chooseColumn = \case
-  Here (NamedColumnRep name cr) -> bimapCol
-    (Bi
-      (Here . EntityOfSnd name)
-      (\case
-        Here  (EntityOfSnd _ x) -> x
-        There _                 -> error "Expected default column"
-      )
-    )
-    cr
-  There rest -> bimapCol
-    (Bi
-      There
-      (\case
-        Here  _ -> error "Expected default column"
-        There r -> r
-      )
-    )
-    (chooseColumn rest)
 
 data EnumResult xs where
   EnumResult
