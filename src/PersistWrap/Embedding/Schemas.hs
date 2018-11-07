@@ -14,7 +14,7 @@ import Data.Text (Text)
 
 import PersistWrap.Conkin.Extra (mapUncheck, mapUncheckNonEmpty)
 import PersistWrap.Embedding.Rep
-import PersistWrap.Structure as Structure
+import PersistWrap.Structure as Structure hiding (ForeignKey)
 import PersistWrap.Table as Table
 
 listKeys :: Text -> [(Text, Column Text)]

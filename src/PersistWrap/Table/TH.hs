@@ -19,7 +19,7 @@ import Data.Time (Day, TimeOfDay, UTCTime)
 import Database.Persist.Types (PersistValue(..))
 import Language.Haskell.TH (Exp(ListE, VarE), Q, TyLit(StrTyLit), Type(..))
 
-import PersistWrap.Structure hiding (List, Map, Prim)
+import PersistWrap.Structure hiding (ForeignKey, List, Map, Prim)
 import PersistWrap.Table.Column hiding (Enum, JSON)
 import qualified PersistWrap.Table.Column as Column
 import PersistWrap.Table.EnumVal

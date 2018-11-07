@@ -14,7 +14,7 @@ import Control.Category ((.))
 import Data.Bijection ((:<->:), Bijection(Bi), biFrom, biTo, bimap, inverse)
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy(Proxy))
-import Data.Singletons (fromSing)
+import Data.Singletons (fromSing, withSingI)
 import Data.Singletons.Prelude (SList, Sing(..))
 import Data.Singletons.TypeLits (Sing(SSym), SSymbol, Symbol)
 import Data.Text (Text)
@@ -29,11 +29,11 @@ data ColumnRep fk (x :: *) where
   UnitRep :: x -> ColumnRep fk x
   PrimRep :: SColumn c -> ColumnRep fk (Value fk c)
   FnRep :: ColumnRep fk x1 -> x1 :<->: x2 -> ColumnRep fk x2
-  ForeignRep :: NamedSchemaRep fk x -> ColumnRep fk (EntityOf x)
-  NullForeignRep :: NamedSchemaRep fk x -> ColumnRep fk (Maybe (EntityOf x))
-  ListRep :: NamedSchemaRep fk x -> ColumnRep fk (EntityOf ('ListType x))
+  ForeignRep :: NamedSchemaRep fk x -> ColumnRep fk (EntityOf fk x)
+  NullForeignRep :: NamedSchemaRep fk x -> ColumnRep fk (Maybe (EntityOf fk x))
+  ListRep :: NamedSchemaRep fk x -> ColumnRep fk (EntityOf fk ('ListType x))
   MapRep
-    :: ColumnRep fk (EntityOf k) -> NamedSchemaRep fk v -> ColumnRep fk (EntityOf ('MapType k v))
+    :: ColumnRep fk (EntityOf fk k) -> NamedSchemaRep fk v -> ColumnRep fk (EntityOf fk ('MapType k v))
 
 bimapCol :: x :<->: y -> ColumnRep fk x -> ColumnRep fk y
 bimapCol f = \case
@@ -57,7 +57,7 @@ makeNullable = \case
   MapRep{}                  -> error "No associated column"
 
 data SchemaRep fk structure where
-  AtMostOneColumnSchema :: ColumnRep fk (EntityOf structure) -> SchemaRep fk structure
+  AtMostOneColumnSchema :: ColumnRep fk (EntityOf fk structure) -> SchemaRep fk structure
   ProductSchema :: Tuple nxs (NamedColumnRep fk) -> SchemaRep fk ('ProductType nxs)
   SumUnIndexedSchema
     :: Maybe (Tagged (nx ': nxs) (NamedColumnRep fk)) -- Value when all columns are null
@@ -67,16 +67,16 @@ data SchemaRep fk structure where
 
 data NamedColumnRep fk nx where
   NamedColumnRep
-    :: SSymbol n -> ColumnRep fk (EntityOf structure) -> NamedColumnRep fk '(n,structure)
+    :: SSymbol n -> ColumnRep fk (EntityOf fk structure) -> NamedColumnRep fk '(n,structure)
 
 data NamedSchemaRep fk x = NamedSchemaRep Text (SchemaRep fk x)
 
 getSchemaRep :: Text -> SStructure structure -> NamedSchemaRep fk structure
 getSchemaRep prefix = NamedSchemaRep prefix . either AtMostOneColumnSchema id . buildRep prefix
 
-type BuildRepResult fk structure = Either (ColumnRep fk (EntityOf structure)) (SchemaRep fk structure)
+type BuildRepResult fk structure = Either (ColumnRep fk (EntityOf fk structure)) (SchemaRep fk structure)
 
-biProduct :: Tuple xs EntityOfSnd :<->: EntityOf ( 'ProductType xs)
+biProduct :: Tuple xs (EntityOfSnd fk) :<->: EntityOf fk ( 'ProductType xs)
 biProduct = Bi Product (\(Product x) -> x)
 
 buildProductRep
@@ -116,7 +116,7 @@ getUnitOption (NamedColumnRep name r) = NamedColumnRep name <$> go r
 hasUnitOption :: NamedColumnRep fk x -> Bool
 hasUnitOption = isJust . getUnitOption
 
-extractUnit :: NamedColumnRep fk x -> Maybe (EntityOfSnd x)
+extractUnit :: NamedColumnRep fk x -> Maybe (EntityOfSnd fk x)
 extractUnit = \case
   NamedColumnRep name (UnitRep u) -> Just $ EntityOfSnd name u
   _                               -> Nothing
@@ -125,7 +125,7 @@ addName :: Text -> SSymbol name -> Text
 addName prefix name = prefix <> "_" <> fromSing name
 
 data SingleCol fk xs where
-  SingleCol :: ColumnRep fk x -> (x :<->: Tuple xs EntityOfSnd) -> SingleCol fk xs
+  SingleCol :: ColumnRep fk x -> (x :<->: Tuple xs (EntityOfSnd fk)) -> SingleCol fk xs
 
 buildSingleProductCol :: HasCallStack => Tuple xs (NamedColumnRep fk) -> SingleCol fk xs
 buildSingleProductCol = \case
@@ -137,7 +137,7 @@ buildSingleProductCol = \case
     let rest = Conkin.fmap (fromJust . extractUnit) xs
     in  SingleCol x (Bi (\v -> EntityOfSnd name v `Cons` rest) (\(EntityOfSnd _ v `Cons` _) -> v))
 
-buildColRep :: Text -> SStructure structure -> ColumnRep fk (EntityOf structure)
+buildColRep :: Text -> SStructure structure -> ColumnRep fk (EntityOf fk structure)
 buildColRep prefix structure = case buildRep prefix structure of
   Left  cr -> cr
   Right sr -> ForeignRep (NamedSchemaRep prefix sr)
@@ -165,16 +165,16 @@ buildSumRep prefix xs = case colReps of
     unitsCount    = length $ filter id $ mapUncheck hasUnitOption colReps
     nonUnitsCount = length $ filter not $ mapUncheck isUnit colReps
 
-biSum :: Tagged (x ': xs) EntityOfSnd :<->: EntityOf ( 'SumType x xs)
+biSum :: Tagged (x ': xs) (EntityOfSnd fk) :<->: EntityOf fk ( 'SumType x xs)
 biSum = Bi Sum (\(Sum x) -> x)
 
-data EnumResult xs where
+data EnumResult fk xs where
   EnumResult
     :: SList (ns :: [Symbol])
-    -> (Tagged ns Proxy :<->: Tagged xs EntityOfSnd)
-    -> EnumResult xs
+    -> (Tagged ns Proxy :<->: Tagged xs (EntityOfSnd fk))
+    -> EnumResult fk xs
 
-buildEnumResult :: HasCallStack => Tuple nxs (NamedColumnRep fk) -> EnumResult nxs
+buildEnumResult :: HasCallStack => Tuple nxs (NamedColumnRep fk) -> EnumResult fk nxs
 buildEnumResult = \case
   Nil                               -> EnumResult SNil (Bi noHere noHere)
   NamedColumnRep name x `Cons` rest -> case x of
@@ -194,7 +194,9 @@ buildEnumResult = \case
     _ -> error "Not a unit type"
 
 buildEnumCol
-  :: HasCallStack => Tuple (x ': xs) (NamedColumnRep fk) -> ColumnRep fk (EntityOf ( 'SumType x xs))
+  :: HasCallStack
+  => Tuple (x ': xs) (NamedColumnRep fk)
+  -> ColumnRep fk (EntityOf fk ( 'SumType x xs))
 buildEnumCol xs = case buildEnumResult xs of
   EnumResult names conversion -> case names of
     SNil                      -> error "no names?"
@@ -204,9 +206,9 @@ buildEnumCol xs = case buildEnumResult xs of
 
 makeOption
   :: HasCallStack
-  => EntityOfSnd nx
+  => EntityOfSnd fk nx
   -> NamedColumnRep fk ny
-  -> ColumnRep fk (EntityOf ( 'SumType nx '[ny]))
+  -> ColumnRep fk (EntityOf fk ( 'SumType nx '[ny]))
 makeOption def (NamedColumnRep name cr) =
   bimapCol
       (biSum . Bi
@@ -219,11 +221,14 @@ makeOption def (NamedColumnRep name cr) =
     $ makeNullable cr
 
 swapCases
-  :: ColumnRep fk (EntityOf ( 'SumType nx '[ny])) -> ColumnRep fk (EntityOf ( 'SumType ny '[nx]))
+  :: ColumnRep fk (EntityOf fk ( 'SumType nx '[ny]))
+  -> ColumnRep fk (EntityOf fk ( 'SumType ny '[nx]))
 swapCases = bimapCol (biSum . Bi swapOptions swapOptions . inverse biSum)
 
 buildOptionCol
-  :: HasCallStack => Tuple (x ': xs) (NamedColumnRep fk) -> ColumnRep fk (EntityOf ( 'SumType x xs))
+  :: HasCallStack
+  => Tuple (x ': xs) (NamedColumnRep fk)
+  -> ColumnRep fk (EntityOf fk ( 'SumType x xs))
 buildOptionCol = \case
   (NamedColumnRep namex (UnitRep x) `Cons` y `Cons` Nil) -> makeOption (EntityOfSnd namex x) y
   (x `Cons` NamedColumnRep namey (UnitRep y) `Cons` Nil) ->
@@ -235,6 +240,11 @@ buildRep prefix = \case
   SPrimitive pn -> Left $ FnRep
     (PrimRep (SColumn SFalse (SPrim pn)))
     (Bi (\(PV x) -> Structure.Prim x) (\(Structure.Prim x) -> PV x) . inverse biV)
+  SForeign name -> Left $ FnRep
+    (PrimRep (SColumn SFalse (SForeignKey name)))
+    (Bi (\(FKV fk) -> withSingI name Structure.ForeignKey fk) (\(Structure.ForeignKey fk) -> FKV fk)
+    . inverse biV
+    )
   SUnitType        -> Left $ UnitRep Unit
   SProductType nxs -> buildProductRep prefix nxs
   SSumType nx nxs  -> buildSumRep prefix (nx `SCons` nxs)

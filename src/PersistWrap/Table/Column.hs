@@ -8,7 +8,7 @@ import Data.Singletons.Prelude
 import Data.Singletons.TH
 import Data.Singletons.TypeLits (Symbol)
 
-import PersistWrap.Structure (PrimName)
+import PersistWrap.Structure.Primitives (PrimName)
 
 $(singletons [d|
   data BaseColumn text = Prim PrimName | Enum text [text] | ForeignKey text | JSON

@@ -12,7 +12,7 @@ import Data.Singletons.TypeLits (Symbol)
 import PersistWrap.Aeson.Extra ()
 import PersistWrap.Conkin.Extra (Always, compare1, showsPrec1, singToTuple, (==*))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
-import PersistWrap.Structure (PrimType, deriveConstraint)
+import PersistWrap.Structure.Primitives (PrimType, deriveConstraint)
 import PersistWrap.Table.Column
 import PersistWrap.Table.EnumVal
 

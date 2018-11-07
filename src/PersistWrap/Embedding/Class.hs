@@ -67,8 +67,8 @@ instance (SingI tabname, SingI cols, MonadTransaction m) => Embeddable tabname (
   modifyX k op = withExpectTable @tabname @cols
     $ \proxy -> modifyRow (foreignToKey proxy k) (unMRow . op . MRow)
 
-instance (SingI schemaName, SingI structure, MonadTransaction m)
-    => Embeddable schemaName (EntityOf structure) m where
+instance (SingI schemaName, SingI structure, MonadTransaction m, fk ~ ForeignKey m)
+    => Embeddable schemaName (EntityOf fk structure) m where
   xSchemas =
     toSing $ repToSchemas $ getSchemaRep (fromSing $ sing @_ @schemaName) (sing @_ @structure)
   getXs = undefined

@@ -4,6 +4,7 @@
 
 module PersistWrap.Conkin.Extra.Tagged
     ( compareAlwaysTags
+    , eqAlwaysTags
     , findJust
     , getSingle
     , leftTag
@@ -17,7 +18,7 @@ import Conkin (Tagged(..), Tuple(..))
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
-import PersistWrap.Conkin.Extra.Class (Always, compare1)
+import PersistWrap.Conkin.Extra.Class (Always, (==*), compare1)
 import PersistWrap.Conkin.Extra.Tagged.NoHere (noHere)
 
 pickSide
@@ -70,3 +71,11 @@ compareAlwaysTags xs ys = case (sing @_ @xs, xs, ys) of
   (_, Here{}, There{}) -> LT
   (_, There{}, Here{}) -> GT
   (_ `SCons` sxs, There x, There y) -> withSingI sxs compareAlwaysTags x y
+
+eqAlwaysTags
+  :: forall xs f . (Always Eq f, SingI xs) => Tagged xs f -> Tagged xs f -> Bool
+eqAlwaysTags xs ys = case (sing @_ @xs, xs, ys) of
+  ((sx :: Sing x) `SCons` _, Here x, Here y) -> withSingI sx (==*) x y
+  (_, Here{}, There{}) -> False
+  (_, There{}, Here{}) -> False
+  (_ `SCons` sxs, There x, There y) -> withSingI sxs eqAlwaysTags x y

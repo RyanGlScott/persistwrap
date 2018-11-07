@@ -10,7 +10,7 @@ import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
-import PersistWrap.Conkin.Extra.Class (Always(..), compare1)
+import PersistWrap.Conkin.Extra.Class (Always(..), (==*), compare1)
 import PersistWrap.Conkin.Extra.Traversal (mapUncheck)
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
@@ -83,3 +83,6 @@ tail (_ `Cons` xs) = xs
 
 compareAlwaysTuples :: (SingI xs, Always Ord f) => Tuple xs f -> Tuple xs f -> Ordering
 compareAlwaysTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1 x y
+
+eqAlwaysTuples :: (SingI xs, Always Eq f) => Tuple xs f -> Tuple xs f -> Bool
+eqAlwaysTuples x y = and $ zipUncheckSing (==*) x y

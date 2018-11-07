@@ -10,6 +10,7 @@ import PersistWrap.Structure.Primitives
 $(singletons [d|
   data Structure text
     = Primitive PrimName
+    | Foreign text
     | UnitType
     | SumType (text, Structure text) [(text, Structure text)]
     | ProductType [(text, Structure text)]
