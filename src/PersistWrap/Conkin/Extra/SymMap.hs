@@ -16,7 +16,7 @@ module PersistWrap.Conkin.Extra.SymMap
 import Prelude hiding (lookup)
 
 import qualified Data.Map as Map
-import Data.Singletons (SingI, SomeSing(SomeSing), sing)
+import Data.Singletons (Sing, SomeSing(SomeSing), sing)
 import Data.Singletons.Decide ((:~:)(Refl), Decision(..), (%~))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
@@ -27,8 +27,8 @@ newtype SymMap (v :: Symbol -> *) = SymMap (Map.Map (SomeSing Symbol) (Some v))
 empty :: SymMap v
 empty = SymMap Map.empty
 
-singleton :: forall x v . SingI x => v x -> SymMap v
-singleton v = SymMap (Map.singleton (SomeSing $ sing @_ @x) (Some v))
+singleton :: forall x v . Sing x -> v x -> SymMap v
+singleton k v = SymMap (Map.singleton (SomeSing k) (some k v))
 
 union :: SymMap v -> SymMap v -> SymMap v
 union (SymMap x) (SymMap y) = SymMap $ Map.union x y
@@ -37,8 +37,8 @@ difference, (\\) :: SymMap v -> SymMap v -> SymMap v
 difference (SymMap x) (SymMap y) = SymMap $ Map.difference x y
 (\\) = difference
 
-insert :: forall x v . SingI x => v x -> SymMap v -> SymMap v
-insert v (SymMap m) = SymMap $ Map.insert (SomeSing $ sing @_ @x) (Some v) m
+insert :: forall x v . Sing x -> v x -> SymMap v -> SymMap v
+insert k v (SymMap m) = SymMap $ Map.insert (SomeSing k) (some k v) m
 
 delete :: SSymbol x -> SymMap v -> SymMap v
 delete sx (SymMap m) = SymMap $ Map.delete (SomeSing sx) m

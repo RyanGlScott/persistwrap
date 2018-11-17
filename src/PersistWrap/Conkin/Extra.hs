@@ -2,8 +2,11 @@
 {-# LANGUAGE PolyKinds #-}
 
 module PersistWrap.Conkin.Extra
-  ( module X
+  ( (:*:)(..)
+  , module X
   ) where
+
+import GHC.Generics ((:*:)(..))
 
 import PersistWrap.Conkin.Extra.Class as X
 import PersistWrap.Conkin.Extra.Some as X

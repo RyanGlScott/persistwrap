@@ -12,6 +12,7 @@ import Conkin (Tuple(..))
 import qualified Data.Aeson as JSON
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Singletons (sing)
 import Data.Singletons.Prelude
 import Data.Text (Text)
@@ -76,8 +77,9 @@ toColumnType (name ::: untype) =
       Enum (opt : opts)
         -> [t|
               'Column.Enum
-                $(return $ LitT (StrTyLit opt))
-                $(return $ promotedListT (map (LitT . StrTyLit) opts))
+                ( $(return $ LitT (StrTyLit opt))
+                ':| $(return $ promotedListT (map (LitT . StrTyLit) opts))
+                )
             |]
       JSON       -> [t| 'Column.JSON |]
       Key      s -> [t| 'ForeignKey $(return $ LitT (StrTyLit s)) |]
@@ -126,8 +128,8 @@ instance BCValue ('Prim 'PrimList) where
 instance BCValue ('Prim 'PrimMap) where
   type DataType fk ('Prim 'PrimMap) = [(Text, PersistValue)]
   asBaseValue = PV
-instance BCValue ('Column.Enum name names) where
-  type DataType fk ('Column.Enum name names) = EnumVal (name ': names)
+instance BCValue ('Column.Enum (name ':| names)) where
+  type DataType fk ('Column.Enum (name ':| names)) = EnumVal (name ': names)
   asBaseValue = EV
 
 instance BCValue 'Column.JSON where

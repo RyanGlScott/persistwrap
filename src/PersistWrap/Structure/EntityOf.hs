@@ -4,13 +4,16 @@
 module PersistWrap.Structure.EntityOf
     ( EntityOf(..)
     , EntityOfSnd(..)
+    , foreignKey
     ) where
 
 import Conkin (Tagged(..), Tuple(..))
 import Data.Constraint (Dict(Dict))
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (Sing(..))
+import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
 import PersistWrap.Conkin.Extra
@@ -21,10 +24,13 @@ data EntityOf (fk :: Symbol -> *) (struct :: Structure Symbol) where
   Prim :: PrimType p -> EntityOf fk ('Primitive p)
   ForeignKey :: SingI name => fk name -> EntityOf fk ('Foreign name)
   Unit :: EntityOf fk 'UnitType
-  Sum :: Tagged (x ': xs) (EntityOfSnd fk) -> EntityOf fk ('SumType x xs)
+  Sum :: Tagged (x ': xs) (EntityOfSnd fk) -> EntityOf fk ('SumType (x ':| xs))
   Product :: Tuple xs (EntityOfSnd fk) -> EntityOf fk ('ProductType xs)
   List :: [EntityOf fk x] -> EntityOf fk ('ListType x)
   Map :: Map (EntityOf fk k) (EntityOf fk v) -> EntityOf fk ('MapType k v)
+
+foreignKey :: SSymbol name -> fk name -> EntityOf fk ( 'Foreign name)
+foreignKey name = withSingI name ForeignKey
 
 instance (Always Eq fk, SingI struct) => Eq (EntityOf fk struct) where
   (==) (Prim x) (Prim y) = case sing @_ @struct of
@@ -32,7 +38,7 @@ instance (Always Eq fk, SingI struct) => Eq (EntityOf fk struct) where
   (==) (ForeignKey x) (ForeignKey y) = x ==* y
   (==) Unit Unit = True
   (==) (Sum x) (Sum y) = case sing @_ @struct of
-    (SSumType sx sxs) -> withSingI (sx `SCons` sxs) eqAlwaysTags x y
+    (SSumType (sx :%| sxs)) -> withSingI (sx `SCons` sxs) eqAlwaysTags x y
   (==) (Product x) (Product y) = case sing @_ @struct of
     (SProductType sxs) -> withSingI sxs eqAlwaysTuples x y
   (==) (List x) (List y) = case sing @_ @struct of
@@ -46,7 +52,7 @@ instance (SingI struct, Always Eq fk, Always Ord fk) => Ord (EntityOf fk struct)
   compare (ForeignKey x) (ForeignKey y) = compare1 x y
   compare Unit Unit = EQ
   compare (Sum x) (Sum y) = case sing @_ @struct of
-    (SSumType sx sxs) -> withSingI (sx `SCons` sxs) compareAlwaysTags x y
+    (SSumType (sx :%| sxs)) -> withSingI (sx `SCons` sxs) compareAlwaysTags x y
   compare (Product x) (Product y) = case sing @_ @struct of
     (SProductType sxs) -> withSingI sxs compareAlwaysTuples x y
   compare (List x) (List y) = case sing @_ @struct of

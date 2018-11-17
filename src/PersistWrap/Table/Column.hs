@@ -4,6 +4,7 @@
 
 module PersistWrap.Table.Column where
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Singletons.Prelude
 import Data.Singletons.TH
 import Data.Singletons.TypeLits (Symbol)
@@ -11,7 +12,7 @@ import Data.Singletons.TypeLits (Symbol)
 import PersistWrap.Structure.Primitives (PrimName)
 
 $(singletons [d|
-  data BaseColumn text = Prim PrimName | Enum text [text] | ForeignKey text | JSON
+  data BaseColumn text = Prim PrimName | Enum (NonEmpty text) | ForeignKey text | JSON
   data Column text = Column Bool (BaseColumn text)
   data Schema text = Schema text [(text,Column text)]
   |])

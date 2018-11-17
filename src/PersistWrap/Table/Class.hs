@@ -8,10 +8,10 @@ import Data.Reflection (Reifies, reflect, reify)
 import Data.Singletons (SingI, sing)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
-import PersistWrap.Conkin.Extra (HEq)
+import PersistWrap.Conkin.Extra (Always, HEq)
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Table.Column
-import PersistWrap.Table.Row (unrestricted)
+import PersistWrap.Table.Row (ForeignRow(..), unrestricted)
 import qualified PersistWrap.Table.Row as Row
 
 type TabRow m tab = Row.Row (ForeignKey m) (TabCols tab)
@@ -23,7 +23,8 @@ data Entity m (tab :: (*,Schema Symbol))
 data SomeTableNamed (table :: Schema Symbol -> *) (name :: Symbol)
   = forall cols. SomeTableNamed (Sing cols) (table ('Schema name cols))
 
-class (HEq (ForeignKey m), Monad m) => MonadTransaction m where
+class (HEq (ForeignKey m), Always Eq (ForeignKey m), Always Ord (ForeignKey m), Monad m)
+    => MonadTransaction m where
   data Table m :: Schema Symbol -> *
   data Key m :: (*,Schema Symbol) -> *
   type ForeignKey m :: Symbol -> *
@@ -80,8 +81,17 @@ getTable _ = reflect (Proxy @(Fst tab))
 
 getAllEntities
   :: forall tab m . (MonadTransaction m, WithinTable m tab) => Proxy tab -> m [Entity m tab]
-getAllEntities proxy = getEntities proxy (unrestricted (getSchemaSing proxy))
+getAllEntities proxy = case getSchemaSing proxy of
+  SSchema _ cols -> getEntities proxy (unrestricted cols)
 
 getSchemaSing
   :: forall tab table proxy . WithinTableOf table tab => proxy tab -> SSchema (TabSchema tab)
 getSchemaSing _ = sing
+
+entityToForeign
+  :: forall tab m schema
+   . (MonadTransaction m, WithinTable m tab, schema ~ TabSchema tab)
+  => Entity m tab
+  -> ForeignRow (ForeignKey m) schema
+entityToForeign (Entity k r) = case sing @_ @schema of
+  SSchema _ _ -> ForeignRow (keyToForeign k) r

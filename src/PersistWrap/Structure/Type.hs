@@ -3,6 +3,7 @@
 
 module PersistWrap.Structure.Type where
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Singletons.TH (singletons)
 
 import PersistWrap.Structure.Primitives
@@ -12,7 +13,7 @@ $(singletons [d|
     = Primitive PrimName
     | Foreign text
     | UnitType
-    | SumType (text, Structure text) [(text, Structure text)]
+    | SumType (NonEmpty (text, Structure text))
     | ProductType [(text, Structure text)]
     | ListType (Structure text)
     | MapType (Structure text) (Structure text)

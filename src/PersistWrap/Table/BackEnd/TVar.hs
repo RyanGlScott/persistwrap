@@ -25,7 +25,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
-    (Always(..), HEq(..), HOrd(..), Some(Some), htraverse, mapUncheck, mapUncheckSing, singToTuple)
+    (Always(..), HEq(..), HOrd(..), Some, some, htraverse, mapUncheck, mapUncheckSing, singToTuple)
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
 import PersistWrap.Table.Class
@@ -73,6 +73,11 @@ instance HEq FK where
   heq (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> if l == r then Just Dict else Nothing
     Disproved{} -> Nothing
+
+instance Ord (FK name) where
+  -- TODO Figure this one out.
+  compare _ _ = error "TVars not comparable"
+instance Always Ord FK where dict = Dict
 
 instance MonadTransaction (STMTransaction s) where
   newtype Table (STMTransaction s) schema = Table (TVar [TVarMaybeRow (SchemaCols schema)])
@@ -122,7 +127,7 @@ withEmptyTables sschemas action
   | anyDuplicates (mapUncheck schemaName schemasTuple) = error "Schema names are not distinct"
   | otherwise = do
     tables <- liftIO $ htraverse newTable schemasTuple
-    runReaderT (unTVarDMLT $ action tables) (withSingI sschemas constructMap tables)
+    runReaderT (unTVarDMLT $ action tables) (constructMap sschemas tables)
   where schemasTuple = singToTuple sschemas
 
 withEmptyTableProxies
@@ -138,8 +143,8 @@ anyDuplicates = any (\grp -> length grp > 1) . group . sort
 schemaName :: SSchema (schema :: Schema Symbol) -> Text
 schemaName (SSchema n _) = fromSing n
 
-constructMap :: SingI schemas => Tuple schemas (Table (STMTransaction s)) -> TableMap s
-constructMap tables = SymMap.fromList $ mapUncheckSing tableToMapEntry tables
+constructMap :: SList schemas -> Tuple schemas (Table (STMTransaction s)) -> TableMap s
+constructMap schemas tables = SymMap.fromList $ mapUncheckSing schemas tableToMapEntry tables
 
 tableToMapEntry
   :: forall s schema
@@ -147,7 +152,7 @@ tableToMapEntry
   => Table (STMTransaction s) schema
   -> Some (SomeTableNamed (Table (STMTransaction s)))
 tableToMapEntry tab = case sing @_ @schema of
-  SSchema name cols -> withSingI name Some (SomeTableNamed cols tab)
+  SSchema name cols -> some name (SomeTableNamed cols tab)
 
 newTable :: proxy schema -> IO (Table (STMTransaction s) schema)
 newTable _ = Table <$> newTVarIO []

@@ -34,7 +34,7 @@ main = hspec $ describe "Tables" $ it "should do row operations" $ do
         , $(schema "tab3"
               [ "hello" ::: Bool
               , "there" ::: Enum ["a", "b", "Belgium"]
-              ,  "world" ::: JSON
+              , "world" ::: JSON
               ])
         , $(schema "connection" ["key1" ::: Key "tab1", "key3" ::: Nullable (Key "tab3")])
         ]

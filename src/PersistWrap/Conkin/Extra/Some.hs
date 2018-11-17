@@ -4,9 +4,17 @@ module PersistWrap.Conkin.Extra.Some where
 
 import Data.Constraint (Dict)
 import Data.Maybe (isJust)
-import Data.Singletons (SingI)
+import Data.Singletons (Sing, SingI, sing, withSingI)
 
 data Some f = forall x. SingI x => Some (f x)
+
+some :: Sing x -> f x -> Some f
+some s = withSingI s Some
+
+data GetSome f = forall x. GetSome (Sing x) (f x)
+
+getSome :: Some f -> GetSome f
+getSome (Some x) = GetSome sing x
 
 class HEq f where
   heq :: (SingI x, SingI y) => f x -> f y -> Maybe (Dict (x ~ y))

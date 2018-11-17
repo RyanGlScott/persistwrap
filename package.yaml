@@ -29,6 +29,7 @@ dependencies:
 - dlist
 - lens
 - monad-extras
+- mmorph
 - mtl
 - persistent
 - reflection

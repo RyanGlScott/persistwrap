@@ -3,12 +3,15 @@
 
 module PersistWrap.Conkin.Extra.Tuple where
 
+import Prelude hiding (unzip)
+
 import Conkin (Tuple(..))
 import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
+import GHC.Generics ((:*:)((:*:)))
 
 import PersistWrap.Conkin.Extra.Class (Always(..), (==*), compare1)
 import PersistWrap.Conkin.Extra.Traversal (mapUncheck)
@@ -55,8 +58,8 @@ zipWithSing fn = go sing
     go SNil             Nil           Nil           = Nil
     go (sx `SCons` sxs) (x `Cons` xs) (y `Cons` ys) = withSingI sx fn x y `Cons` go sxs xs ys
 
-mapUncheckSing :: forall a xs y . SingI xs => (forall x . SingI x => a x -> y) -> Tuple xs a -> [y]
-mapUncheckSing fn = go sing
+mapUncheckSing :: forall a xs y . SList xs -> (forall x . SingI x => a x -> y) -> Tuple xs a -> [y]
+mapUncheckSing s fn = go s
   where
     go :: forall xs' . SList xs' -> Tuple xs' a -> [y]
     go SNil             Nil           = []
@@ -86,3 +89,8 @@ compareAlwaysTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1 
 
 eqAlwaysTuples :: (SingI xs, Always Eq f) => Tuple xs f -> Tuple xs f -> Bool
 eqAlwaysTuples x y = and $ zipUncheckSing (==*) x y
+
+unzip :: Tuple xs (f :*: g) -> (Tuple xs f, Tuple xs g)
+unzip = \case
+  Nil                  -> (Nil, Nil)
+  (x :*: y `Cons` xys) -> let (xs, ys) = unzip xys in (x `Cons` xs, y `Cons` ys)

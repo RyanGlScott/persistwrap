@@ -12,10 +12,12 @@ import Conkin (Tagged(..), Tuple(..))
 import qualified Conkin
 import Control.Category ((.))
 import Data.Bijection ((:<->:), Bijection(Bi), biFrom, biTo, bimap, inverse)
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy(Proxy))
 import Data.Singletons (fromSing, withSingI)
 import Data.Singletons.Prelude (SList, Sing(..))
+import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (Sing(SSym), SSymbol, Symbol)
 import Data.Text (Text)
 import GHC.Stack (HasCallStack)
@@ -62,8 +64,8 @@ data SchemaRep fk structure where
   SumUnIndexedSchema
     :: Maybe (Tagged (nx ': nxs) (NamedColumnRep fk)) -- Value when all columns are null
     -> Tuple (nx ': nxs) (NamedColumnRep fk)
-    -> SchemaRep fk ('SumType nx nxs)
-  SumIndexedSchema :: Tuple (nx ': nxs) (NamedColumnRep fk) -> SchemaRep fk ('SumType nx nxs)
+    -> SchemaRep fk ('SumType (nx ':| nxs))
+  SumIndexedSchema :: Tuple (nx ': nxs) (NamedColumnRep fk) -> SchemaRep fk ('SumType (nx ':| nxs))
 
 data NamedColumnRep fk nx where
   NamedColumnRep
@@ -151,7 +153,7 @@ buildSumRep
   :: forall x xs fk
    . Text
   -> SList (x ': xs :: [(Symbol, Structure Symbol)])
-  -> BuildRepResult fk ( 'SumType x xs)
+  -> BuildRepResult fk ( 'SumType (x ':| xs))
 buildSumRep prefix xs = case colReps of
   NamedColumnRep name cr `Cons` Nil ->
     Left $ bimapCol (biSum . Bi Here getSingle . Bi (EntityOfSnd name) (\(EntityOfSnd _ v) -> v)) cr
@@ -165,7 +167,7 @@ buildSumRep prefix xs = case colReps of
     unitsCount    = length $ filter id $ mapUncheck hasUnitOption colReps
     nonUnitsCount = length $ filter not $ mapUncheck isUnit colReps
 
-biSum :: Tagged (x ': xs) (EntityOfSnd fk) :<->: EntityOf fk ( 'SumType x xs)
+biSum :: Tagged (x ': xs) (EntityOfSnd fk) :<->: EntityOf fk ( 'SumType (x ':| xs))
 biSum = Bi Sum (\(Sum x) -> x)
 
 data EnumResult fk xs where
@@ -196,19 +198,19 @@ buildEnumResult = \case
 buildEnumCol
   :: HasCallStack
   => Tuple (x ': xs) (NamedColumnRep fk)
-  -> ColumnRep fk (EntityOf fk ( 'SumType x xs))
+  -> ColumnRep fk (EntityOf fk ( 'SumType (x ':| xs)))
 buildEnumCol xs = case buildEnumResult xs of
   EnumResult names conversion -> case names of
     SNil                      -> error "no names?"
     nameHead `SCons` nameTail -> FnRep
-      (PrimRep (SColumn SFalse (SEnum nameHead nameTail)))
+      (PrimRep (SColumn SFalse (SEnum (nameHead :%| nameTail))))
       (biSum . conversion . Bi (\(EV (EnumVal x)) -> x) (EV . EnumVal) . inverse biV)
 
 makeOption
   :: HasCallStack
   => EntityOfSnd fk nx
   -> NamedColumnRep fk ny
-  -> ColumnRep fk (EntityOf fk ( 'SumType nx '[ny]))
+  -> ColumnRep fk (EntityOf fk ( 'SumType (nx ':| '[ny])))
 makeOption def (NamedColumnRep name cr) =
   bimapCol
       (biSum . Bi
@@ -221,14 +223,14 @@ makeOption def (NamedColumnRep name cr) =
     $ makeNullable cr
 
 swapCases
-  :: ColumnRep fk (EntityOf fk ( 'SumType nx '[ny]))
-  -> ColumnRep fk (EntityOf fk ( 'SumType ny '[nx]))
+  :: ColumnRep fk (EntityOf fk ( 'SumType (nx ':| '[ny])))
+  -> ColumnRep fk (EntityOf fk ( 'SumType (ny ':| '[nx])))
 swapCases = bimapCol (biSum . Bi swapOptions swapOptions . inverse biSum)
 
 buildOptionCol
   :: HasCallStack
   => Tuple (x ': xs) (NamedColumnRep fk)
-  -> ColumnRep fk (EntityOf fk ( 'SumType x xs))
+  -> ColumnRep fk (EntityOf fk ( 'SumType (x ':| xs)))
 buildOptionCol = \case
   (NamedColumnRep namex (UnitRep x) `Cons` y `Cons` Nil) -> makeOption (EntityOfSnd namex x) y
   (x `Cons` NamedColumnRep namey (UnitRep y) `Cons` Nil) ->
@@ -245,9 +247,9 @@ buildRep prefix = \case
     (Bi (\(FKV fk) -> withSingI name Structure.ForeignKey fk) (\(Structure.ForeignKey fk) -> FKV fk)
     . inverse biV
     )
-  SUnitType        -> Left $ UnitRep Unit
-  SProductType nxs -> buildProductRep prefix nxs
-  SSumType nx nxs  -> buildSumRep prefix (nx `SCons` nxs)
-  SListType x      -> Left $ ListRep $ getSchemaRep prefix x
+  SUnitType                 -> Left $ UnitRep Unit
+  SProductType nxs          -> buildProductRep prefix nxs
+  SSumType     (nx :%| nxs) -> buildSumRep prefix (nx `SCons` nxs)
+  SListType    x            -> Left $ ListRep $ getSchemaRep prefix x
   SMapType k v ->
     Left $ MapRep (buildColRep (addName prefix (SSym @"_key")) k) $ getSchemaRep prefix v

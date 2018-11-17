@@ -12,6 +12,7 @@ import Control.Arrow ((***))
 import Data.ByteString (ByteString)
 import Data.Functor.Identity (Identity(..))
 import Data.Int (Int64)
+import Data.List.NonEmpty(NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Promotion.Prelude (type (++), Symbol)
@@ -166,7 +167,7 @@ instance
     R1 r -> rightTag @(GenericConsList a) @(GenericConsList b) $ toTag @fk r
 
 instance (SingI (GenericConsHead a), GenericConsPart fk (a :+: b)) => GEntityPart fk (a :+: b) where
-  type GStructureOf (a :+: b) = 'SumType (GenericConsHead (a :+: b)) (GenericConsTail (a :+: b))
+  type GStructureOf (a :+: b) = 'SumType (GenericConsHead (a :+: b) ':| GenericConsTail (a :+: b))
   gFromEntity (Sum x) = fromTag @fk x
   gToEntity x = Sum $ toTag @fk x
 
@@ -278,8 +279,8 @@ instance (EntityPart fk a, EntityPart fk b, EntityPart fk c, EntityPart fk d, En
 instance (EntityPart fk a, EntityPart fk b, EntityPart fk c, EntityPart fk d, EntityPart fk e, EntityPart fk f, EntityPart fk g) => EntityPart fk (a,b,c,d,e,f,g) where
   type StructureOf (a,b,c,d,e,f,g) = GStructureOf (Rep (a,b,c,d,e,f,g))
 instance (EntityPart fk a, EntityPart fk b) => EntityPart fk (Either a b) where
-  type StructureOf (Either a b) = 'SumType '("Left", StructureOf a) '[ '("Right", StructureOf b) ]
+  type StructureOf (Either a b) = 'SumType ('("Left", StructureOf a) ':| '[ '("Right", StructureOf b) ])
 instance EntityPart fk x => EntityPart fk (Maybe x) where
-  type StructureOf (Maybe x) = 'SumType '("Nothing", 'UnitType) '[ '("Just", StructureOf x) ]
+  type StructureOf (Maybe x) = 'SumType ('("Nothing", 'UnitType) ':| '[ '("Just", StructureOf x) ])
 instance EntityPart fk x => EntityPart fk (Identity x) where
   type StructureOf (Identity x) = StructureOf x

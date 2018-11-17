@@ -56,8 +56,8 @@ mkAllNullable :: Schema Text -> Schema Text
 mkAllNullable (Schema schemaName cols) = Schema schemaName (map (second makeNullable) cols)
 
 consTagColumn :: NonEmpty Text -> Schema Text -> Schema Text
-consTagColumn (tagHead :| tagTail) (Schema schemaName cols) =
-  let newcol = ("_tag", Column False (Enum tagHead tagTail)) in Schema schemaName (newcol : cols)
+consTagColumn tags (Schema schemaName cols) =
+  let newcol = ("_tag", Column False (Enum tags)) in Schema schemaName (newcol : cols)
 
 repToBuildSchemas :: NamedSchemaRep fk nx -> (Schema Text, [Schema Text])
 repToBuildSchemas (NamedSchemaRep selfSchemaName rep) = case rep of
