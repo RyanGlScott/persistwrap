@@ -13,6 +13,8 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Stack (HasCallStack)
 
+import PersistWrap.Embedding.Get
+import PersistWrap.Embedding.Insert
 import PersistWrap.Embedding.Rep
 import PersistWrap.Embedding.Schemas
 import PersistWrap.Functor.Extra
@@ -75,8 +77,8 @@ instance (HasRep fk schemaName structure, MonadTransaction m, fk ~ ForeignKey m)
     => Embeddable schemaName (EntityOf fk structure) m where
   xSchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
   getXs = undefined
-  getX = undefined
-  insertX = undefined
+  getX = get (rep @fk @schemaName @structure)
+  insertX = insert (rep @fk @schemaName @structure)
   deleteX = undefined
   stateX = undefined
   modifyX = undefined
