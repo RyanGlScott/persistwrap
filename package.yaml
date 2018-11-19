@@ -31,7 +31,6 @@ dependencies:
 - monad-extras
 - mmorph
 - mtl
-- persistent
 - reflection
 - singletons
 - stm

@@ -17,7 +17,6 @@ import Data.Singletons (sing)
 import Data.Singletons.Prelude
 import Data.Text (Text)
 import Data.Time (Day, TimeOfDay, UTCTime)
-import Database.Persist.Types (PersistValue(..))
 import Language.Haskell.TH (Exp(ListE, VarE), Q, TyLit(StrTyLit), Type(..))
 
 import PersistWrap.Structure hiding (ForeignKey, List, Map, Prim)
@@ -37,8 +36,6 @@ data SimpleColUnnamedType
   | TimeOfDay
   | UTCTime
   | Null
-  | List
-  | Map
   | ObjectId
   | DbSpecific
   | Enum [String]
@@ -69,8 +66,6 @@ toColumnType (name ::: untype) =
       TimeOfDay  -> [t| 'Prim 'PrimTimeOfDay |]
       UTCTime    -> [t| 'Prim 'PrimUTCTime |]
       Null       -> [t| 'Prim 'PrimNull |]
-      List       -> [t| 'Prim 'PrimList |]
-      Map        -> [t| 'Prim 'PrimMap |]
       ObjectId   -> [t| 'Prim 'PrimObjectId |]
       DbSpecific -> [t| 'Prim 'PrimDbSpecific |]
       Enum []    -> error "Empty enum options"
@@ -121,12 +116,6 @@ instance BCValue ('Prim 'PrimTimeOfDay) where
   asBaseValue = PV
 instance BCValue ('Prim 'PrimUTCTime) where
   type DataType fk ('Prim 'PrimUTCTime) = UTCTime
-  asBaseValue = PV
-instance BCValue ('Prim 'PrimList) where
-  type DataType fk ('Prim 'PrimList) = [PersistValue]
-  asBaseValue = PV
-instance BCValue ('Prim 'PrimMap) where
-  type DataType fk ('Prim 'PrimMap) = [(Text, PersistValue)]
   asBaseValue = PV
 instance BCValue ('Column.Enum (name ':| names)) where
   type DataType fk ('Column.Enum (name ':| names)) = EnumVal (name ': names)

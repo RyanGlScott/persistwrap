@@ -6,14 +6,12 @@ module PersistWrap.Structure.Primitives where
 
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
-import Data.Singletons (sing)
 import Data.Singletons.Prelude
 import Data.Singletons.TH
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Time.LocalTime (TimeOfDay)
-import Database.Persist.Types (PersistValue(..))
 
 $(singletons [d|
   data PrimName
@@ -27,8 +25,6 @@ $(singletons [d|
     | PrimTimeOfDay
     | PrimUTCTime
     | PrimNull
-    | PrimList
-    | PrimMap
     | PrimObjectId
     | PrimDbSpecific
     deriving Show
@@ -49,8 +45,6 @@ type family PrimType p where
   PrimType 'PrimTimeOfDay = TimeOfDay
   PrimType 'PrimUTCTime = UTCTime
   PrimType 'PrimNull = ()
-  PrimType 'PrimList = [PersistValue]
-  PrimType 'PrimMap = [(Text, PersistValue)]
   PrimType 'PrimObjectId = ByteString
   PrimType 'PrimDbSpecific = ByteString
 
@@ -66,8 +60,6 @@ deriveConstraint
      , c TimeOfDay
      , c UTCTime
      , c ()
-     , c [PersistValue]
-     , c [(Text, PersistValue)]
      )
   => SPrimName p
   -> (c (PrimType p) => y)
@@ -75,20 +67,3 @@ deriveConstraint
 deriveConstraint p cont = $(sCases ''PrimName [| p |] [| cont |])
 
 data SingPrim = forall (p :: PrimName). SingPrim (SPrimName p) (PrimType p)
-
-primitive :: PersistValue -> SingPrim
-primitive = \case
-  PersistText       x -> SingPrim @ 'PrimText sing x
-  PersistByteString x -> SingPrim @ 'PrimByteString sing x
-  PersistInt64      x -> SingPrim @ 'PrimInt64 sing x
-  PersistDouble     x -> SingPrim @ 'PrimDouble sing x
-  PersistRational   x -> SingPrim @ 'PrimRational sing x
-  PersistBool       x -> SingPrim @ 'PrimBool sing x
-  PersistDay        x -> SingPrim @ 'PrimDay sing x
-  PersistTimeOfDay  x -> SingPrim @ 'PrimTimeOfDay sing x
-  PersistUTCTime    x -> SingPrim @ 'PrimUTCTime sing x
-  PersistNull         -> SingPrim @ 'PrimNull sing ()
-  PersistList       x -> SingPrim @ 'PrimList sing x
-  PersistMap        x -> SingPrim @ 'PrimMap sing x
-  PersistObjectId   x -> SingPrim @ 'PrimObjectId sing x
-  PersistDbSpecific x -> SingPrim @ 'PrimDbSpecific sing x
