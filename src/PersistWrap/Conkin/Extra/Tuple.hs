@@ -68,6 +68,13 @@ mapUncheckSing s fn = go s
 mapUncheckNonEmpty :: forall a x xs y . (forall x' . a x' -> y) -> Tuple (x ': xs) a -> NonEmpty y
 mapUncheckNonEmpty fn (x0 `Cons` xs0) = fn x0 :| mapUncheck fn xs0
 
+zipUncheck :: forall a b xs y . (forall x . a x -> b x -> y) -> Tuple xs a -> Tuple xs b -> [y]
+zipUncheck fn = go
+  where
+    go :: forall xs' . Tuple xs' a -> Tuple xs' b -> [y]
+    go Nil           Nil           = []
+    go (x `Cons` xs) (y `Cons` ys) = fn x y : go xs ys
+
 zipUncheckSing
   :: forall a b xs y
    . SingI xs

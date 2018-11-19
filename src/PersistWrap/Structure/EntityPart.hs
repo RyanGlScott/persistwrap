@@ -16,14 +16,12 @@ import Data.List.NonEmpty(NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Promotion.Prelude (type (++), Symbol)
-import Data.Proxy (Proxy(Proxy))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
 import Data.Singletons.Prelude.Enum (Succ, sSucc)
 import Data.Singletons.Prelude.List (SList, Sing(SCons, SNil))
-import Data.Singletons.Prelude.Maybe (SMaybe, Sing(SJust, SNothing))
-import Data.Singletons.Prelude.Show (Show_, sShow_)
+import Data.Singletons.Prelude.Show (Show_)
 import Data.Singletons.Prelude.Tuple (Sing(STuple2))
 import Data.Singletons.TypeLits (KnownSymbol, Nat, SNat)
 import Data.Text (Text)
@@ -146,9 +144,9 @@ instance (GEntityPart fk a, KnownSymbol na)
   type GenericConsHead (C1 ('MetaCons na fa sa) a) = '(na, GStructureOf a)
   type GenericConsTail (C1 ('MetaCons na fa sa) a) = '[]
   fromTag = \case
-    Here (EntityOfSnd _ x) -> M1 $ gFromEntity @fk x
+    Here (EntityOfSnd x) -> M1 $ gFromEntity @fk x
     There x -> case x of {}
-  toTag (M1 x) = Here $ EntityOfSnd sing (gToEntity @fk x)
+  toTag (M1 x) = Here $ EntityOfSnd (gToEntity @fk x)
 
 instance
     ( GenericConsPart fk a
@@ -173,7 +171,7 @@ instance (SingI (GenericConsHead a), GenericConsPart fk (a :+: b)) => GEntityPar
 
 data EntityMNOfSnd fk x where
   EntityMNOfSnd :: forall (fk :: Symbol -> *) (sym :: Maybe Symbol) (struct :: Structure Symbol).
-    SMaybe sym -> EntityOf fk struct -> EntityMNOfSnd fk '( sym , struct )
+    EntityOf fk struct -> EntityMNOfSnd fk '( sym , struct )
 
 type family FillInDefaultNamesFrom (i :: Nat) (xs :: [(Maybe Symbol, Structure Symbol)])
     :: [(Symbol, Structure Symbol)] where
@@ -193,30 +191,26 @@ fillInDefaultNames = go $ sing @_ @1
       -> Tuple xs' (EntityMNOfSnd fk)
       -> Tuple (FillInDefaultNamesFrom i xs') (EntityOfSnd fk)
     go singi = \case
-      Nil -> Nil
-      EntityMNOfSnd ssym x `Cons` xs ->
-        let key = case ssym of
-              SNothing   -> sShow_ singi
-              SJust symx -> symx
-        in  EntityOfSnd key x `Cons` go (sSucc singi) xs
+      Nil                       -> Nil
+      EntityMNOfSnd x `Cons` xs -> EntityOfSnd x `Cons` go (sSucc singi) xs
 
 stripOutDefaultNames
   :: forall (xs :: [(Maybe Symbol, Structure Symbol)]) (fk :: Symbol -> *)
    . SingI xs
   => Tuple (FillInDefaultNames xs) (EntityOfSnd fk)
   -> Tuple xs (EntityMNOfSnd fk)
-stripOutDefaultNames = go (Proxy @1) sing
+stripOutDefaultNames = go (sing @_ @1) sing
   where
     go
       :: forall i xs'
-       . Proxy i
+       . SNat i
       -> SList xs'
       -> Tuple (FillInDefaultNamesFrom i xs') (EntityOfSnd fk)
       -> Tuple xs' (EntityMNOfSnd fk)
-    go _ = \case
-      SNil                           -> const Nil
-      STuple2 msymx _ `SCons` singxs -> \(EntityOfSnd _ structx `Cons` xs) ->
-        EntityMNOfSnd msymx structx `Cons` go (Proxy @(Succ i)) singxs xs
+    go si = \case
+      SNil -> const Nil
+      STuple2 _ _ `SCons` singxs ->
+        \(EntityOfSnd structx `Cons` xs) -> EntityMNOfSnd structx `Cons` go (sSucc si) singxs xs
 
 class SingI (GenericRecList f) => GenericRecPart (fk :: Symbol -> *) f where
   type GenericRecList f :: [(Maybe Symbol, Structure Symbol)]
@@ -226,8 +220,8 @@ class SingI (GenericRecList f) => GenericRecPart (fk :: Symbol -> *) f where
 instance (GEntityPart fk a, SingI mn)
     => GenericRecPart fk (S1 ('MetaSel mn su ss ds) a) where
   type GenericRecList (S1 ('MetaSel mn su ss ds) a) = '[ '( mn , GStructureOf a ) ]
-  fromField (EntityMNOfSnd _ x `Cons` Nil) = M1 $ gFromEntity @fk x
-  toField (M1 x) = EntityMNOfSnd sing (gToEntity @fk x) `Cons` Nil
+  fromField (EntityMNOfSnd x `Cons` Nil) = M1 $ gFromEntity @fk x
+  toField (M1 x) = EntityMNOfSnd (gToEntity @fk x) `Cons` Nil
 
 instance
     ( GenericRecPart fk a

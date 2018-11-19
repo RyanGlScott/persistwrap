@@ -1,8 +1,5 @@
 module PersistWrap.Embedding.Schemas
-   ( ColumnRep(..)
-   , SchemaRep(..)
-   , getSchemaRep
-   , repToSchemas
+   ( repToSchemas
    ) where
 
 import Conkin (Tuple(..))
@@ -13,37 +10,33 @@ import Data.Singletons (fromSing)
 import Data.Text (Text)
 
 import PersistWrap.Conkin.Extra (mapUncheck, mapUncheckNonEmpty)
+import PersistWrap.Embedding.Columns
 import PersistWrap.Embedding.Rep
-import PersistWrap.Structure as Structure hiding (ForeignKey)
 import PersistWrap.Table as Table
 
 listKeys :: Text -> [(Text, Column Text)]
-listKeys containerName =
-  [ ("_container", Column False (ForeignKey containerName))
-  , ("_index"    , Column False (Table.Prim PrimInt64))
-  ]
+listKeys containerName = [containerNamedColumn containerName, indexNamedColumn]
 
 mapKeys :: Text -> Maybe (Column Text) -> [(Text, Column Text)]
 mapKeys containerName keyCol =
-  ("_container", Column False (ForeignKey containerName))
-    : [ ("_key", kc) | kc <- maybeToList keyCol ]
+  containerNamedColumn containerName : [ (keyColumnName, kc) | kc <- maybeToList keyCol ]
 
 colRepToSchemas :: Text -> ColumnRep fk structure -> (Maybe (Column Text), [Schema Text])
 colRepToSchemas selfSchemaName = \case
   UnitRep _  -> (Nothing, [])
   PrimRep c  -> (Just $ fromSing c, [])
   FnRep cr _ -> colRepToSchemas selfSchemaName cr
-  ForeignRep subRep@(NamedSchemaRep tabName _) ->
-    let (sch1, otherSchemas) = repToBuildSchemas subRep
+  ForeignRep subRep@(NamedSchemaRep (fromSing -> tabName) _) ->
+    let (sch1, otherSchemas) = repToSchemas subRep
     in  (Just $ Column False (ForeignKey tabName), sch1 : otherSchemas)
-  NullForeignRep subRep@(NamedSchemaRep tabName _) ->
-    let (sch1, otherSchemas) = repToBuildSchemas subRep
+  NullForeignRep subRep@(NamedSchemaRep (fromSing -> tabName) _) ->
+    let (sch1, otherSchemas) = repToSchemas subRep
     in  (Just $ Column True (ForeignKey tabName), sch1 : otherSchemas)
   ListRep subRep ->
-    let (Schema subName subcols, otherSchemas) = repToBuildSchemas subRep
+    let (Schema subName subcols, otherSchemas) = repToSchemas subRep
     in  (Nothing, Schema subName (listKeys selfSchemaName ++ subcols) : otherSchemas)
   MapRep subKey subVal ->
-    let (Schema subName subcols, otherSchemas2) = repToBuildSchemas subVal
+    let (Schema subName subcols, otherSchemas2) = repToSchemas subVal
         (kc                    , otherSchemas1) = colRepToSchemas subName subKey
     in  ( Nothing
         , Schema subName (mapKeys selfSchemaName kc ++ subcols) : otherSchemas1 ++ otherSchemas2
@@ -56,14 +49,13 @@ mkAllNullable :: Schema Text -> Schema Text
 mkAllNullable (Schema schemaName cols) = Schema schemaName (map (second makeNullable) cols)
 
 consTagColumn :: NonEmpty Text -> Schema Text -> Schema Text
-consTagColumn tags (Schema schemaName cols) =
-  let newcol = ("_tag", Column False (Enum tags)) in Schema schemaName (newcol : cols)
+consTagColumn tags (Schema schemaName cols) = Schema schemaName (tagNamedColumn tags : cols)
 
-repToBuildSchemas :: NamedSchemaRep fk nx -> (Schema Text, [Schema Text])
-repToBuildSchemas (NamedSchemaRep selfSchemaName rep) = case rep of
+repToSchemas :: NamedSchemaRep fk schemaName nx -> (Schema Text, [Schema Text])
+repToSchemas (NamedSchemaRep (fromSing -> selfSchemaName) rep) = case rep of
   AtMostOneColumnSchema cr ->
     let (c, others) = colRepToSchemas selfSchemaName cr
-    in  (Schema selfSchemaName (maybeToList $ ("value", ) <$> c), others)
+    in  (Schema selfSchemaName (maybeToList $ (loneColumnName, ) <$> c), others)
   ProductSchema cols        -> collectColumns selfSchemaName cols
   SumUnIndexedSchema _ cols -> first mkAllNullable $ collectColumns selfSchemaName cols
   SumIndexedSchema cols ->
@@ -72,9 +64,6 @@ repToBuildSchemas (NamedSchemaRep selfSchemaName rep) = case rep of
                         (mkAllNullable newSchema)
         , others
         )
-
-repToSchemas :: NamedSchemaRep fk nx -> [Schema Text]
-repToSchemas = uncurry (:) . repToBuildSchemas
 
 collectColumns :: Text -> Tuple xs (NamedColumnRep fk) -> (Schema Text, [Schema Text])
 collectColumns selfSchemaName cols =

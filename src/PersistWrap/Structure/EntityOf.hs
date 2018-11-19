@@ -61,13 +61,13 @@ instance (SingI struct, Always Eq fk, Always Ord fk) => Ord (EntityOf fk struct)
     SMapType sk sv -> withSingI sk (withSingI sv compare) x y
 
 data EntityOfSnd fk x where
-  EntityOfSnd :: SSymbol sym -> EntityOf fk struct -> EntityOfSnd fk '(sym, struct)
+  EntityOfSnd :: EntityOf fk struct -> EntityOfSnd fk '(sym, struct)
 
 instance (Always Eq fk, SingI x) => Eq (EntityOfSnd fk x) where
-  (==) (EntityOfSnd _ x) (EntityOfSnd _ y) = case sing @_ @x of
+  (==) (EntityOfSnd x) (EntityOfSnd y) = case sing @_ @x of
     STuple2 _ sx -> withSingI sx (==) x y
 instance Always Eq fk => Always Eq (EntityOfSnd fk) where dict = Dict
 instance (Always Eq fk, Always Ord fk, SingI x) => Ord (EntityOfSnd fk x) where
-  compare (EntityOfSnd _ x) (EntityOfSnd _ y) = case sing @_ @x of
+  compare (EntityOfSnd x) (EntityOfSnd y) = case sing @_ @x of
     STuple2 _ sx -> withSingI sx compare x y
 instance (Always Eq fk, Always Ord fk) => Always Ord (EntityOfSnd fk) where dict = Dict
