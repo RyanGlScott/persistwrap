@@ -15,7 +15,7 @@ import PersistWrap.Table.TH
 import Widget ()
 
 removeInd :: Int -> [a] -> [a]
-removeInd i xs = take i xs ++ drop (i + 1) xs
+removeInd i xs = let (xsbefore, xsafter) = splitAt i xs in xsbefore ++ tail xsafter
 
 sameElements :: forall a . Eq a => [a] -> [a] -> Bool
 sameElements xs ys = maybe False null $ (`execStateT` ys) $ forM_ xs $ \x -> do
