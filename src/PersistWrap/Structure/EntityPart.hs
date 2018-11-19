@@ -19,6 +19,7 @@ import Data.Promotion.Prelude (type (++), Symbol)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
+import Data.Singletons.Prelude.Maybe (FromMaybeSym0)
 import Data.Singletons.Prelude.Enum (Succ, sSucc)
 import Data.Singletons.Prelude.List (SList, Sing(SCons, SNil))
 import Data.Singletons.Prelude.Show (Show_)
@@ -177,7 +178,7 @@ type family FillInDefaultNamesFrom (i :: Nat) (xs :: [(Maybe Symbol, Structure S
     :: [(Symbol, Structure Symbol)] where
   FillInDefaultNamesFrom i '[] = '[]
   FillInDefaultNamesFrom i ( x ': xs )
-    = FirstFromMaybe (Show_ i) x ': FillInDefaultNamesFrom (Succ i) xs
+    = First (Apply FromMaybeSym0 (Show_ i)) x ': FillInDefaultNamesFrom (Succ i) xs
 
 type FillInDefaultNames xs = FillInDefaultNamesFrom 1 xs
 
