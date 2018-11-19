@@ -28,6 +28,7 @@ import PersistWrap.Conkin.Extra
     (Always(..), HEq(..), HOrd(..), Some, some, htraverse, mapUncheck, mapUncheckSing, singToTuple)
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
+import PersistWrap.STM.Future
 import PersistWrap.Table.Class
     ( Entity(..)
     , Key
