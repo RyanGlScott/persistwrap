@@ -12,6 +12,7 @@ import Test.Hspec
 import PersistWrap.Table hiding (Enum, JSON)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 import PersistWrap.Table.TH
+import Widget ()
 
 removeInd :: Int -> [a] -> [a]
 removeInd i xs = take i xs ++ drop (i + 1) xs
