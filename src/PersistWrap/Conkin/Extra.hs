@@ -8,6 +8,7 @@ module PersistWrap.Conkin.Extra
 
 import GHC.Generics ((:*:)(..))
 
+import PersistWrap.Conkin.Extra.All as X
 import PersistWrap.Conkin.Extra.Class as X
 import PersistWrap.Conkin.Extra.Some as X
 import PersistWrap.Conkin.Extra.Tagged as X

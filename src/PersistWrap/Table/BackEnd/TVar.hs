@@ -4,6 +4,7 @@ module PersistWrap.Table.BackEnd.TVar
     , STMTransaction
     , showAllTables
     , withEmptyTables
+    , withEmptyTablesItemized
     , withEmptyTableProxies
     ) where
 
@@ -22,15 +23,19 @@ import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
 import Data.Singletons.Decide ((:~:)(..), Decision(..), (%~))
-import Data.Singletons.Prelude hiding (Map)
+import Data.Singletons.Prelude hiding (All, Map)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
 import Data.Text (Text)
 import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
+import qualified PersistWrap.Conkin.Extra as All (All(..))
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
+import PersistWrap.Embedding.Class.Embeddable (HasRep, entitySchemas)
+import PersistWrap.Embedding.Class.Embedded
 import PersistWrap.STM.Future
+import PersistWrap.Structure (StructureOf)
 import PersistWrap.Table.Class (Entity, MonadTransaction)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column
@@ -169,3 +174,19 @@ showAllTables = do
             return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysShow @cols @(ValueSnd FK)
               (show rows)
   return $ unlines tabLines
+
+class HasRep FK (Fst schx) (StructureOf (Snd schx)) => EmbedPair schx
+instance HasRep FK schemaName (StructureOf x) => EmbedPair '(schemaName,x)
+
+withEmptyTablesItemized
+  :: forall items m x
+   . (MonadIO m, All EmbedPair items)
+  => (forall s . Itemized items (TVarDMLT s m) x)
+  -> m x
+withEmptyTablesItemized action =
+  let schemas = concat $ mapUncheck
+        (\(DictC Dict :: DictC EmbedPair schx) ->
+          entitySchemas @FK @(Fst schx) @(StructureOf (Snd schx))
+        )
+        (All.dicts @EmbedPair @items)
+  in  withSomeSing schemas $ \sschemas -> withEmptyTables sschemas $ const (runItemized action)

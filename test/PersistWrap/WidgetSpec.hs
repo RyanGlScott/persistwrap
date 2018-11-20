@@ -4,24 +4,22 @@ module PersistWrap.WidgetSpec
 
 import Control.Monad (join)
 import qualified Data.ByteString.Char8 as BS
-import Data.Singletons (SomeSing(SomeSing), toSing)
 import Test.Hspec
 
-import PersistWrap.Embedding.Class.Embeddable (entitySchemas)
 import PersistWrap.Embedding.Class.Embedded
-import PersistWrap.Structure
 import PersistWrap.Table
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 
 import Widget
 
 spec :: Spec
-spec = describe "Widget" $ it "should get back what you put in" $ do
-  let widgetSchemas = entitySchemas @BackEnd.FK @"widget" @(StructureOf (Widget BackEnd.FK))
-      intSchemas    = entitySchemas @BackEnd.FK @"abc" @(StructureOf Int)
-  case toSing (widgetSchemas ++ intSchemas) of
-    (SomeSing sSchemas) -> join $ BackEnd.withEmptyTables sSchemas $ \_ ->
-      runItemized @'[ '("abc", Int), '("widget", Widget BackEnd.FK)] $ atomicTransaction $ do
+spec =
+  describe "Widget"
+    $ it "should get back what you put in"
+    $ join
+    $ BackEnd.withEmptyTablesItemized @'[ '("abc", Int), '("widget", Widget BackEnd.FK)]
+    $ atomicTransaction
+    $ do
         fk3 <- insertX @"abc" 3
         let
           w1 = Blarg (False, True, BS.pack "hello world")
