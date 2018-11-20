@@ -3,13 +3,15 @@
 
 module PersistWrap.Embedding.Class.Embedded where
 
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Trans (MonadTrans(..))
 import Data.Function.Pointless ((.:))
 import Data.Promotion.Prelude (type (==))
 import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Embedding.Class.Embeddable (Embeddable)
 import qualified PersistWrap.Embedding.Class.Embeddable as E
-import PersistWrap.Table (ForeignKey, MonadTransactable(..))
+import PersistWrap.Table (ForeignKey, MonadDML(..), MonadTransactable(..))
 
 class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x
 
@@ -27,7 +29,12 @@ modifyX :: Embedded schemaName x m => ForeignKey m schemaName -> (x -> x) -> m B
 modifyX = E.modifyX
 
 newtype Itemized (items :: [(Symbol, *)]) m x = Itemized {runItemized :: m x}
-  deriving (Functor, Applicative, Monad, MonadTransactable)
+  deriving (Functor, Applicative, Monad, MonadTransactable, MonadIO)
+instance MonadTrans (Itemized items) where
+  lift = Itemized
+instance MonadDML m => MonadDML (Itemized items m) where
+  type Transaction (Itemized items m) = Itemized items (Transaction m)
+  atomicTransaction (Itemized act) = Itemized $ atomicTransaction act
 
 instance Embeddable schemaName x m => Embeddable schemaName x (Itemized items m) where
   xSchemas = E.xSchemas @schemaName @x @m

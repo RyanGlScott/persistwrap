@@ -31,12 +31,12 @@ import PersistWrap.Conkin.Extra
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
 import PersistWrap.STM.Future
-import PersistWrap.Table.Class (Entity, MonadDML, MonadTransaction)
+import PersistWrap.Table.Class (Entity, MonadTransaction)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row
-import PersistWrap.Table.Transactable (MonadTransactable, getAllEntities)
+import PersistWrap.Table.Transactable (MonadDML, MonadTransactable, getAllEntities)
 import qualified PersistWrap.Table.Transactable
 
 type TVarMaybeRow xs = TVar (Maybe (Row FK xs))

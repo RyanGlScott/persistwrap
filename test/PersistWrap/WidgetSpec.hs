@@ -21,7 +21,7 @@ spec = describe "Widget" $ it "should get back what you put in" $ do
       intSchemas    = entitySchemas @BackEnd.FK @"abc" @(StructureOf Int)
   case toSing (widgetSchemas ++ intSchemas) of
     (SomeSing sSchemas) -> join $ BackEnd.withEmptyTables sSchemas $ \_ ->
-      atomicTransaction $ runItemized @'[ '("abc", Int), '("widget", Widget BackEnd.FK)] $ do
+      runItemized @'[ '("abc", Int), '("widget", Widget BackEnd.FK)] $ atomicTransaction $ do
         fk3 <- insertX @"abc" 3
         let
           w1 = Blarg (False, True, BS.pack "hello world")

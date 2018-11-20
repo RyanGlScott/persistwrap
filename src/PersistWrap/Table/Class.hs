@@ -42,10 +42,6 @@ class (HEq (ForeignKey m), Always Eq (ForeignKey m), Always Ord (ForeignKey m), 
   foreignToKey
     :: forall tab . WithinTable m tab => Proxy tab -> ForeignKey m (TabName tab) -> Key m tab
 
-class MonadTransaction (Transaction m) => MonadDML m where
-  type Transaction m :: * -> *
-  atomicTransaction :: Transaction m y -> m y
-
 type WithinTable m tab = WithinTableOf (Table m) tab
 
 entityToForeign

@@ -2,12 +2,12 @@ module PersistWrap.Table.Transactable
     ( Entity
     , ForeignKey
     , Key
+    , MonadDML(..)
     , MonadTransactable(..)
     , Table
     , TabRow
     , TabSubRow
     , WithinTable
-    , atomicTransaction
     , deleteRow
     , entityToForeign
     , foreignToKey
@@ -31,7 +31,7 @@ import Data.Proxy (Proxy)
 import Data.Singletons.TypeLits (SSymbol)
 
 import PersistWrap.Table.Class
-  (MonadTransaction, atomicTransaction, entityToForeign, foreignToKey, keyToForeign)
+  (MonadTransaction, entityToForeign, foreignToKey, keyToForeign)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column (Sing(SSchema))
 import PersistWrap.Table.Reflect (SomeTableNamed, getSchemaSing)
@@ -110,3 +110,7 @@ getAllEntities
   :: forall tab m . (MonadTransactable m, WithinTable m tab) => Proxy tab -> m [Entity m tab]
 getAllEntities proxy = case getSchemaSing proxy of
   SSchema _ cols -> getEntities proxy (unrestricted cols)
+
+class MonadTransactable (Transaction m) => MonadDML m where
+  type Transaction m :: * -> *
+  atomicTransaction :: Transaction m y -> m y
