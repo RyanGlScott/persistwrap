@@ -96,8 +96,8 @@ instance EntityPart fk Int where
   toEntity x = toEntity (fromIntegral x :: Int64)
 instance EntityPart fk Integer where
   type StructureOf Integer = StructureOf Text
-  fromEntity x = read $ Text.unpack (fromEntity x)
-  toEntity x = toEntity (Text.pack $ show x)
+  fromEntity = read . Text.unpack . fromEntity
+  toEntity = toEntity . Text.pack . show
 
 instance EntityPart fk v => EntityPart fk [v] where
   type StructureOf [v] = 'ListType (StructureOf v)

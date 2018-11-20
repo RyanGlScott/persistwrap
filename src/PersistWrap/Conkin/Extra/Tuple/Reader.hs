@@ -31,4 +31,4 @@ askX s = do
     Disproved{} -> error "Unexpected type"
 
 runReaderT :: (HasCallStack, Monad m) => SList xs -> ReaderT f m y -> Tuple xs f -> m y
-runReaderT sxs act tup = runStreamT act (mapUncheckSing sxs Some tup)
+runReaderT sxs act = runStreamT act . mapUncheckSing sxs Some

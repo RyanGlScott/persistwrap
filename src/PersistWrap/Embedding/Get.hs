@@ -30,7 +30,7 @@ import PersistWrap.Table as Table
 
 get
   :: forall schemaName structure m
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransactable m)
   => NamedSchemaRep (ForeignKey m) schemaName structure
   -> ForeignKey m schemaName
   -> m (Maybe (EntityOf (ForeignKey m) structure))
@@ -44,7 +44,7 @@ type ValueStreamT m = Tuple.ReaderT (ValueSnd (ForeignKey m)) m
 type ValueStream fk = Tuple.Reader (ValueSnd fk)
 
 getFromRow
-  :: (HasCallStack, MonadTransaction m)
+  :: (HasCallStack, MonadTransactable m)
   => Some (ForeignKey m)
   -> SchemaRep (ForeignKey m) structure
   -> ValueStreamT m (EntityOf (ForeignKey m) structure)
@@ -82,7 +82,7 @@ nonNullCol = \case
 
 getIndexed
   :: forall nxs m
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransactable m)
   => Some (ForeignKey m)
   -> Tuple nxs (NamedColumnRep (ForeignKey m))
   -> Tagged nxs Proxy
@@ -133,7 +133,7 @@ checkNullValue = Stream.get <&> \case
   _                           -> False
 
 getColumnAs
-  :: (HasCallStack, MonadTransaction m)
+  :: (HasCallStack, MonadTransactable m)
   => Some (ForeignKey m)
   -> NamedColumnRep (ForeignKey m) nx
   -> ValueStreamT m (EntityOfSnd (ForeignKey m) nx)
@@ -141,7 +141,7 @@ getColumnAs selfKey (NamedColumnRep colname cr) = EntityOfSnd <$> getColumn coln
 
 getColumn
   :: forall x m colName
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransactable m)
   => SSymbol colName
   -> Some (ForeignKey m)
   -> ColumnRep (ForeignKey m) x
@@ -165,16 +165,17 @@ getColumn colName selfKey = \case
     Map . makeMap <$> collectionList (getMapItem keyRep valRep) selfKey tabName
 
 collectionList
-  :: (HasCallStack, MonadTransaction m)
+  :: forall m a tabName
+   . (HasCallStack, MonadTransactable m)
   => (Some (ForeignRow (ForeignKey m)) -> m a)
   -> Some (ForeignKey m)
   -> SSymbol tabName
   -> ValueStreamT m [a]
 collectionList convertRow (getSome -> GetSome selfSchemaName selfKey) tabName =
-  lift $ withSomeTable tabName $ \cols proxy -> case cols of
+  lift $ withSomeTable tabName $ \case
     cn `SCons` restCols -> case cn %~ sContainerNamedColumn selfSchemaName of
       Disproved{} -> error "Subtable has incorrect key column"
-      Proved Refl -> do
+      Proved Refl -> \proxy -> do
         entities <- getEntities
           proxy
           (MaybeValueSnd (Just (V (FKV selfKey))) `Cons` unrestricted restCols)
@@ -185,7 +186,7 @@ data ListItem x = ListItem{index :: Int, value :: x}
 
 getListItem
   :: forall m structure
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransactable m)
   => SchemaRep (ForeignKey m) structure
   -> Some (ForeignRow (ForeignKey m))
   -> m (ListItem (EntityOf (ForeignKey m) structure))
@@ -200,7 +201,7 @@ data MapItem k v = MapItem{key :: k, value:: v}
 
 getMapItem
   :: forall m keystruct valstruct
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransactable m)
   => ColumnRep (ForeignKey m) (EntityOf (ForeignKey m) keystruct)
   -> SchemaRep (ForeignKey m) valstruct
   -> Some (ForeignRow (ForeignKey m))

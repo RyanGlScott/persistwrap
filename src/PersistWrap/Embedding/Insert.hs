@@ -28,7 +28,7 @@ import PersistWrap.Structure as Structure
 import PersistWrap.Table
 
 insert
-  :: (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+  :: (HasCallStack, MonadTransactable m, fk ~ ForeignKey m)
   => NamedSchemaRep fk selfSchemaName structure
   -> EntityOf fk structure
   -> m (ForeignKey m selfSchemaName)
@@ -37,18 +37,18 @@ insert (NamedSchemaRep selfSchemaName rep) x =
 
 insertRowItems
   :: forall m selfSchemaName structure fk cols
-   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+   . (HasCallStack, MonadTransactable m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> SchemaRep fk structure
   -> EntityOf fk structure
   -> InsertT selfSchemaName cols fk m ()
-insertRowItems selfSchemaName rep x = case rep of
-  AtMostOneColumnSchema cr   -> writeColumn selfSchemaName cr x
-  ProductSchema         ncrs -> case x of
+insertRowItems selfSchemaName = \case
+  AtMostOneColumnSchema cr   -> writeColumn selfSchemaName cr
+  ProductSchema         ncrs -> \case
     Product xs -> sequence_ $ zipUncheck (writeColumnNamed selfSchemaName) ncrs xs
-  SumUnIndexedSchema _ ncrs -> case x of
+  SumUnIndexedSchema _ ncrs -> \case
     Sum xs' -> insertSumItem selfSchemaName ncrs xs'
-  SumIndexedSchema ncrs@(getNonEmptyTags -> SomeSing tags@(_ :%| _)) -> case x of
+  SumIndexedSchema ncrs@(getNonEmptyTags -> SomeSing tags@(_ :%| _)) -> \case
     Sum xs' -> do
       tellX (SColumn SFalse (SEnum tags)) (V (EV $ getSumTag tags xs'))
       insertSumItem selfSchemaName ncrs xs'
@@ -58,7 +58,7 @@ getSumTag
    . SNonEmpty (name ':| names)
   -> Tagged (xs :: [(Symbol, Structure Symbol)]) f
   -> EnumVal (name ': names)
-getSumTag (_ :%| names0) tag0 = EnumVal $ case tag0 of
+getSumTag (_ :%| names0) = EnumVal . \case
   Here  _    -> Here Proxy
   There tag1 -> There $ go names0 tag1
   where
@@ -69,7 +69,7 @@ getSumTag (_ :%| names0) tag0 = EnumVal $ case tag0 of
 
 insertSumItem
   :: forall xs m selfSchemaName fk cols
-   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+   . (HasCallStack, MonadTransactable m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> Tuple xs (NamedColumnRep fk)
   -> Tagged xs (EntityOfSnd fk)
@@ -115,24 +115,23 @@ newtype NextOperation (selfSchemaName :: Symbol) fk m x =
   deriving (Functor, Applicative, Monad)
 
 withPerformInsert
-  :: forall tabName fk m
-   . (MonadTransaction m, fk ~ ForeignKey m)
+  :: forall tabName m
+   . (MonadTransactable m)
   => SSymbol tabName
-  -> (forall cols . InsertT tabName cols fk m ())
+  -> (forall cols . InsertT tabName cols (ForeignKey m) m ())
   -> m (ForeignKey m tabName)
 withPerformInsert tabName act = withSomeTable tabName (go act)
   where
     go
       :: forall tab
        . (TabName tab ~ tabName, WithinTable m tab)
-      => InsertT tabName (TabCols tab) fk m ()
+      => InsertT tabName (TabCols tab) (ForeignKey m) m ()
       -> SList (TabCols tab)
       -> Proxy tab
       -> m (ForeignKey m tabName)
     go (InsertT act') scols proxy = do
       (NextOperation nextOp, row :: TabRow m tab) <- Tuple.runWriterT (execWriterT act') scols
-      k <- insertRow proxy row
-      let fk = keyToForeign k
+      fk <- keyToForeign <$> insertRow proxy row
       runReaderT nextOp fk
       return fk
 
@@ -155,7 +154,7 @@ nextWrite :: Monad m => (fk selfSchemaName -> m ()) -> InsertT selfSchemaName co
 nextWrite act = InsertT $ Writer.tell (NextOperation (ReaderT act))
 
 writeColumnNamed
-  :: (MonadTransaction m, fk ~ ForeignKey m)
+  :: (MonadTransactable m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> NamedColumnRep fk ncr
   -> EntityOfSnd fk ncr
@@ -164,7 +163,7 @@ writeColumnNamed selfSchemaName (NamedColumnRep _ cr) (EntityOfSnd x) =
   writeColumn selfSchemaName cr x
 
 writeColumn
-  :: (MonadTransaction m, fk ~ ForeignKey m)
+  :: (MonadTransactable m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> ColumnRep fk x
   -> x

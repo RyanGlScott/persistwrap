@@ -13,6 +13,7 @@ import Conkin (Tuple(..))
 import Control.Monad.State (StateT, runStateT)
 import qualified Control.Monad.State as State
 import Control.Monad.Trans (MonadTrans)
+import Data.Function.Pointless ((.:))
 import Data.Singletons (Sing)
 import Data.Singletons.Decide
 import Data.Singletons.Prelude (SList, Sing(SCons, SNil))
@@ -44,4 +45,4 @@ runWriterT (WriterT act) sxs = runStateT act (BoxBuilder sxs id) >>= \case
     _ `SCons` _ -> error "Some elements unfilled"
 
 execWriterT :: (HasCallStack, Monad m) => WriterT xs f m x -> SList xs -> m (Tuple xs f)
-execWriterT act sxs = snd <$> runWriterT act sxs
+execWriterT = fmap snd .: runWriterT

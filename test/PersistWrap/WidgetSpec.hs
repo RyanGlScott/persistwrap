@@ -7,7 +7,7 @@ import qualified Data.ByteString.Char8 as BS
 import Data.Singletons
 import Test.Hspec
 
-import PersistWrap.Embedding.Class
+import PersistWrap.Embedding.Class.Embeddable
 import PersistWrap.Structure
 import PersistWrap.Table
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
@@ -30,13 +30,13 @@ spec = describe "Widget" $ it "should get back what you put in" $ do
             [ Foo { bar = 10, baz = A 3 4, qux = Just Green }
             , Foo { bar = 11, baz = B, qux = Nothing }
             ]
-      fkw1      <- insertX @"widget" (toEntity w1)
-      fkw2      <- insertX @"widget" (toEntity w2)
-      fkw3      <- insertX @"widget" (toEntity w3)
-      resultABC <- fmap fromEntity <$> getX fk3
-      result1   <- fmap fromEntity <$> getX fkw1
-      result2   <- fmap fromEntity <$> getX fkw2
-      result3   <- fmap fromEntity <$> getX fkw3
+      fkw1      <- insertX @"widget" w1
+      fkw2      <- insertX @"widget" w2
+      fkw3      <- insertX @"widget" w3
+      resultABC <- getX fk3
+      result1   <- getX fkw1
+      result2   <- getX fkw2
+      result3   <- getX fkw3
       return $ do
         resultABC `shouldBe` Just (3 :: Int)
         result1 `shouldBe` Just w1

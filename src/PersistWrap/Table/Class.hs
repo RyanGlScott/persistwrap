@@ -1,35 +1,20 @@
 module PersistWrap.Table.Class where
 
-import Conkin (Tuple)
-import Data.Constraint (Dict(Dict))
 import Data.Maybe (isJust)
-import Data.Promotion.Prelude (Fst, Snd)
-import Data.Proxy (Proxy(Proxy))
-import Data.Reflection (Reifies, reflect, reify)
-import Data.Singletons (SingI, sing, withSingI)
+import Data.Proxy (Proxy)
+import Data.Singletons (sing)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
-import PersistWrap.Conkin.Extra (Always(..), HEq, showsPrec1)
-import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
+import PersistWrap.Conkin.Extra (Always, HEq)
 import PersistWrap.Table.Column
-import PersistWrap.Table.Row (ForeignRow(..), unrestricted)
+import PersistWrap.Table.Reflect
+import PersistWrap.Table.Row (ForeignRow(..))
 import qualified PersistWrap.Table.Row as Row
 
 type TabRow m tab = Row.Row (ForeignKey m) (TabCols tab)
 type TabSubRow m tab = Row.SubRow (ForeignKey m) (TabCols tab)
 
-data Entity m (tab :: (*,Schema Symbol))
-  = Entity {entityKey :: Key m tab, entityVal :: TabRow m tab}
-
-data SomeTableNamed (table :: Schema Symbol -> *) (name :: Symbol)
-  = forall cols. SomeTableNamed (Sing cols) (table ('Schema name cols))
-
-instance (Always Show table, SingI name) => Show (SomeTableNamed table name) where
-  showsPrec d (SomeTableNamed cols tab) = withSingI cols $
-    showParen (d > 10) $
-      showString "SomeTableNamed " . showsPrec 11 cols . showString " " . showsPrec1 11 tab
-
-instance Always Show table => Always Show (SomeTableNamed table) where dict = Dict
+type Entity m tab = Entity' (Key m tab) (TabRow m tab)
 
 class (HEq (ForeignKey m), Always Eq (ForeignKey m), Always Ord (ForeignKey m), Monad m)
     => MonadTransaction m where
@@ -61,40 +46,7 @@ class MonadTransaction (Transaction m) => MonadDML m where
   type Transaction m :: * -> *
   atomicTransaction :: Transaction m y -> m y
 
-type WithinTableOf (table :: Schema Symbol -> *) tab =
-  (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))
 type WithinTable m tab = WithinTableOf (Table m) tab
-
-withinTable
-  :: forall table sch y
-   . SingI sch
-  => table sch
-  -> (forall tab' . WithinTableOf table '(tab',sch) => Proxy '(tab',sch) -> y)
-  -> y
-withinTable tab cont = reify tab $ \(_ :: Proxy tab') -> cont (Proxy @'(tab',sch))
-
-data SomeTableProxy table sch
-  = forall tab. (TabSchema tab ~ sch, WithinTableOf table tab) => STP (Proxy tab)
-
-withinTables
-  :: forall table schemas y
-   . SingI schemas
-  => Tuple schemas table
-  -> (Tuple schemas (SomeTableProxy table) -> y)
-  -> y
-withinTables tables cont = cont $ Tuple.fmapSing (`withinTable` STP) tables
-
-getTable :: forall tab table proxy . WithinTableOf table tab => proxy tab -> table (TabSchema tab)
-getTable _ = reflect (Proxy @(Fst tab))
-
-getAllEntities
-  :: forall tab m . (MonadTransaction m, WithinTable m tab) => Proxy tab -> m [Entity m tab]
-getAllEntities proxy = case getSchemaSing proxy of
-  SSchema _ cols -> getEntities proxy (unrestricted cols)
-
-getSchemaSing
-  :: forall tab table proxy . WithinTableOf table tab => proxy tab -> SSchema (TabSchema tab)
-getSchemaSing _ = sing
 
 entityToForeign
   :: forall tab m schema

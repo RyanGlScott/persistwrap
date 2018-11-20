@@ -3,6 +3,7 @@
 module PersistWrap.Conkin.Extra.Some where
 
 import Data.Constraint (Dict)
+import Data.Function.Pointless ((.:))
 import Data.Maybe (isJust)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 
@@ -21,9 +22,9 @@ getSome (Some x) = GetSome sing x
 class HEq f where
   heq :: (SingI x, SingI y) => f x -> f y -> Maybe (Dict (x ~ y))
   (==^) :: (SingI x, SingI y) => f x -> f y -> Bool
-  (==^) x y = isJust $ x `heq` y
+  (==^) = isJust .: heq
   (/=^) :: (SingI x, SingI y) => f x -> f y -> Bool
-  (/=^) x y = not $ x ==^ y
+  (/=^) = not .: (==^)
 class HEq f => HOrd f where
   hcompare :: (SingI x, SingI y) => f x -> f y -> Ordering
   (<^) :: (SingI x, SingI y) => f x -> f y -> Bool

@@ -19,7 +19,7 @@ import PersistWrap.Table
 
 withSomeTable
   :: forall tabName m y
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransactable m)
   => SSymbol tabName
   -> (  forall tab
       . (TabName tab ~ tabName, WithinTable m tab)

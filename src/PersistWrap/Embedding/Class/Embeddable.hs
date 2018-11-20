@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module PersistWrap.Embedding.Class where
+module PersistWrap.Embedding.Class.Embeddable where
 
 import Data.Bifunctor (second)
 import Data.Maybe (isJust)
@@ -21,7 +21,7 @@ import PersistWrap.Functor.Extra
 import PersistWrap.Structure
 import PersistWrap.Table
 
-class MonadTransaction m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
+class MonadTransactable m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
   xSchemas :: [Schema Text]
   getXs :: m [(ForeignKey m schemaName, x)]
   getX :: ForeignKey m schemaName -> m (Maybe x)
@@ -34,7 +34,7 @@ class MonadTransaction m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -
 newtype MRow m cols = MRow {unMRow :: Row (ForeignKey m) cols}
 
 lookupExpectTable
-  :: forall schema m . (HasCallStack, MonadTransaction m) => SSchema schema -> m (Table m schema)
+  :: forall schema m . (HasCallStack, MonadTransactable m) => SSchema schema -> m (Table m schema)
 lookupExpectTable (SSchema tn cols) = lookupTable tn <&> \case
   Nothing                       -> error $ "Missing table: " ++ Text.unpack (fromSing tn)
   Just (SomeTableNamed cols' t) -> case cols %~ cols' of
@@ -43,7 +43,7 @@ lookupExpectTable (SSchema tn cols) = lookupTable tn <&> \case
 
 withExpectTable
   :: forall (tabname :: Symbol) (cols :: [(Symbol, Column Symbol)]) (m :: * -> *) (y :: *)
-   . (MonadTransaction m, SingI tabname, SingI cols)
+   . (MonadTransactable m, SingI tabname, SingI cols)
   => (  forall (tab :: (*, Schema Symbol))
       . (WithinTable m tab, TabSchema tab ~ ( 'Schema tabname cols))
      => Proxy tab
@@ -54,7 +54,7 @@ withExpectTable continuation = do
   t <- lookupExpectTable (sing @_ @( 'Schema tabname cols))
   withinTable t continuation
 
-instance (SingI tabname, SingI cols, MonadTransaction m) => Embeddable tabname (MRow m cols) m where
+instance (SingI tabname, SingI cols, MonadTransactable m) => Embeddable tabname (MRow m cols) m where
   xSchemas = [ fromSing $ SSchema (sing @_ @tabname) (sing @_ @cols) ]
   getXs = withExpectTable @tabname @cols $
     fmap (map (\(Entity k v) -> (keyToForeign k, MRow v))) . getAllEntities
@@ -75,7 +75,7 @@ instance (SingI schemaName, SingI structure) => HasRep fk schemaName structure w
   rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
   entitySchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
 
-instance (HasRep fk schemaName structure, MonadTransaction m, fk ~ ForeignKey m)
+instance (HasRep fk schemaName structure, MonadTransactable m, fk ~ ForeignKey m)
     => Embeddable schemaName (EntityOf fk structure) m where
   xSchemas = entitySchemas @fk @schemaName @structure
   getXs = undefined
@@ -84,3 +84,14 @@ instance (HasRep fk schemaName structure, MonadTransaction m, fk ~ ForeignKey m)
   deleteX = undefined
   stateX = undefined
   modifyX = undefined
+
+instance {-# OVERLAPPABLE #-}
+    (EntityPart fk x, HasRep fk schemaName (StructureOf x), MonadTransactable m, fk ~ ForeignKey m)
+    => Embeddable schemaName x m where
+  xSchemas = xSchemas @schemaName @(EntityOf fk (StructureOf x)) @m
+  getXs = map (second fromEntity) <$> getXs
+  getX = fmap (fmap fromEntity) . getX
+  insertX = insertX . toEntity
+  deleteX = deleteX @_ @(EntityOf fk (StructureOf x))
+  stateX = let stateX' = stateX in \k fn -> stateX' k (second toEntity . fn . fromEntity)
+  modifyX = let modifyX' = modifyX in \k fn -> modifyX' k (toEntity . fn . fromEntity)

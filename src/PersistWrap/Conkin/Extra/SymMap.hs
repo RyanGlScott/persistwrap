@@ -33,7 +33,7 @@ empty :: SymMap v
 empty = SymMap Map.empty
 
 singleton :: forall x v . Sing x -> v x -> SymMap v
-singleton k v = SymMap (Map.singleton (SomeSing k) (some k v))
+singleton k = SymMap . Map.singleton (SomeSing k) . some k
 
 union :: SymMap v -> SymMap v -> SymMap v
 union (SymMap x) (SymMap y) = SymMap $ Map.union x y
@@ -60,8 +60,7 @@ lookup k (SymMap m) =
 (!?) = flip lookup
 
 fromList :: forall v . [Some v] -> SymMap v
-fromList xs =
-  SymMap $ Map.fromList $ map (\(Some (v :: v x)) -> (SomeSing $ sing @_ @x, Some v)) xs
+fromList = SymMap . Map.fromList . map (\(Some (v :: v x)) -> (SomeSing $ sing @_ @x, Some v))
 
 toList :: forall v . SymMap v -> [Some v]
 toList (SymMap m) = map snd $ Map.toList m
