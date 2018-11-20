@@ -3,7 +3,6 @@ module PersistWrap.Embedding.Schemas
    ) where
 
 import Conkin (Tuple(..))
-import Data.Bifunctor (first, second)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (catMaybes, maybeToList)
 import Data.Singletons (fromSing)
@@ -42,12 +41,6 @@ colRepToSchemas selfSchemaName = \case
         , Schema subName (mapKeys selfSchemaName kc ++ subcols) : otherSchemas1 ++ otherSchemas2
         )
 
-makeNullable :: Column Text -> Column Text
-makeNullable (Column _ bc) = Column True bc
-
-mkAllNullable :: Schema Text -> Schema Text
-mkAllNullable (Schema schemaName cols) = Schema schemaName (map (second makeNullable) cols)
-
 consTagColumn :: NonEmpty Text -> Schema Text -> Schema Text
 consTagColumn tags (Schema schemaName cols) = Schema schemaName (tagNamedColumn tags : cols)
 
@@ -57,11 +50,10 @@ repToSchemas (NamedSchemaRep (fromSing -> selfSchemaName) rep) = case rep of
     let (c, others) = colRepToSchemas selfSchemaName cr
     in  (Schema selfSchemaName (maybeToList $ (loneColumnName, ) <$> c), others)
   ProductSchema cols        -> collectColumns selfSchemaName cols
-  SumUnIndexedSchema _ cols -> first mkAllNullable $ collectColumns selfSchemaName cols
+  SumUnIndexedSchema _ cols -> collectColumns selfSchemaName cols
   SumIndexedSchema cols ->
     let (newSchema, others) = collectColumns selfSchemaName cols
-    in  ( consTagColumn (mapUncheckNonEmpty (\(NamedColumnRep n _) -> fromSing n) cols)
-                        (mkAllNullable newSchema)
+    in  ( consTagColumn (mapUncheckNonEmpty (\(NamedColumnRep n _) -> fromSing n) cols) newSchema
         , others
         )
 
