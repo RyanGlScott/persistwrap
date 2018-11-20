@@ -1,30 +1,29 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Table.Column where
 
+import Data.Kind (type (*))
 import Data.List.NonEmpty (NonEmpty)
-import Data.Singletons.Prelude
+import Data.Singletons.Prelude hiding (type (*))
 import Data.Singletons.TH
-import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Structure.Primitives (PrimName)
 
 $(singletons [d|
   data BaseColumn text = Prim PrimName | Enum (NonEmpty text) | ForeignKey text | JSON
+    deriving (Show)
   data Column text = Column Bool (BaseColumn text)
+    deriving (Show)
   data Schema text = Schema text [(text,Column text)]
+    deriving (Show)
   |])
-
-deriving instance Show text => Show (BaseColumn text)
-deriving instance Show text => Show (Column text)
-deriving instance Show text => Show (Schema text)
 
 $(singDecideInstances [''BaseColumn, ''Column, ''Schema])
 $(singEqInstances [''BaseColumn, ''Column, ''Schema])
 $(singOrdInstances [''BaseColumn, ''Column, ''Schema])
-$(singShowInstances [''BaseColumn, ''Column, ''Schema])
 
 $(singletonsOnly [d|
   schemaCols :: Schema Symbol -> [(Symbol, Column Symbol)]

@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module PersistWrap.Conkin.Extra.SymMap
     ( SymMap
     , (\\)
@@ -20,9 +22,12 @@ import Data.Singletons (Sing, SomeSing(SomeSing), sing)
 import Data.Singletons.Decide ((:~:)(Refl), Decision(..), (%~))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
+import PersistWrap.Conkin.Extra.Class (Always)
 import PersistWrap.Conkin.Extra.Some
 
 newtype SymMap (v :: Symbol -> *) = SymMap (Map.Map (SomeSing Symbol) (Some v))
+
+deriving instance Always Show v => Show (SymMap v)
 
 empty :: SymMap v
 empty = SymMap Map.empty

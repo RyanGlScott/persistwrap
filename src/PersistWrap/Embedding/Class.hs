@@ -73,9 +73,12 @@ class (SingI schemaName, SingI structure) => HasRep fk schemaName structure wher
 instance (SingI schemaName, SingI structure) => HasRep fk schemaName structure where
   rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
 
+entitySchemas :: forall fk schemaName structure . HasRep fk schemaName structure => [Schema Text]
+entitySchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
+
 instance (HasRep fk schemaName structure, MonadTransaction m, fk ~ ForeignKey m)
     => Embeddable schemaName (EntityOf fk structure) m where
-  xSchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
+  xSchemas = entitySchemas @fk @schemaName @structure
   getXs = undefined
   getX = get (rep @fk @schemaName @structure)
   insertX = insert (rep @fk @schemaName @structure)

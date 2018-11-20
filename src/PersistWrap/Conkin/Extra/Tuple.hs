@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE PolyKinds #-}
 
@@ -6,6 +7,7 @@ module PersistWrap.Conkin.Extra.Tuple where
 import Prelude hiding (unzip)
 
 import Conkin (Tuple(..))
+import Data.Constraint (Dict(Dict))
 import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (fromMaybe)
@@ -13,7 +15,8 @@ import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 import GHC.Generics ((:*:)((:*:)))
 
-import PersistWrap.Conkin.Extra.Class (Always(..), (==*), compare1)
+import qualified PersistWrap.Conkin.Extra.Class as Always (Always(..))
+import PersistWrap.Conkin.Extra.Class (Always, (==*), compare1)
 import PersistWrap.Conkin.Extra.Traversal (mapUncheck)
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
@@ -96,6 +99,17 @@ compareAlwaysTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1 
 
 eqAlwaysTuples :: (SingI xs, Always Eq f) => Tuple xs f -> Tuple xs f -> Bool
 eqAlwaysTuples x y = and $ zipUncheckSing (==*) x y
+
+withAlwaysShow :: forall xs f y . (SingI xs, Always Show f) => (Show (Tuple xs f) => y) -> y
+withAlwaysShow cont = case buildShowDict (sing @_ @xs) of
+  Dict -> cont
+  where
+    buildShowDict :: forall xs' . SList xs' -> Dict (Show (Tuple xs' f))
+    buildShowDict = \case
+      SNil -> Dict
+      ((x :: Sing x) `SCons` xs) ->
+        case (withSingI x $ Always.dict @Show @f @x, buildShowDict xs) of
+          (Dict, Dict) -> Dict
 
 unzip :: Tuple xs (f :*: g) -> (Tuple xs f, Tuple xs g)
 unzip = \case

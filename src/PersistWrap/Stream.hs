@@ -33,5 +33,5 @@ runStreamT (StreamT act) xs = do
 runStream :: HasCallStack => Stream a x -> [a] -> x
 runStream act = runIdentity . runStreamT act
 
-splitStream :: Monad m => StreamT a m x -> StreamT a m x
+splitStream :: (HasCallStack, Monad m) => StreamT a m x -> StreamT a m x
 splitStream act = StreamT $ lift . runStreamT act =<< State.get

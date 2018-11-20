@@ -6,6 +6,8 @@ import Data.Constraint (Dict)
 import Data.Maybe (isJust)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 
+import PersistWrap.Conkin.Extra.Class (Always, showsPrec1)
+
 data Some f = forall x. SingI x => Some (f x)
 
 some :: Sing x -> f x -> Some f
@@ -48,3 +50,6 @@ instance HOrd f => Ord (Some f) where
   (>=) (Some x) (Some y) = x >=^ y
   min (Some x) (Some y) = min1 x y
   max (Some x) (Some y) = max1 x y
+
+instance Always Show f => Show (Some f) where
+  showsPrec d (Some x) = showParen (d > 10) $ showString "Some " . showsPrec1 11 x

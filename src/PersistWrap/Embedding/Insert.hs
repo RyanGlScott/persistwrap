@@ -37,7 +37,7 @@ insert (NamedSchemaRep selfSchemaName rep) x =
 
 insertRowItems
   :: forall m selfSchemaName structure cols
-   . MonadTransaction m
+   . (HasCallStack, MonadTransaction m)
   => SSymbol selfSchemaName
   -> SchemaRep (ForeignKey m) structure
   -> EntityOf (ForeignKey m) structure
@@ -69,7 +69,7 @@ getSumTag (_ :%| names0) tag0 = EnumVal $ case tag0 of
 
 insertSumItem
   :: forall xs m selfSchemaName cols
-   . MonadTransaction m
+   . (HasCallStack, MonadTransaction m)
   => SSymbol selfSchemaName
   -> Tuple xs (NamedColumnRep (ForeignKey m))
   -> Tagged xs (EntityOfSnd (ForeignKey m))
@@ -87,10 +87,15 @@ insertSumItem selfSchemaName = go
     go Nil               x'         = noHere x'
 
 writeNullNamed
-  :: MonadTransaction m => NamedColumnRep (ForeignKey m) x -> InsertT selfSchemaName cols m ()
+  :: (HasCallStack, MonadTransaction m)
+  => NamedColumnRep (ForeignKey m) x
+  -> InsertT selfSchemaName cols m ()
 writeNullNamed (NamedColumnRep _ cr) = writeNull cr
 
-writeNull :: MonadTransaction m => ColumnRep (ForeignKey m) x -> InsertT selfSchemaName cols m ()
+writeNull
+  :: (HasCallStack, MonadTransaction m)
+  => ColumnRep (ForeignKey m) x
+  -> InsertT selfSchemaName cols m ()
 writeNull = \case
   UnitRep{}                               -> return ()
   PrimRep c@(SColumn STrue  _)            -> tellX c (N Nothing)

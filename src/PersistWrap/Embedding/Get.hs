@@ -74,7 +74,11 @@ nonNullCol = \case
   Nil                             -> return Nothing
   NamedColumnRep _ cr `Cons` ncrs -> do
     thisOne <- not <$> isNull cr
-    if thisOne then return $ Just $ Here Proxy else fmap There <$> nonNullCol ncrs
+    if thisOne
+      then do
+        sequence_ $ mapUncheck skipNullNamedColumn ncrs
+        return $ Just $ Here Proxy
+      else fmap There <$> nonNullCol ncrs
 
 getIndexed
   :: forall nxs m
@@ -90,12 +94,15 @@ getIndexed selfKey = go
        . Tuple nxs' (NamedColumnRep (ForeignKey m))
       -> Tagged nxs' Proxy
       -> ValueStreamT m (Tagged nxs' (EntityOfSnd (ForeignKey m)))
-    go (NamedColumnRep name cr `Cons` _) (Here Proxy) =
-      Here . EntityOfSnd <$> getColumn name selfKey cr
-    go (NamedColumnRep _ cr `Cons` crs) (There rest) = skipNullColumn cr >> There <$> go crs rest
-    go Nil                              tag          = noHere tag
+    go (NamedColumnRep name cr `Cons` ncrs) (Here Proxy) = do
+      result <- getColumn name selfKey cr
+      hoist generalize $ sequence_ $ mapUncheck skipNullNamedColumn ncrs
+      return $ Here $ EntityOfSnd result
+    go (NamedColumnRep _ cr `Cons` ncrs) (There rest) =
+      hoist generalize (skipNullColumn cr) >> There <$> go ncrs rest
+    go Nil tag = noHere tag
 
-skipNullColumn :: (HasCallStack, MonadTransaction m) => ColumnRep fk x -> ValueStreamT m ()
+skipNullColumn :: HasCallStack => ColumnRep fk x -> ValueStream fk ()
 skipNullColumn = \case
   UnitRep{}        -> return ()
   FnRep cr _       -> skipNullColumn cr
@@ -104,6 +111,9 @@ skipNullColumn = \case
   NullForeignRep{} -> void Stream.get
   ListRep{}        -> return ()
   MapRep{}         -> return ()
+
+skipNullNamedColumn :: HasCallStack => NamedColumnRep fk x -> ValueStream fk ()
+skipNullNamedColumn (NamedColumnRep _ cr) = skipNullColumn cr
 
 isNull :: ColumnRep fk x -> ValueStream fk Bool
 isNull = \case

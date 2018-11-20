@@ -1,6 +1,8 @@
 module PersistWrap.Table.BackEnd.TVar
-    ( TVarDMLT
+    ( FK
+    , TVarDMLT
     , STMTransaction
+    , showAllTables
     , withEmptyTables
     , withEmptyTableProxies
     ) where
@@ -9,10 +11,11 @@ import Conkin (Tuple)
 import Control.Arrow ((&&&), (***))
 import Control.Concurrent.STM (STM, atomically)
 import Control.Concurrent.STM.TVar
+import Control.Monad (forM)
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Reader (MonadReader, ReaderT, asks, mapReaderT, runReaderT)
+import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, mapReaderT, runReaderT)
 import Data.Constraint (Dict(Dict))
 import Data.List (group, sort)
 import Data.Maybe (isJust)
@@ -25,7 +28,6 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
-    (Always(..), HEq(..), HOrd(..), Some, some, htraverse, mapUncheck, mapUncheckSing, singToTuple)
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
 import PersistWrap.STM.Future
@@ -132,11 +134,12 @@ withEmptyTables sschemas action
   where schemasTuple = singToTuple sschemas
 
 withEmptyTableProxies
-  :: (SingI schemas, MonadIO m)
+  :: MonadIO m
   => SList schemas
   -> (forall s . Tuple schemas (SomeTableProxy (Table (STMTransaction s))) -> TVarDMLT s m x)
   -> m x
-withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` action)
+withEmptyTableProxies schemas action =
+  withEmptyTables schemas $ withSingI schemas (`withinTables` action)
 
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
@@ -157,3 +160,15 @@ tableToMapEntry tab = case sing @_ @schema of
 
 newTable :: proxy schema -> IO (Table (STMTransaction s) schema)
 newTable _ = Table <$> newTVarIO []
+
+showAllTables :: STMTransaction s String
+showAllTables = do
+  tm       <- ask
+  tabLines <-
+    forM (SymMap.toList tm)
+      $ \(getSome -> GetSome name (SomeTableNamed (cols :: SList cols) tab)) ->
+          withSingI name $ withSingI cols $ do
+            rows <- Class.withinTable tab $ fmap (map (\(Entity _ v) -> v)) . Class.getAllEntities
+            return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysShow @cols @(ValueSnd FK)
+              (show rows)
+  return $ unlines tabLines

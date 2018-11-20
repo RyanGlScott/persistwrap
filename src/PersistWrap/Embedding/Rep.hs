@@ -61,6 +61,21 @@ makeNullable = \case
   ListRep{}                 -> error "No associated column"
   MapRep{}                  -> error "No associated column"
 
+namedUnderlyingNullable :: NamedColumnRep fk x -> NamedColumnRep fk x
+namedUnderlyingNullable (NamedColumnRep name cr) = NamedColumnRep name (underlyingNullable cr)
+
+underlyingNullable :: HasCallStack => ColumnRep fk x -> ColumnRep fk x
+underlyingNullable cr0 = case cr0 of
+  UnitRep{} -> cr0
+  PrimRep (SColumn SFalse bc) ->
+    FnRep (PrimRep (SColumn STrue bc)) (Bi fromJust Just . bimap biV . Bi (\(N x) -> x) N)
+  PrimRep (SColumn STrue _) -> cr0
+  FnRep cr fn               -> FnRep (underlyingNullable cr) fn
+  ForeignRep schr           -> FnRep (NullForeignRep schr) (Bi fromJust Just)
+  NullForeignRep{}          -> cr0
+  ListRep{}                 -> cr0
+  MapRep{}                  -> cr0
+
 data SchemaRep fk structure where
   AtMostOneColumnSchema :: ColumnRep fk (EntityOf fk structure) -> SchemaRep fk structure
   ProductSchema :: Tuple nxs (NamedColumnRep fk) -> SchemaRep fk ('ProductType nxs)
@@ -179,12 +194,13 @@ buildSumRep prefix xs = case colReps of
     (1, 1)                   -> Left $ buildOptionCol colReps
     (_, _) | unitsCount <= 1 -> Right $ SumUnIndexedSchema
       (findJust (\x -> if hasUnitOption x then Just Proxy else Nothing) colReps)
-      colReps
-    (_, _) -> Right $ SumIndexedSchema colReps
+      allNullColReps
+    (_, _) -> Right $ SumIndexedSchema allNullColReps
   where
-    colReps       = buildNonEmptyColReps prefix xs
-    unitsCount    = length $ filter id $ mapUncheck hasUnitOption colReps
-    nonUnitsCount = length $ filter not $ mapUncheck isUnit colReps
+    colReps        = buildNonEmptyColReps prefix xs
+    unitsCount     = length $ filter id $ mapUncheck hasUnitOption colReps
+    nonUnitsCount  = length $ filter not $ mapUncheck isUnit colReps
+    allNullColReps = Conkin.fmap namedUnderlyingNullable colReps
 
 biSum :: Tagged (x ': xs) (EntityOfSnd fk) :<->: EntityOf fk ( 'SumType (x ':| xs))
 biSum = Bi Sum (\(Sum x) -> x)

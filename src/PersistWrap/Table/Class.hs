@@ -1,14 +1,15 @@
 module PersistWrap.Table.Class where
 
 import Conkin (Tuple)
+import Data.Constraint (Dict(Dict))
 import Data.Maybe (isJust)
 import Data.Promotion.Prelude (Fst, Snd)
 import Data.Proxy (Proxy(Proxy))
 import Data.Reflection (Reifies, reflect, reify)
-import Data.Singletons (SingI, sing)
+import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
-import PersistWrap.Conkin.Extra (Always, HEq)
+import PersistWrap.Conkin.Extra (Always(..), HEq, showsPrec1)
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Table.Column
 import PersistWrap.Table.Row (ForeignRow(..), unrestricted)
@@ -22,6 +23,13 @@ data Entity m (tab :: (*,Schema Symbol))
 
 data SomeTableNamed (table :: Schema Symbol -> *) (name :: Symbol)
   = forall cols. SomeTableNamed (Sing cols) (table ('Schema name cols))
+
+instance (Always Show table, SingI name) => Show (SomeTableNamed table name) where
+  showsPrec d (SomeTableNamed cols tab) = withSingI cols $
+    showParen (d > 10) $
+      showString "SomeTableNamed " . showsPrec 11 cols . showString " " . showsPrec1 11 tab
+
+instance Always Show table => Always Show (SomeTableNamed table) where dict = Dict
 
 class (HEq (ForeignKey m), Always Eq (ForeignKey m), Always Ord (ForeignKey m), Monad m)
     => MonadTransaction m where
