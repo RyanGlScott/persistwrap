@@ -70,11 +70,10 @@ instance (SingI tabname, SingI cols, MonadTransaction m) => Embeddable tabname (
 
 class (SingI schemaName, SingI structure) => HasRep fk schemaName structure where
   rep :: NamedSchemaRep fk schemaName structure
+  entitySchemas :: [Schema Text]
 instance (SingI schemaName, SingI structure) => HasRep fk schemaName structure where
   rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
-
-entitySchemas :: forall fk schemaName structure . HasRep fk schemaName structure => [Schema Text]
-entitySchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
+  entitySchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
 
 instance (HasRep fk schemaName structure, MonadTransaction m, fk ~ ForeignKey m)
     => Embeddable schemaName (EntityOf fk structure) m where
