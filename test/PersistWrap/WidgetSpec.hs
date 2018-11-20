@@ -4,7 +4,7 @@ module PersistWrap.WidgetSpec
 
 import Control.Monad (join)
 import qualified Data.ByteString.Char8 as BS
-import Data.Singletons
+import Data.Singletons (SomeSing(SomeSing), toSing)
 import Test.Hspec
 
 import PersistWrap.Embedding.Class.Embeddable (entitySchemas)
