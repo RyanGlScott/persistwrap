@@ -5,12 +5,14 @@ module PersistWrap.Embedding.Schemas
 import Conkin (Tuple(..))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (catMaybes, maybeToList)
-import Data.Singletons (fromSing)
+import Data.Singletons (SomeSing(SomeSing), fromSing)
+import Data.Singletons.TypeLits (Symbol)
 import Data.Text (Text)
 
-import PersistWrap.Conkin.Extra (mapUncheck, mapUncheckNonEmpty)
+import PersistWrap.Conkin.Extra (mapUncheck)
 import PersistWrap.Embedding.Columns
 import PersistWrap.Embedding.Rep
+import PersistWrap.Embedding.Utils
 import PersistWrap.Table as Table
 
 listKeys :: Text -> [(Text, Column Text)]
@@ -41,8 +43,9 @@ colRepToSchemas selfSchemaName = \case
         , Schema subName (mapKeys selfSchemaName kc ++ subcols) : otherSchemas1 ++ otherSchemas2
         )
 
-consTagColumn :: NonEmpty Text -> Schema Text -> Schema Text
-consTagColumn tags (Schema schemaName cols) = Schema schemaName (tagNamedColumn tags : cols)
+consTagColumn :: SomeSing (NonEmpty Symbol) -> Schema Text -> Schema Text
+consTagColumn (SomeSing (fromSing -> tags)) (Schema schemaName cols) =
+  Schema schemaName (tagNamedColumn tags : cols)
 
 repToSchemas :: NamedSchemaRep fk schemaName nx -> (Schema Text, [Schema Text])
 repToSchemas (NamedSchemaRep (fromSing -> selfSchemaName) rep) = case rep of
@@ -53,9 +56,7 @@ repToSchemas (NamedSchemaRep (fromSing -> selfSchemaName) rep) = case rep of
   SumUnIndexedSchema _ cols -> collectColumns selfSchemaName cols
   SumIndexedSchema cols ->
     let (newSchema, others) = collectColumns selfSchemaName cols
-    in  ( consTagColumn (mapUncheckNonEmpty (\(NamedColumnRep n _) -> fromSing n) cols) newSchema
-        , others
-        )
+    in  (consTagColumn (getNonEmptyTags cols) newSchema, others)
 
 collectColumns :: Text -> Tuple xs (NamedColumnRep fk) -> (Schema Text, [Schema Text])
 collectColumns selfSchemaName cols =
