@@ -4,9 +4,9 @@ import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Embedding.Class.Embeddable (Embeddable)
 import qualified PersistWrap.Embedding.Class.Embeddable as E
-import PersistWrap.Table.Transactable (ForeignKey)
+import PersistWrap.Table (ForeignKey, MonadTransactable(..))
 
-class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x
+class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x where
 
 getXs :: Embedded schemaName x m => m [(ForeignKey m schemaName, x)]
 getXs = E.getXs
@@ -22,4 +22,4 @@ modifyX :: Embedded schemaName x m => ForeignKey m schemaName -> (x -> x) -> m B
 modifyX = E.modifyX
 
 newtype Itemized (items :: [(Symbol, *)]) m x = Itemized (m x)
-  deriving (Functor, Applicative, Monad)
+  deriving (Functor, Applicative, Monad, MonadTransactable)
