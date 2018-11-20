@@ -24,7 +24,7 @@ spec = describe "Widget" $ it "should get back what you put in" $ do
       let
         w1, w2, w3 :: Widget BackEnd.FK
         w1 = Blarg (False, True, BS.pack "hello world")
-        w2 = Glorp (Foreignated fk3)
+        w2 = Glorp fk3
         w3 =
           Foo2
             [ Foo { bar = 10, baz = A 3 4, qux = Just Green }

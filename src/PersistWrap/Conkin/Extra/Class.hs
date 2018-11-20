@@ -26,3 +26,11 @@ compare1 = case (dict :: Dict (Ord (f x))) of
 showsPrec1 :: forall f x . (Always Show f, SingI x) => Int -> f x -> ShowS
 showsPrec1 = case (dict :: Dict (Show (f x))) of
   Dict -> showsPrec
+
+newtype FromAlways f x = FromAlways (f x)
+instance (Always Eq f, SingI x) => Eq (FromAlways f x) where
+  (==) (FromAlways l) (FromAlways r) = l ==* r
+instance (Always Eq f, Always Ord f, SingI x) => Ord (FromAlways f x) where
+  compare (FromAlways l) (FromAlways r) = compare1 l r
+instance (Always Show f, SingI x) => Show (FromAlways f x) where
+  showsPrec d (FromAlways x) = showsPrec1 d x
