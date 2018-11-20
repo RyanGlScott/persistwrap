@@ -188,11 +188,11 @@ writeColumn selfSchemaName cr x = case cr of
     fk <- traverse (lift . insert subRep) x
     tellX (SColumn STrue (SForeignKey subSchemaName)) (N (FKV <$> fk))
   ListRep (NamedSchemaRep subSchemaName subRep) -> case x of
-    List els -> nextWrite $ \selfFk -> forM_ (zip [(0 :: Int64) ..] els) $ \(i, xi) ->
+    List els -> nextWrite $ \selfFk -> forM_ (zip [(0 :: Int64) ..] els) $ \(i, v) ->
       void $ withPerformInsert subSchemaName $ do
         tellX (sContainerColumn selfSchemaName) (V $ FKV selfFk)
         tellX sIndexColumn                      (V $ PV i)
-        insertRowItems subSchemaName subRep xi
+        insertRowItems subSchemaName subRep v
   MapRep keyRep (NamedSchemaRep subSchemaName valRep) -> case x of
     Map m -> nextWrite $ \selfFk -> forM_ (Map.toList m) $ \(k, v) ->
       void $ withPerformInsert subSchemaName $ do

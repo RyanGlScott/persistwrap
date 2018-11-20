@@ -76,7 +76,7 @@ nonNullCol = \case
     thisOne <- not <$> isNull cr
     if thisOne
       then do
-        sequence_ $ mapUncheck skipNullNamedColumn ncrs
+        skipNullNamedColumns ncrs
         return $ Just $ Here Proxy
       else fmap There <$> nonNullCol ncrs
 
@@ -96,7 +96,7 @@ getIndexed selfKey = go
       -> ValueStreamT m (Tagged nxs' (EntityOfSnd (ForeignKey m)))
     go (NamedColumnRep name cr `Cons` ncrs) (Here Proxy) = do
       result <- getColumn name selfKey cr
-      hoist generalize $ sequence_ $ mapUncheck skipNullNamedColumn ncrs
+      hoist generalize $ skipNullNamedColumns ncrs
       return $ Here $ EntityOfSnd result
     go (NamedColumnRep _ cr `Cons` ncrs) (There rest) =
       hoist generalize (skipNullColumn cr) >> There <$> go ncrs rest
@@ -114,6 +114,8 @@ skipNullColumn = \case
 
 skipNullNamedColumn :: HasCallStack => NamedColumnRep fk x -> ValueStream fk ()
 skipNullNamedColumn (NamedColumnRep _ cr) = skipNullColumn cr
+skipNullNamedColumns :: HasCallStack => Tuple xs (NamedColumnRep fk) -> ValueStream fk ()
+skipNullNamedColumns = sequence_ . mapUncheck skipNullNamedColumn
 
 isNull :: ColumnRep fk x -> ValueStream fk Bool
 isNull = \case
