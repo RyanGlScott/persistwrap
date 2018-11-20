@@ -15,7 +15,7 @@ import qualified Data.Map as Map
 import Data.Semigroup (Semigroup(..))
 import Data.Singletons.Decide
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.List.NonEmpty
+import Data.Singletons.Prelude.List.NonEmpty (SNonEmpty, Sing((:%|)))
 import Data.Singletons.TypeLits
 import GHC.Stack (HasCallStack)
 
@@ -28,20 +28,20 @@ import PersistWrap.Structure as Structure
 import PersistWrap.Table
 
 insert
-  :: (HasCallStack, MonadTransaction m)
-  => NamedSchemaRep (ForeignKey m) selfSchemaName structure
-  -> EntityOf (ForeignKey m) structure
+  :: (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+  => NamedSchemaRep fk selfSchemaName structure
+  -> EntityOf fk structure
   -> m (ForeignKey m selfSchemaName)
 insert (NamedSchemaRep selfSchemaName rep) x =
   withPerformInsert selfSchemaName (insertRowItems selfSchemaName rep x)
 
 insertRowItems
-  :: forall m selfSchemaName structure cols
-   . (HasCallStack, MonadTransaction m)
+  :: forall m selfSchemaName structure fk cols
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
-  -> SchemaRep (ForeignKey m) structure
-  -> EntityOf (ForeignKey m) structure
-  -> InsertT selfSchemaName cols m ()
+  -> SchemaRep fk structure
+  -> EntityOf fk structure
+  -> InsertT selfSchemaName cols fk m ()
 insertRowItems selfSchemaName rep x = case rep of
   AtMostOneColumnSchema cr   -> writeColumn selfSchemaName cr x
   ProductSchema         ncrs -> case x of
@@ -68,34 +68,32 @@ getSumTag (_ :%| names0) tag0 = EnumVal $ case tag0 of
     go (_ `SCons` names) (There x) = There $ go names x
 
 insertSumItem
-  :: forall xs m selfSchemaName cols
-   . (HasCallStack, MonadTransaction m)
+  :: forall xs m selfSchemaName fk cols
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
-  -> Tuple xs (NamedColumnRep (ForeignKey m))
-  -> Tagged xs (EntityOfSnd (ForeignKey m))
-  -> InsertT selfSchemaName cols m ()
+  -> Tuple xs (NamedColumnRep fk)
+  -> Tagged xs (EntityOfSnd fk)
+  -> InsertT selfSchemaName cols fk m ()
 insertSumItem selfSchemaName = go
   where
     go
       :: forall xs'
-       . Tuple xs' (NamedColumnRep (ForeignKey m))
-      -> Tagged xs' (EntityOfSnd (ForeignKey m))
-      -> InsertT selfSchemaName cols m ()
-    go (ncr `Cons` rest) (Here x') =
-      writeColumnNamed selfSchemaName ncr x' >> sequence_ (mapUncheck writeNullNamed rest)
-    go (ncr `Cons` rest) (There x') = writeNullNamed ncr >> go rest x'
-    go Nil               x'         = noHere x'
+       . Tuple xs' (NamedColumnRep fk)
+      -> Tagged xs' (EntityOfSnd fk)
+      -> InsertT selfSchemaName cols fk m ()
+    go (ncr `Cons` rest) (Here x') = do
+      writeColumnNamed selfSchemaName ncr x'
+      sequence_ (mapUncheck writeNullNamed rest)
+    go (ncr `Cons` rest) (There x') = do
+      writeNullNamed ncr
+      go rest x'
+    go Nil x' = noHere x'
 
 writeNullNamed
-  :: (HasCallStack, MonadTransaction m)
-  => NamedColumnRep (ForeignKey m) x
-  -> InsertT selfSchemaName cols m ()
+  :: (HasCallStack, Monad m) => NamedColumnRep fk x -> InsertT selfSchemaName cols fk m ()
 writeNullNamed (NamedColumnRep _ cr) = writeNull cr
 
-writeNull
-  :: (HasCallStack, MonadTransaction m)
-  => ColumnRep (ForeignKey m) x
-  -> InsertT selfSchemaName cols m ()
+writeNull :: (HasCallStack, Monad m) => ColumnRep fk x -> InsertT selfSchemaName cols fk m ()
 writeNull = \case
   UnitRep{}                               -> return ()
   PrimRep c@(SColumn STrue  _)            -> tellX c (N Nothing)
@@ -106,31 +104,28 @@ writeNull = \case
   ListRep{}                               -> return ()
   MapRep{}                                -> return ()
 
-newtype InsertT selfSchemaName cols m x =
-    InsertT (
-      WriterT
-        (NextOperation selfSchemaName m ())
-        (Tuple.WriterT cols (ValueSnd (ForeignKey m)) m)
-        x
-    )
+newtype InsertT selfSchemaName cols fk m x =
+    InsertT  (WriterT (NextOperation selfSchemaName fk m ()) (Tuple.WriterT cols (ValueSnd fk) m) x)
   deriving (Functor, Applicative, Monad)
-instance MonadTrans (InsertT selfSchemaName cols) where
+instance MonadTrans (InsertT selfSchemaName cols fk) where
   lift = InsertT . lift . lift
-newtype NextOperation selfSchemaName m x = NextOperation (ReaderT (ForeignKey m selfSchemaName) m x)
+
+newtype NextOperation (selfSchemaName :: Symbol) fk m x =
+    NextOperation (ReaderT (fk selfSchemaName) m x)
   deriving (Functor, Applicative, Monad)
 
 withPerformInsert
-  :: forall tabName m
-   . MonadTransaction m
+  :: forall tabName fk m
+   . (MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol tabName
-  -> (forall cols . InsertT tabName cols m ())
+  -> (forall cols . InsertT tabName cols fk m ())
   -> m (ForeignKey m tabName)
 withPerformInsert tabName act = withSomeTable tabName (go act)
   where
     go
       :: forall tab
-       . (MonadTransaction m, TabName tab ~ tabName, WithinTable m tab)
-      => InsertT tabName (TabCols tab) m ()
+       . (TabName tab ~ tabName, WithinTable m tab)
+      => InsertT tabName (TabCols tab) fk m ()
       -> SList (TabCols tab)
       -> Proxy tab
       -> m (ForeignKey m tabName)
@@ -141,42 +136,39 @@ withPerformInsert tabName act = withSomeTable tabName (go act)
       runReaderT nextOp fk
       return fk
 
-instance Monad m => Semigroup (NextOperation selfSchemaName m ()) where
+instance Monad m => Semigroup (NextOperation selfSchemaName fk m ()) where
   (<>) = (>>)
   sconcat = sequence_
   stimes = replicateM_ . fromIntegral
-instance Monad m => Monoid (NextOperation selfSchemaName m ()) where
+instance Monad m => Monoid (NextOperation selfSchemaName fk m ()) where
   mempty = pure ()
   mappend = (>>)
   mconcat = sequence_
 
 tellX
-  :: (HasCallStack, Monad m)
-  => SColumn col
-  -> Value (ForeignKey m) col
-  -> InsertT selfSchemaName cols m ()
+  :: (HasCallStack, Monad m) => SColumn col -> Value fk col -> InsertT selfSchemaName cols fk m ()
 tellX cn x = InsertT $ lift $ Tuple.tell $ \(STuple2 _ cn') -> case cn' %~ cn of
   Proved Refl -> return $ ValueSnd x
   Disproved{} -> error "Column types don't match"
 
-nextWrite :: Monad m => (ForeignKey m selfSchemaName -> m ()) -> InsertT selfSchemaName cols m ()
+nextWrite :: Monad m => (fk selfSchemaName -> m ()) -> InsertT selfSchemaName cols fk m ()
 nextWrite act = InsertT $ Writer.tell (NextOperation (ReaderT act))
 
 writeColumnNamed
-  :: MonadTransaction m
+  :: (MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
-  -> NamedColumnRep (ForeignKey m) ncr
-  -> EntityOfSnd (ForeignKey m) ncr
-  -> InsertT selfSchemaName cols m ()
+  -> NamedColumnRep fk ncr
+  -> EntityOfSnd fk ncr
+  -> InsertT selfSchemaName cols fk m ()
 writeColumnNamed selfSchemaName (NamedColumnRep _ cr) (EntityOfSnd x) =
   writeColumn selfSchemaName cr x
 
 writeColumn
-  :: MonadTransaction m
+  :: (MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
-  -> ColumnRep (ForeignKey m) x
+  -> ColumnRep fk x
   -> x
-  -> InsertT selfSchemaName cols m ()
+  -> InsertT selfSchemaName cols fk m ()
 writeColumn selfSchemaName cr x = case cr of
   UnitRep _    -> return ()
   PrimRep col  -> tellX col x
