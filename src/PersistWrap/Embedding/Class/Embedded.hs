@@ -6,7 +6,7 @@ import PersistWrap.Embedding.Class.Embeddable (Embeddable)
 import qualified PersistWrap.Embedding.Class.Embeddable as E
 import PersistWrap.Table (ForeignKey, MonadTransactable(..))
 
-class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x where
+class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x
 
 getXs :: Embedded schemaName x m => m [(ForeignKey m schemaName, x)]
 getXs = E.getXs
