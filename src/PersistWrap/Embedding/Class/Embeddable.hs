@@ -3,7 +3,13 @@
 
 module PersistWrap.Embedding.Class.Embeddable where
 
+import Control.Monad.Except (ExceptT)
+import Control.Monad.Reader (ReaderT)
+import Control.Monad.State (StateT)
+import Control.Monad.Trans (MonadTrans, lift)
+import Control.Monad.Writer (WriterT)
 import Data.Bifunctor (second)
+import Data.Function.Pointless ((.:))
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons
@@ -23,12 +29,37 @@ import PersistWrap.Table
 
 class MonadTransactable m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
   getXs :: m [(ForeignKey m schemaName, x)]
+  default getXs :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
+    => m [(ForeignKey m schemaName, x)]
+  getXs = lift getXs
   getX :: ForeignKey m schemaName -> m (Maybe x)
+  default getX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
+    => ForeignKey m schemaName -> m (Maybe x)
+  getX = lift . getX
   insertX :: x -> m (ForeignKey m schemaName)
+  default insertX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
+    => x -> m (ForeignKey m schemaName)
+  insertX = lift . insertX
   deleteX :: ForeignKey m schemaName -> m Bool
+  default deleteX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
+    => ForeignKey m schemaName -> m Bool
+  deleteX = lift . deleteX @schemaName @x
   stateX :: ForeignKey m schemaName -> (x -> (b,x)) -> m (Maybe b)
+  default stateX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
+    => ForeignKey m schemaName -> (x -> (b,x)) -> m (Maybe b)
+  stateX = lift .: stateX
   modifyX :: ForeignKey m schemaName -> (x -> x) -> m Bool
-  modifyX key fn = isJust <$> stateX @schemaName key (((), ) . fn)
+  default modifyX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
+    => ForeignKey m schemaName -> (x -> x) -> m Bool
+  modifyX = lift .: modifyX
+
+modifyXFromStateX
+  :: forall schemaName x m
+   . Embeddable schemaName x m
+  => ForeignKey m schemaName
+  -> (x -> x)
+  -> m Bool
+modifyXFromStateX key fn = isJust <$> stateX @schemaName key (((), ) . fn)
 
 newtype MRow m cols = MRow {unMRow :: Row (ForeignKey m) cols}
 
@@ -91,3 +122,8 @@ instance {-# OVERLAPPABLE #-}
   deleteX = deleteX @_ @(EntityOf fk (StructureOf x))
   stateX = let stateX' = stateX in \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
   modifyX = let modifyX' = modifyX in \k fn -> modifyX' k (toEntity @fk . fn . fromEntity @fk)
+
+instance Embeddable schemaName x m => Embeddable schemaName x (ReaderT r m)
+instance (Embeddable schemaName x m, Monoid w) => Embeddable schemaName x (WriterT w m)
+instance Embeddable schemaName x m => Embeddable schemaName x (StateT s m)
+instance Embeddable schemaName x m => Embeddable schemaName x (ExceptT e m)

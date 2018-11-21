@@ -4,12 +4,11 @@
 module PersistWrap.Embedding.Class.Embedded where
 
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Except (MonadError)
-import Control.Monad.Reader (MonadReader)
-import Control.Monad.State (MonadState)
+import Control.Monad.Except (ExceptT, MonadError)
+import Control.Monad.Reader (MonadReader, ReaderT)
+import Control.Monad.State (MonadState, StateT)
 import Control.Monad.Trans (MonadTrans(..))
-import Control.Monad.Writer (MonadWriter)
-import Data.Function.Pointless ((.:))
+import Control.Monad.Writer (MonadWriter, WriterT)
 import Data.Promotion.Prelude (type (==))
 import Data.Singletons.TypeLits (Symbol)
 
@@ -42,13 +41,7 @@ instance MonadDML m => MonadDML (Itemized items m) where
   type Transaction (Itemized items m) = Itemized items (Transaction m)
   atomicTransaction (Itemized act) = Itemized $ atomicTransaction act
 
-instance Embeddable schemaName x m => Embeddable schemaName x (Itemized items m) where
-  getXs = Itemized E.getXs
-  getX = Itemized . E.getX
-  insertX = Itemized . E.insertX
-  deleteX = Itemized . E.deleteX @_ @x
-  stateX = Itemized .: E.stateX
-  modifyX = Itemized .: E.modifyX
+instance Embeddable schemaName x m => Embeddable schemaName x (Itemized items m)
 
 instance (Embeddable schemaName x m, MapsTo schemaName x items)
   => Embedded schemaName x (Itemized items m)
@@ -60,3 +53,8 @@ class MapsToH (current :: Bool) (schemaName :: Symbol) x (items :: [(Symbol, *)]
   | schemaName items -> x
 instance MapsTo schemaName x rest => MapsToH 'False schemaName x (head ': rest)
 instance x ~ headX => MapsToH 'True schemaName x ('(headName, headX) ': rest)
+
+instance Embedded schemaName x m => Embedded schemaName x (ExceptT e m)
+instance Embedded schemaName x m => Embedded schemaName x (ReaderT r m)
+instance Embedded schemaName x m => Embedded schemaName x (StateT s m)
+instance (Embedded schemaName x m, Monoid w) => Embedded schemaName x (WriterT w m)
