@@ -2,7 +2,6 @@
 
 module PersistWrap.Structure.TH
     ( deriveEntityPart
-    , deriveEntityPartFK
     ) where
 
 import GHC.Generics (Rep)
@@ -16,12 +15,4 @@ deriveEntityPart mt = do
   [d|
     instance EntityPart fk $(return t) where
       type StructureOf $(return t) = GStructureOf (Rep $(return t))
-    |]
-
-deriveEntityPartFK :: Q Type -> Q [Dec]
-deriveEntityPartFK mt = do
-  t <- mt
-  [d|
-    instance EntityPart fk ($(return t) fk) where
-      type StructureOf ($(return t) fk) = GStructureOf (Rep ($(return t) fk))
     |]

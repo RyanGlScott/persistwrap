@@ -7,10 +7,11 @@ import qualified Conkin
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Rep)
 
 import PersistWrap.Conkin.Extra.TH (deriveFnEq, deriveFnShow)
-import PersistWrap.Structure.TH (deriveEntityPart, deriveEntityPartFK)
+import PersistWrap.Structure (EntityPart, StructureOf, GStructureOf)
+import PersistWrap.Structure.TH (deriveEntityPart)
 
 data Color = Red | Green | Blue
   deriving (Eq, Show, Generic)
@@ -31,7 +32,8 @@ data Widget fk
   | Bleeble Text
   | Glorp (fk "abc")
   deriving (Generic)
-$(deriveEntityPartFK [t| Widget |])
+instance EntityPart fk (Widget fk) where
+  type StructureOf (Widget fk) = GStructureOf (Rep (Widget fk))
 instance Conkin.Functor Widget where
   fmap fn = \case
     Foo1 x -> Foo1 x
