@@ -14,7 +14,7 @@ import PersistWrap.Table.BackEnd.Helper (Items)
 import PersistWrap.Table.BackEnd.TH (declareTables)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 
-import Widget
+import PersistWrap.SpecUtil.Widget
 
 $(declareTables "TestTables")
 type instance Items (TestTables fk) = '[ '("abc", Int), '("widget", Widget fk)]

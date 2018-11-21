@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Widget where
+module PersistWrap.SpecUtil.Widget where
 
 import qualified Conkin
 import Data.ByteString (ByteString)
