@@ -15,8 +15,8 @@ import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 import GHC.Generics ((:*:)((:*:)))
 
-import qualified PersistWrap.Conkin.Extra.Class as Always (Always(..))
-import PersistWrap.Conkin.Extra.Class (Always, (==*), compare1)
+import qualified PersistWrap.Conkin.Extra.Class as AlwaysS (AlwaysS(..))
+import PersistWrap.Conkin.Extra.Class (AlwaysS, (==*), compare1)
 import PersistWrap.Conkin.Extra.Traversal (mapUncheck)
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
@@ -94,21 +94,21 @@ zipUncheckSing fn = go sing
 tail :: Tuple (x ': xs) f -> Tuple xs f
 tail (_ `Cons` xs) = xs
 
-compareAlwaysTuples :: (SingI xs, Always Ord f) => Tuple xs f -> Tuple xs f -> Ordering
-compareAlwaysTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1 x y
+compareAlwaysSTuples :: (SingI xs, AlwaysS Ord f) => Tuple xs f -> Tuple xs f -> Ordering
+compareAlwaysSTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1 x y
 
-eqAlwaysTuples :: (SingI xs, Always Eq f) => Tuple xs f -> Tuple xs f -> Bool
-eqAlwaysTuples x y = and $ zipUncheckSing (==*) x y
+eqAlwaysSTuples :: (SingI xs, AlwaysS Eq f) => Tuple xs f -> Tuple xs f -> Bool
+eqAlwaysSTuples x y = and $ zipUncheckSing (==*) x y
 
-withAlwaysShow :: forall xs f y . (SingI xs, Always Show f) => (Show (Tuple xs f) => y) -> y
-withAlwaysShow cont = case buildShowDict (sing @_ @xs) of
+withAlwaysSShow :: forall xs f y . (SingI xs, AlwaysS Show f) => (Show (Tuple xs f) => y) -> y
+withAlwaysSShow cont = case buildShowDict (sing @_ @xs) of
   Dict -> cont
   where
     buildShowDict :: forall xs' . SList xs' -> Dict (Show (Tuple xs' f))
     buildShowDict = \case
       SNil -> Dict
       ((x :: Sing x) `SCons` xs) ->
-        case (withSingI x $ Always.dict @Show @f @x, buildShowDict xs) of
+        case (withSingI x $ AlwaysS.dictS @Show @f @x, buildShowDict xs) of
           (Dict, Dict) -> Dict
 
 unzip :: Tuple xs (f :*: g) -> (Tuple xs f, Tuple xs g)

@@ -8,7 +8,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics
 
-import PersistWrap.Conkin.Extra.Class (Always, FromAlways(FromAlways))
+import PersistWrap.Conkin.Extra.Class (AlwaysS, FromAlwaysS(FromAlwaysS))
 import PersistWrap.Structure (EntityPart(..), GStructureOf, StructureOf)
 
 data Color = Red | Green | Blue
@@ -31,12 +31,12 @@ instance Conkin.Functor Widget where
     Blarg x -> Blarg x
     Bleeble x -> Bleeble x
     Glorp x -> Glorp (fn x)
-deriving instance {-# OVERLAPS #-} Always Eq fk => Eq (Widget (FromAlways fk))
-instance Always Eq fk => Eq (Widget fk) where
-  (==) l r = Conkin.fmap FromAlways l == Conkin.fmap FromAlways r
-deriving instance {-# OVERLAPS #-} Always Show fk => Show (Widget (FromAlways fk))
-instance Always Show fk => Show (Widget fk) where
-  showsPrec d x = showsPrec d (Conkin.fmap FromAlways x)
+deriving instance {-# OVERLAPS #-} AlwaysS Eq fk => Eq (Widget (FromAlwaysS fk))
+instance AlwaysS Eq fk => Eq (Widget fk) where
+  (==) l r = Conkin.fmap FromAlwaysS l == Conkin.fmap FromAlwaysS r
+deriving instance {-# OVERLAPS #-} AlwaysS Show fk => Show (Widget (FromAlwaysS fk))
+instance AlwaysS Show fk => Show (Widget fk) where
+  showsPrec d x = showsPrec d (Conkin.fmap FromAlwaysS x)
 
 instance EntityPart fk Monster where
   type StructureOf Monster = GStructureOf (Rep Monster)

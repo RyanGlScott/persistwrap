@@ -3,21 +3,29 @@ module PersistWrap.WidgetSpec
     ) where
 
 import Control.Monad (join)
+import Data.Constraint (Dict(Dict))
 import qualified Data.ByteString.Char8 as BS
 import Test.Hspec
 
+import qualified PersistWrap.Conkin.Extra
+import PersistWrap.Conkin.Extra (Always)
 import PersistWrap.Embedding.Class.Embedded
 import PersistWrap.Table
+import PersistWrap.Table.BackEnd.TVar (AllEmbed, Items)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 
 import Widget
+
+data TestTables s
+type instance Items (TestTables s) = '[ '("abc", Int), '("widget", Widget (BackEnd.FK s))]
+instance Always AllEmbed TestTables where dict = Dict
 
 spec :: Spec
 spec =
   describe "Widget"
     $ it "should get back what you put in"
     $ join
-    $ BackEnd.withEmptyTablesItemized @'[ '("abc", Int), '("widget", Widget BackEnd.FK)]
+    $ BackEnd.withEmptyTablesItemized @TestTables
     $ atomicTransaction
     $ do
         fk3 <- insertX @"abc" 3

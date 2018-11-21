@@ -8,7 +8,7 @@ import Data.Reflection (Reifies, reflect, reify)
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.TypeLits (Symbol)
 
-import PersistWrap.Conkin.Extra (Always(..), showsPrec1)
+import PersistWrap.Conkin.Extra (AlwaysS(..), showsPrec1)
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Table.Column
 
@@ -17,12 +17,12 @@ data Entity' k v = Entity {entityKey :: k, entityVal :: v}
 data SomeTableNamed (table :: Schema Symbol -> *) (name :: Symbol)
   = forall cols. SomeTableNamed (Sing cols) (table ('Schema name cols))
 
-instance (Always Show table, SingI name) => Show (SomeTableNamed table name) where
+instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) where
   showsPrec d (SomeTableNamed cols tab) = withSingI cols $
     showParen (d > 10) $
       showString "SomeTableNamed " . showsPrec 11 cols . showString " " . showsPrec1 11 tab
 
-instance Always Show table => Always Show (SomeTableNamed table) where dict = Dict
+instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where dictS = Dict
 
 type WithinTableOf (table :: Schema Symbol -> *) tab =
   (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))

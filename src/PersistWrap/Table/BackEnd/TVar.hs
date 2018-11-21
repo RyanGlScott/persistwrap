@@ -1,5 +1,10 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module PersistWrap.Table.BackEnd.TVar
-    ( FK
+    ( AllEmbed
+    , FK
+    , Items
     , TVarDMLT
     , STMTransaction
     , showAllTables
@@ -30,6 +35,7 @@ import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
 import qualified PersistWrap.Conkin.Extra as All (All(..))
+import qualified PersistWrap.Conkin.Extra as Always (Always(..))
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
 import PersistWrap.Embedding.Class.Embeddable (HasRep, entitySchemas)
@@ -44,7 +50,7 @@ import PersistWrap.Table.Row
 import PersistWrap.Table.Transactable (MonadDML, MonadTransactable, getAllEntities)
 import qualified PersistWrap.Table.Transactable
 
-type TVarMaybeRow xs = TVar (Maybe (Row FK xs))
+type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 
 newtype SSymbolCon name = SSymbolCon (S.SSymbol name)
 instance HEq SSymbolCon where
@@ -59,34 +65,35 @@ type TableMap s = SymMap (SomeTableNamed (Table s))
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
 
-data FK name = forall sch. SchemaName sch ~ name => FK (SSchema sch) (TVarMaybeRow (SchemaCols sch))
+data FK s name = forall sch . SchemaName sch ~ name
+  => FK (SSchema sch) (TVarMaybeRow s (SchemaCols sch))
 
-instance Show (FK name) where
+instance Show (FK s name) where
   show (FK (SSchema schname _) _) = "<foreign key: " ++ Text.unpack (fromSing schname) ++ ">"
-instance Always Show FK where dict = Dict
+instance AlwaysS Show (FK s) where dictS = Dict
 
-instance Eq (FK name) where
+instance Eq (FK s name) where
   (==) (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> l == r
     Disproved{} -> False
-instance Always Eq FK where dict = Dict
-instance HEq FK where
+instance AlwaysS Eq (FK s) where dictS = Dict
+instance HEq (FK s) where
   heq (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> if l == r then Just Dict else Nothing
     Disproved{} -> Nothing
 
-instance Ord (FK name) where
+instance Ord (FK s name) where
   -- TODO Figure this one out.
   compare _ _ = error "TVars not comparable"
-instance Always Ord FK where dict = Dict
+instance AlwaysS Ord (FK s) where dictS = Dict
 
 type Key s = Class.Key (STMTransaction s)
 type Table s = Class.Table (STMTransaction s)
 
 instance MonadTransaction (STMTransaction s) where
-  newtype Table (STMTransaction s) schema = Table (TVar [TVarMaybeRow (SchemaCols schema)])
-  newtype Key (STMTransaction s) tab = Key {unKey :: TVarMaybeRow (TabCols tab)}
-  type ForeignKey (STMTransaction s) = FK
+  newtype Table (STMTransaction s) schema = Table (TVar [TVarMaybeRow s (SchemaCols schema)])
+  newtype Key (STMTransaction s) tab = Key {unKey :: TVarMaybeRow s (TabCols tab)}
+  type ForeignKey (STMTransaction s) = FK s
   getEntities (proxy :: Proxy tab) restriction = liftBase $ do
     let Table refs = getTable proxy
     (result :: [Entity (STMTransaction s) tab])
@@ -109,7 +116,7 @@ instance MonadTransaction (STMTransaction s) where
       -- If the names are the same, then the schemas must be the same.
       coerceSchema
         :: forall. SchemaName sch ~ TabName tab
-        => TVarMaybeRow (SchemaCols sch) -> TVarMaybeRow (TabCols tab)
+        => TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
       coerceSchema = case sing @_ @(TabSchema tab) of
         SSchema _ tabCols -> case schCols %~ tabCols of
           Proved Refl -> id
@@ -131,7 +138,14 @@ withEmptyTables
   => SList (schemas :: [Schema Symbol])
   -> (forall s . Tuple schemas (Table s) -> TVarDMLT s m x)
   -> m x
-withEmptyTables sschemas action
+withEmptyTables = setupEmptyTables
+
+setupEmptyTables
+  :: MonadIO m
+  => SList (schemas :: [Schema Symbol])
+  -> (Tuple schemas (Table s) -> TVarDMLT s m x)
+  -> m x
+setupEmptyTables sschemas action
   | anyDuplicates (mapUncheck schemaName schemasTuple) = error "Schema names are not distinct"
   | otherwise = do
     tables <- liftIO $ htraverse newTable schemasTuple
@@ -163,7 +177,7 @@ tableToMapEntry = case sing @_ @schema of
 newTable :: proxy schema -> IO (Table s schema)
 newTable _ = Table <$> newTVarIO []
 
-showAllTables :: STMTransaction s String
+showAllTables :: forall s . STMTransaction s String
 showAllTables = do
   tm       <- ask
   tabLines <-
@@ -171,22 +185,30 @@ showAllTables = do
       $ \(getSome -> GetSome name (SomeTableNamed (cols :: SList cols) tab)) ->
           withSingI name $ withSingI cols $ do
             rows <- withinTable tab $ fmap (map (\(Entity _ v) -> v)) . getAllEntities
-            return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysShow @cols @(ValueSnd FK)
+            return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysSShow @cols @(ValueSnd (FK s))
               (show rows)
   return $ unlines tabLines
 
-class HasRep FK (Fst schx) (StructureOf (Snd schx)) => EmbedPair schx
-instance HasRep FK schemaName (StructureOf x) => EmbedPair '(schemaName,x)
+class HasRep (Fst schx) (StructureOf (Snd schx)) => EmbedPair schx
+instance HasRep schemaName (StructureOf x) => EmbedPair '(schemaName,x)
+
+type family Items x :: [(Symbol,*)]
+
+class All EmbedPair (Items x) => AllEmbed x
+instance All EmbedPair (Items x) => AllEmbed x
 
 withEmptyTablesItemized
-  :: forall items m x
-   . (MonadIO m, All EmbedPair items)
-  => (forall s . Itemized items (TVarDMLT s m) x)
+  :: forall fnitems m x
+   . (MonadIO m, Always AllEmbed fnitems)
+  => (forall s . Itemized (Items (fnitems s)) (TVarDMLT s m) x)
   -> m x
-withEmptyTablesItemized action =
-  let schemas = concat $ mapUncheck
-        (\(DictC Dict :: DictC EmbedPair schx) ->
-          entitySchemas @FK @(Fst schx) @(StructureOf (Snd schx))
-        )
-        (All.dicts @EmbedPair @items)
-  in  withSomeSing schemas $ \sschemas -> withEmptyTables sschemas $ const (runItemized action)
+withEmptyTablesItemized = go
+  where
+    go :: forall s . Itemized (Items (fnitems s)) (TVarDMLT s m) x -> m x
+    go action = case Always.dict @AllEmbed @fnitems @s of
+      Dict ->
+        let schemasOf :: forall schx . DictC EmbedPair schx -> [Schema Text]
+            schemasOf (DictC Dict) = entitySchemas @(Fst schx) @(StructureOf (Snd schx))
+            schemas = concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems s)))
+        in  withSomeSing schemas
+              $ \sschemas -> setupEmptyTables sschemas $ const (runItemized action)

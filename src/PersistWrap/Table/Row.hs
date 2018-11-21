@@ -14,7 +14,7 @@ import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Aeson.Extra ()
 import qualified PersistWrap.Conkin.Extra
-import PersistWrap.Conkin.Extra (Always, compare1, showsPrec1, singToTuple, (==*))
+import PersistWrap.Conkin.Extra (AlwaysS, compare1, showsPrec1, singToTuple, (==*))
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Structure.Primitives (PrimType, deriveConstraint)
 import PersistWrap.Table.Column
@@ -26,14 +26,14 @@ data BaseValue fk (bc :: BaseColumn Symbol) where
   FKV :: fk otherTableName -> BaseValue fk ('ForeignKey otherTableName)
   JSONV :: JSON.Value -> BaseValue fk 'JSON
 
-instance (SingI bc, Always Show fk) => Show (BaseValue fk bc) where
+instance (SingI bc, AlwaysS Show fk) => Show (BaseValue fk bc) where
   showsPrec d bv = showParen (d > 10) $ case (sing @_ @bc, bv) of
     (SPrim sp, PV p) -> showString "PV " . deriveConstraint @Show sp showsPrec 11 p
     (SEnum (n1 :%| nr), EV ev) -> showString "EV " . withSingI (n1 `SCons` nr) showsPrec 11 ev
     (SForeignKey sfk, FKV fk) -> showString "FKV " . withSingI sfk showsPrec1 11 fk
     (SJSON, JSONV v) -> showString "JSONV " . showsPrec 11 v
 
-instance (Always Eq fk, SingI bc) => Eq (BaseValue fk bc) where
+instance (AlwaysS Eq fk, SingI bc) => Eq (BaseValue fk bc) where
   (==) = go sing
     where
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
@@ -42,7 +42,7 @@ instance (Always Eq fk, SingI bc) => Eq (BaseValue fk bc) where
       go (SForeignKey sym) (FKV il) (FKV ir) = withSingI sym (==*) il ir
       go SJSON (JSONV vl) (JSONV vr) = vl == vr
 
-instance (Always Eq fk, Always Ord fk, SingI bc) => Ord (BaseValue fk bc) where
+instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI bc) => Ord (BaseValue fk bc) where
   compare = go sing
     where
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Ordering
@@ -56,12 +56,12 @@ data Value fk (c :: Column Symbol) where
   V :: BaseValue fk bc -> Value fk ('Column 'False bc)
   N :: Maybe (BaseValue fk bc) -> Value fk ('Column 'True bc)
 
-instance (Always Show fk, SingI c) => Show (Value fk c) where
+instance (AlwaysS Show fk, SingI c) => Show (Value fk c) where
   showsPrec d v0 = showParen (d > 10) $ case (sing @_ @c, v0) of
     (SColumn _ sbc, V v) -> showString "V " . withSingI sbc showsPrec 11 v
     (SColumn _ sbc, N v) -> showString "N " . withSingI sbc showsPrec 11 v
 
-instance (Always Eq fk, SingI c) => Eq (Value fk c) where
+instance (AlwaysS Eq fk, SingI c) => Eq (Value fk c) where
   (==) = case sing @_ @c of
       SColumn _ sctype -> withSingI sctype go
     where
@@ -70,7 +70,7 @@ instance (Always Eq fk, SingI c) => Eq (Value fk c) where
       go (N x) (N y) = x == y
       go (V x) (V y) = x == y
 
-instance (Always Eq fk, Always Ord fk, SingI c) => Ord (Value fk c) where
+instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI c) => Ord (Value fk c) where
   compare = case sing @_ @c of
       SColumn _ sctype -> withSingI sctype go
     where
@@ -81,12 +81,12 @@ instance (Always Eq fk, Always Ord fk, SingI c) => Ord (Value fk c) where
 
 data ValueSnd fk (nc :: (Symbol,Column Symbol)) where
   ValueSnd :: Value fk col -> ValueSnd fk '(name,col)
-instance (Always Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
+instance (AlwaysS Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
   (==) (ValueSnd x) (ValueSnd y) = colEq @(Fst nc) x y
-instance (Always Show fk, SingI nc) => Show (ValueSnd fk nc) where
+instance (AlwaysS Show fk, SingI nc) => Show (ValueSnd fk nc) where
   showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing @_ @nc of
     STuple2 _ scol -> withSingI scol showsPrec 11 x
-instance Always Show fk => Always Show (ValueSnd fk) where dict = Dict
+instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where dictS = Dict
 
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
   MaybeValueSnd :: Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)
@@ -99,7 +99,7 @@ data ForeignRow fk schema where
 
 matches
   :: forall fk xs
-   . (Always Eq fk, SingI xs)
+   . (AlwaysS Eq fk, SingI xs)
   => Tuple xs (MaybeValueSnd fk)
   -> Tuple xs (ValueSnd fk)
   -> Bool
@@ -113,7 +113,7 @@ matches l r = and $ Tuple.zipUncheckSing
 
 colEq
   :: forall name col fk
-   . (Always Eq fk, SingI '((name :: Symbol),(col :: Column Symbol)))
+   . (AlwaysS Eq fk, SingI '((name :: Symbol),(col :: Column Symbol)))
   => Value fk col
   -> Value fk col
   -> Bool

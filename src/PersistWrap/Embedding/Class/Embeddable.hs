@@ -68,30 +68,30 @@ instance (SingI tabname, SingI cols, MonadTransactable m) => Embeddable tabname 
   modifyX k op = withExpectTable @tabname @cols
     $ \proxy -> modifyRow (foreignToKey proxy k) (unMRow . op . MRow)
 
-class (SingI schemaName, SingI structure) => HasRep fk schemaName structure where
+class (SingI schemaName, SingI structure) => HasRep schemaName structure where
   rep :: NamedSchemaRep fk schemaName structure
   entitySchemas :: [Schema Text]
-instance (SingI schemaName, SingI structure) => HasRep fk schemaName structure where
+instance (SingI schemaName, SingI structure) => HasRep schemaName structure where
   rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
-  entitySchemas = uncurry (:) $ repToSchemas $ rep @fk @schemaName @structure
+  entitySchemas = uncurry (:) $ repToSchemas $ rep @schemaName @structure
 
-instance (HasRep fk schemaName structure, MonadTransactable m, fk ~ ForeignKey m)
+instance (HasRep schemaName structure, MonadTransactable m, fk ~ ForeignKey m)
     => Embeddable schemaName (EntityOf fk structure) m where
-  xSchemas = entitySchemas @fk @schemaName @structure
+  xSchemas = entitySchemas @schemaName @structure
   getXs = undefined
-  getX = get (rep @fk @schemaName @structure)
-  insertX = insert (rep @fk @schemaName @structure)
+  getX = get (rep @schemaName @structure)
+  insertX = insert (rep @schemaName @structure)
   deleteX = undefined
   stateX = undefined
   modifyX = undefined
 
 instance {-# OVERLAPPABLE #-}
-    (EntityPart fk x, HasRep fk schemaName (StructureOf x), MonadTransactable m, fk ~ ForeignKey m)
+    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransactable m, fk ~ ForeignKey m)
     => Embeddable schemaName x m where
   xSchemas = xSchemas @schemaName @(EntityOf fk (StructureOf x)) @m
-  getXs = map (second fromEntity) <$> getXs
-  getX = fmap (fmap fromEntity) . getX
-  insertX = insertX . toEntity
+  getXs = map (second (fromEntity @fk)) <$> getXs
+  getX = fmap (fmap (fromEntity @fk)) . getX
+  insertX = insertX . toEntity @fk
   deleteX = deleteX @_ @(EntityOf fk (StructureOf x))
-  stateX = let stateX' = stateX in \k fn -> stateX' k (second toEntity . fn . fromEntity)
-  modifyX = let modifyX' = modifyX in \k fn -> modifyX' k (toEntity . fn . fromEntity)
+  stateX = let stateX' = stateX in \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
+  modifyX = let modifyX' = modifyX in \k fn -> modifyX' k (toEntity @fk . fn . fromEntity @fk)
