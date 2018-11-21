@@ -22,7 +22,6 @@ import PersistWrap.Structure
 import PersistWrap.Table
 
 class MonadTransactable m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
-  xSchemas :: [Schema Text]
   getXs :: m [(ForeignKey m schemaName, x)]
   getX :: ForeignKey m schemaName -> m (Maybe x)
   insertX :: x -> m (ForeignKey m schemaName)
@@ -55,7 +54,6 @@ withExpectTable continuation = do
   withinTable t continuation
 
 instance (SingI tabname, SingI cols, MonadTransactable m) => Embeddable tabname (MRow m cols) m where
-  xSchemas = [ fromSing $ SSchema (sing @_ @tabname) (sing @_ @cols) ]
   getXs = withExpectTable @tabname @cols $
     fmap (map (\(Entity k v) -> (keyToForeign k, MRow v))) . getAllEntities
   getX k = withExpectTable @tabname @cols $ \proxy ->
@@ -77,7 +75,6 @@ instance (SingI schemaName, SingI structure) => HasRep schemaName structure wher
 
 instance (HasRep schemaName structure, MonadTransactable m, fk ~ ForeignKey m)
     => Embeddable schemaName (EntityOf fk structure) m where
-  xSchemas = entitySchemas @schemaName @structure
   getXs = undefined
   getX = get (rep @schemaName @structure)
   insertX = insert (rep @schemaName @structure)
@@ -88,7 +85,6 @@ instance (HasRep schemaName structure, MonadTransactable m, fk ~ ForeignKey m)
 instance {-# OVERLAPPABLE #-}
     (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransactable m, fk ~ ForeignKey m)
     => Embeddable schemaName x m where
-  xSchemas = xSchemas @schemaName @(EntityOf fk (StructureOf x)) @m
   getXs = map (second (fromEntity @fk)) <$> getXs
   getX = fmap (fmap (fromEntity @fk)) . getX
   insertX = insertX . toEntity @fk

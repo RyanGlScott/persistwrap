@@ -43,7 +43,6 @@ instance MonadDML m => MonadDML (Itemized items m) where
   atomicTransaction (Itemized act) = Itemized $ atomicTransaction act
 
 instance Embeddable schemaName x m => Embeddable schemaName x (Itemized items m) where
-  xSchemas = E.xSchemas @schemaName @x @m
   getXs = Itemized E.getXs
   getX = Itemized . E.getX
   insertX = Itemized . E.insertX
