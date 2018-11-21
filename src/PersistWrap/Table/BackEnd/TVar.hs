@@ -2,9 +2,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Table.BackEnd.TVar
-    ( AllEmbed
-    , FK
-    , Items
+    ( FK
     , TVarDMLT
     , STMTransaction
     , showAllTables
@@ -30,25 +28,21 @@ import Data.Singletons (SingI, fromSing, sing, withSingI)
 import Data.Singletons.Decide ((:~:)(..), Decision(..), (%~))
 import Data.Singletons.Prelude hiding (All, Map)
 import qualified Data.Singletons.TypeLits as S (SSymbol)
-import Data.Text (Text)
 import qualified Data.Text as Text
 
 import PersistWrap.Conkin.Extra
-import qualified PersistWrap.Conkin.Extra as All (All(..))
-import qualified PersistWrap.Conkin.Extra as Always (Always(..))
 import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
-import PersistWrap.Embedding.Class.Embeddable (HasRep, entitySchemas)
-import PersistWrap.Embedding.Class.Embedded
+import PersistWrap.Embedding.Class.Embedded (Itemized)
 import PersistWrap.STM.Future
-import PersistWrap.Structure (StructureOf)
 import PersistWrap.Table.Class (Entity, MonadTransaction)
 import qualified PersistWrap.Table.Class as Class
+import PersistWrap.Table.BackEnd.Helper (AllEmbed, Items, setupHelper)
 import PersistWrap.Table.Column
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row
 import PersistWrap.Table.Transactable (MonadDML, MonadTransactable, getAllEntities)
-import qualified PersistWrap.Table.Transactable
+import qualified PersistWrap.Table.Transactable as Transactable
 
 type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 
@@ -146,7 +140,8 @@ setupEmptyTables
   -> (Tuple schemas (Table s) -> TVarDMLT s m x)
   -> m x
 setupEmptyTables sschemas action
-  | anyDuplicates (mapUncheck schemaName schemasTuple) = error "Schema names are not distinct"
+  | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas)) = error
+    "Schema names are not distinct"
   | otherwise = do
     tables <- liftIO $ htraverse newTable schemasTuple
     runReaderT (unTVarDMLT $ action tables) (constructMap sschemas tables)
@@ -162,9 +157,6 @@ withEmptyTableProxies schemas action =
 
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
-
-schemaName :: SSchema (schema :: Schema Symbol) -> Text
-schemaName (SSchema n _) = fromSing n
 
 constructMap :: SList schemas -> Tuple schemas (Table s) -> TableMap s
 constructMap schemas = SymMap.fromList . mapUncheckSing schemas tableToMapEntry
@@ -189,26 +181,9 @@ showAllTables = do
               (show rows)
   return $ unlines tabLines
 
-class HasRep (Fst schx) (StructureOf (Snd schx)) => EmbedPair schx
-instance HasRep schemaName (StructureOf x) => EmbedPair '(schemaName,x)
-
-type family Items x :: [(Symbol,*)]
-
-class All EmbedPair (Items x) => AllEmbed x
-instance All EmbedPair (Items x) => AllEmbed x
-
 withEmptyTablesItemized
   :: forall fnitems m x
    . (MonadIO m, Always AllEmbed fnitems)
-  => (forall s . Itemized (Items (fnitems s)) (TVarDMLT s m) x)
+  => (forall s . Itemized (Items (fnitems (FK s))) (TVarDMLT s m) x)
   -> m x
-withEmptyTablesItemized = go
-  where
-    go :: forall s . Itemized (Items (fnitems s)) (TVarDMLT s m) x -> m x
-    go action = case Always.dict @AllEmbed @fnitems @s of
-      Dict ->
-        let schemasOf :: forall schx . DictC EmbedPair schx -> [Schema Text]
-            schemasOf (DictC Dict) = entitySchemas @(Fst schx) @(StructureOf (Snd schx))
-            schemas = concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems s)))
-        in  withSomeSing schemas
-              $ \sschemas -> setupEmptyTables sschemas $ const (runItemized action)
+withEmptyTablesItemized = setupHelper @fnitems (\schs act -> setupEmptyTables schs (const act))

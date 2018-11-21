@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Widget where
@@ -6,17 +7,23 @@ import qualified Conkin
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
-import GHC.Generics
+import GHC.Generics (Generic)
 
-import PersistWrap.Conkin.Extra.Class (AlwaysS, FromAlwaysS(FromAlwaysS))
-import PersistWrap.Structure (EntityPart(..), GStructureOf, StructureOf)
+import PersistWrap.Conkin.Extra.TH (deriveFnEq, deriveFnShow)
+import PersistWrap.Structure.TH (deriveEntityPart, deriveEntityPartFK)
 
 data Color = Red | Green | Blue
   deriving (Eq, Show, Generic)
-data Foo = Foo {bar :: Int64, baz :: Monster, qux :: Maybe Color}
-  deriving (Eq, Show, Generic)
+$(deriveEntityPart [t| Color |])
+
 data Monster = A {x :: Int, y :: Int} | B | C | D | E Text
   deriving (Eq, Show, Generic)
+$(deriveEntityPart [t| Monster |])
+
+data Foo = Foo {bar :: Int64, baz :: Monster, qux :: Maybe Color}
+  deriving (Eq, Show, Generic)
+$(deriveEntityPart [t| Foo |])
+
 data Widget fk
   = Foo1 Foo
   | Foo2 [Foo]
@@ -24,6 +31,7 @@ data Widget fk
   | Bleeble Text
   | Glorp (fk "abc")
   deriving (Generic)
+$(deriveEntityPartFK [t| Widget |])
 instance Conkin.Functor Widget where
   fmap fn = \case
     Foo1 x -> Foo1 x
@@ -31,18 +39,5 @@ instance Conkin.Functor Widget where
     Blarg x -> Blarg x
     Bleeble x -> Bleeble x
     Glorp x -> Glorp (fn x)
-deriving instance {-# OVERLAPS #-} AlwaysS Eq fk => Eq (Widget (FromAlwaysS fk))
-instance AlwaysS Eq fk => Eq (Widget fk) where
-  (==) l r = Conkin.fmap FromAlwaysS l == Conkin.fmap FromAlwaysS r
-deriving instance {-# OVERLAPS #-} AlwaysS Show fk => Show (Widget (FromAlwaysS fk))
-instance AlwaysS Show fk => Show (Widget fk) where
-  showsPrec d x = showsPrec d (Conkin.fmap FromAlwaysS x)
-
-instance EntityPart fk Monster where
-  type StructureOf Monster = GStructureOf (Rep Monster)
-instance EntityPart fk Color where
-  type StructureOf Color = GStructureOf (Rep Color)
-instance EntityPart fk Foo where
-  type StructureOf Foo = GStructureOf (Rep Foo)
-instance EntityPart fk (Widget fk) where
-  type StructureOf (Widget fk) = GStructureOf (Rep (Widget fk))
+$(deriveFnEq [t| Widget |])
+$(deriveFnShow [t| Widget |])

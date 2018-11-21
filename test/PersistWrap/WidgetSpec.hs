@@ -1,24 +1,23 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module PersistWrap.WidgetSpec
     ( spec
     ) where
 
 import Control.Monad (join)
-import Data.Constraint (Dict(Dict))
 import qualified Data.ByteString.Char8 as BS
 import Test.Hspec
 
-import qualified PersistWrap.Conkin.Extra
-import PersistWrap.Conkin.Extra (Always)
 import PersistWrap.Embedding.Class.Embedded
 import PersistWrap.Table
-import PersistWrap.Table.BackEnd.TVar (AllEmbed, Items)
+import PersistWrap.Table.BackEnd.Helper (Items)
+import PersistWrap.Table.BackEnd.TH (declareTables)
 import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 
 import Widget
 
-data TestTables s
-type instance Items (TestTables s) = '[ '("abc", Int), '("widget", Widget (BackEnd.FK s))]
-instance Always AllEmbed TestTables where dict = Dict
+$(declareTables "TestTables")
+type instance Items (TestTables fk) = '[ '("abc", Int), '("widget", Widget fk)]
 
 spec :: Spec
 spec =
