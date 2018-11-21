@@ -10,6 +10,9 @@ import Language.Haskell.TH (Dec, Q, Type)
 
 import PersistWrap.Conkin.Extra.Class
 
+-- | Derive `Eq` for a continuation kind.
+--
+-- See "PersistWrap.SpecUtil.Widget" for example usage.
 deriveFnEq :: Q Type -> Q [Dec]
 deriveFnEq mt = do
   t <- mt
@@ -19,6 +22,9 @@ deriveFnEq mt = do
       (==) l r = Conkin.fmap FromAlwaysS l == Conkin.fmap FromAlwaysS r
     |]
 
+-- | Derive `Show` for a continuation kind.
+--
+-- See "PersistWrap.SpecUtil.Widget" for example usage.
 deriveFnShow :: Q Type -> Q [Dec]
 deriveFnShow mt = do
   t <- mt

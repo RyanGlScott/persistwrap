@@ -16,7 +16,11 @@ import qualified PersistWrap.Table.BackEnd.TVar as BackEnd
 
 import PersistWrap.SpecUtil.Widget
 
+-- | We're declaring a new table context which called \"TestTables\".
 $(declareTables "TestTables")
+-- |
+-- \"TestTables\" has two primary tables in it: \"abc\" and \"widget\". \"abc\" stores `Int`s and
+-- \"widget\" stores `Widget`s.
 type instance Items (TestTables fk) = '[ '("abc", Int), '("widget", Widget fk)]
 
 spec :: Spec
@@ -24,11 +28,14 @@ spec =
   describe "Widget"
     $ it "should get back what you put in"
     $ join
-    $ BackEnd.withEmptyTablesItemized @TestTables
+    $ BackEnd.withEmptyTablesItemized @TestTables -- Initialize empty tables in `STM` backend.
     $ atomicTransaction
     $ do
+        -- The compiler knows 3 is an `Int` because we're inserting it into the \"abc\" table.
+        -- @ fk3 :: BackEnd.FK s "abc" @
         fk3 <- insertX @"abc" 3
         let
+          -- Similarly we don't need to explicitly specify the type-parameter for w1, w2, and w3.
           w1 = Blarg (False, True, BS.pack "hello world")
           w2 = Glorp fk3
           w3 =
