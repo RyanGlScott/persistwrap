@@ -31,7 +31,7 @@ spec =
     -- Initializes empty tables in `STM` backend.
     $ BackEnd.withEmptyTablesItemized @TestTables widgetTest
 
-widgetTest :: (MonadDML m, ForeignKeysShowable m) => Itemized (ItemsIn TestTables m) m Expectation
+widgetTest :: (MonadDML m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
 widgetTest = atomicTransaction $ do
   -- The compiler knows 3 is an `Int` because we're inserting it into the \"abc\" table.
   -- @ fk3 :: FK m "abc" @

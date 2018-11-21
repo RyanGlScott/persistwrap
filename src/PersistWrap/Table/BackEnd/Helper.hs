@@ -5,7 +5,7 @@ module PersistWrap.Table.BackEnd.Helper
     ( AllEmbed
     , ForeignKeysShowable
     , Items
-    , ItemsIn
+    , ItemizedIn
     , setupHelper
     ) where
 
@@ -48,4 +48,4 @@ schemasOf (DictC Dict) = entitySchemas @(Fst schx) @(StructureOf (Snd schx))
 
 type ForeignKeysShowable m = AlwaysS Show (FK m)
 
-type ItemsIn ctxt m = Items (ctxt (FK m))
+type ItemizedIn ctxt m = Itemized (Items (ctxt (FK m))) m
