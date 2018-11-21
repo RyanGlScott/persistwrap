@@ -3,11 +3,7 @@
 
 module PersistWrap.Embedding.Class.Embeddable where
 
-import Control.Monad.Except (ExceptT)
-import Control.Monad.Reader (ReaderT)
-import Control.Monad.State (StateT)
 import Control.Monad.Trans (MonadTrans, lift)
-import Control.Monad.Writer (WriterT)
 import Data.Bifunctor (second)
 import Data.Function.Pointless ((.:))
 import Data.Maybe (isJust)
@@ -104,26 +100,13 @@ instance (SingI schemaName, SingI structure) => HasRep schemaName structure wher
   rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
   entitySchemas = uncurry (:) $ repToSchemas $ rep @schemaName @structure
 
-instance (HasRep schemaName structure, MonadTransactable m, fk ~ ForeignKey m)
-    => Embeddable schemaName (EntityOf fk structure) m where
-  getXs = undefined
-  getX = get (rep @schemaName @structure)
-  insertX = insert (rep @schemaName @structure)
-  deleteX = undefined
-  stateX = undefined
-  modifyX = undefined
-
-instance {-# OVERLAPPABLE #-}
+instance
     (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransactable m, fk ~ ForeignKey m)
     => Embeddable schemaName x m where
-  getXs = map (second (fromEntity @fk)) <$> getXs
-  getX = fmap (fmap (fromEntity @fk)) . getX
-  insertX = insertX . toEntity @fk
-  deleteX = deleteX @_ @(EntityOf fk (StructureOf x))
-  stateX = let stateX' = stateX in \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
-  modifyX = let modifyX' = modifyX in \k fn -> modifyX' k (toEntity @fk . fn . fromEntity @fk)
-
-instance Embeddable schemaName x m => Embeddable schemaName x (ReaderT r m)
-instance (Embeddable schemaName x m, Monoid w) => Embeddable schemaName x (WriterT w m)
-instance Embeddable schemaName x m => Embeddable schemaName x (StateT s m)
-instance Embeddable schemaName x m => Embeddable schemaName x (ExceptT e m)
+  getXs = map (second (fromEntity @fk)) <$> undefined
+  getX = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))
+  insertX = insert (rep @schemaName @(StructureOf x)) . toEntity @fk
+  deleteX = undefined
+  stateX =
+    let stateX' = undefined in \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
+  modifyX = let modifyX' = undefined in \k fn -> modifyX' k (toEntity @fk . fn . fromEntity @fk)

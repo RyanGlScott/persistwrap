@@ -3,7 +3,9 @@
 
 module PersistWrap.Table.BackEnd.Helper
     ( AllEmbed
+    , ForeignKeysShowable
     , Items
+    , ItemsIn
     , setupHelper
     ) where
 
@@ -32,14 +34,18 @@ setupHelper
   :: forall fnitems m n x
    . (MonadDML m, Always AllEmbed fnitems)
   => (forall (sch :: [Schema Symbol]) . SList sch -> m x -> n x)
-  -> Itemized (Items (fnitems (ForeignKey (Transaction m)))) m x
+  -> Itemized (Items (fnitems (FK m))) m x
   -> n x
-setupHelper setup action = case Always.dict @AllEmbed @fnitems @(ForeignKey (Transaction m)) of
+setupHelper setup action = case Always.dict @AllEmbed @fnitems @(FK m) of
   Dict ->
     let schemas = concat $ mapUncheck
           schemasOf
-          (All.dicts @EmbedPair @(Items (fnitems (ForeignKey (Transaction m)))))
+          (All.dicts @EmbedPair @(Items (fnitems (FK m))))
     in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)
 
 schemasOf :: forall schx . DictC EmbedPair schx -> [Schema Text]
 schemasOf (DictC Dict) = entitySchemas @(Fst schx) @(StructureOf (Snd schx))
+
+type ForeignKeysShowable m = AlwaysS Show (FK m)
+
+type ItemsIn ctxt m = Items (ctxt (FK m))

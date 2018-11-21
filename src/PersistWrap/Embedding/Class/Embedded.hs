@@ -4,16 +4,17 @@
 module PersistWrap.Embedding.Class.Embedded where
 
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Except (ExceptT, MonadError)
-import Control.Monad.Reader (MonadReader, ReaderT)
-import Control.Monad.State (MonadState, StateT)
+import Control.Monad.Except (MonadError)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.State (MonadState)
 import Control.Monad.Trans (MonadTrans(..))
-import Control.Monad.Writer (MonadWriter, WriterT)
+import Control.Monad.Writer (MonadWriter)
 import Data.Promotion.Prelude (type (==))
 import Data.Singletons.TypeLits (Symbol)
 
-import PersistWrap.Embedding.Class.Embeddable (Embeddable)
+import PersistWrap.Embedding.Class.Embeddable (Embeddable, HasRep)
 import qualified PersistWrap.Embedding.Class.Embeddable as E
+import PersistWrap.Structure (EntityPart, StructureOf)
 import PersistWrap.Table (ForeignKey, MonadDML(..), MonadTransactable(..))
 
 class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x
@@ -41,10 +42,13 @@ instance MonadDML m => MonadDML (Itemized items m) where
   type Transaction (Itemized items m) = Itemized items (Transaction m)
   atomicTransaction (Itemized act) = Itemized $ atomicTransaction act
 
-instance Embeddable schemaName x m => Embeddable schemaName x (Itemized items m)
-
-instance (Embeddable schemaName x m, MapsTo schemaName x items)
-  => Embedded schemaName x (Itemized items m)
+instance
+  ( EntityPart fk x
+  , HasRep schemaName (StructureOf x)
+  , MonadTransactable m
+  , fk ~ ForeignKey m
+  , MapsTo schemaName x items
+  ) => Embedded schemaName x (Itemized items m)
 
 class MapsTo (schemaName :: Symbol) x (items :: [(Symbol, *)]) | schemaName items -> x
 instance MapsToH (schemaName == headName) schemaName x ('(headName, headX) ': rest)
@@ -53,8 +57,3 @@ class MapsToH (current :: Bool) (schemaName :: Symbol) x (items :: [(Symbol, *)]
   | schemaName items -> x
 instance MapsTo schemaName x rest => MapsToH 'False schemaName x (head ': rest)
 instance x ~ headX => MapsToH 'True schemaName x ('(headName, headX) ': rest)
-
-instance Embedded schemaName x m => Embedded schemaName x (ExceptT e m)
-instance Embedded schemaName x m => Embedded schemaName x (ReaderT r m)
-instance Embedded schemaName x m => Embedded schemaName x (StateT s m)
-instance (Embedded schemaName x m, Monoid w) => Embedded schemaName x (WriterT w m)

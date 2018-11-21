@@ -27,6 +27,7 @@ dependencies:
 - constraints
 - containers
 - dlist
+- generic-deriving
 - lens
 - monad-extras
 - mmorph

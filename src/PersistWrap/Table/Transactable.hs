@@ -1,5 +1,6 @@
 module PersistWrap.Table.Transactable
     ( Entity
+    , FK
     , ForeignKey
     , Key
     , MonadDML(..)
@@ -114,3 +115,5 @@ getAllEntities proxy = case getSchemaSing proxy of
 class MonadTransactable (Transaction m) => MonadDML m where
   type Transaction m :: * -> *
   atomicTransaction :: Transaction m y -> m y
+
+type FK m = ForeignKey (Transaction m)

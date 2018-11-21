@@ -6,6 +6,8 @@ import Data.Constraint (Dict(Dict))
 import Data.Functor.Const (Const)
 import Data.Proxy (Proxy)
 import Data.Singletons (SingI)
+import Generics.Deriving.Eq (GEq, geq)
+import Generics.Deriving.Show (GShow, gshowsPrec)
 
 class Always c f where
   dict :: Dict (c (f x))
@@ -32,7 +34,11 @@ showsPrec1 = case (dictS :: Dict (Show (f x))) of
 newtype FromAlwaysS f x = FromAlwaysS (f x)
 instance (AlwaysS Eq f, SingI x) => Eq (FromAlwaysS f x) where
   (==) (FromAlwaysS l) (FromAlwaysS r) = l ==* r
+instance (AlwaysS Eq f, SingI x) => GEq (FromAlwaysS f x) where
+  geq = (==)
 instance (AlwaysS Eq f, AlwaysS Ord f, SingI x) => Ord (FromAlwaysS f x) where
   compare (FromAlwaysS l) (FromAlwaysS r) = compare1 l r
 instance (AlwaysS Show f, SingI x) => Show (FromAlwaysS f x) where
   showsPrec d (FromAlwaysS x) = showsPrec1 d x
+instance (AlwaysS Show f, SingI x) => GShow (FromAlwaysS f x) where
+  gshowsPrec = showsPrec

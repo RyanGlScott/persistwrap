@@ -7,9 +7,12 @@ import qualified Conkin
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
+import Generics.Deriving.Eq (GEq(..))
+import Generics.Deriving.Show (GShow(..))
 import GHC.Generics (Generic, Rep)
 
 import PersistWrap.Conkin.Extra.TH (deriveFnEq, deriveFnShow)
+import PersistWrap.SpecUtil.Orphans ()
 import PersistWrap.Structure (EntityPart, StructureOf, GStructureOf)
 import PersistWrap.Structure.TH (deriveEntityPart)
 
@@ -43,8 +46,7 @@ data Widget fk
 instance EntityPart fk (Widget fk) where
   type StructureOf (Widget fk) = GStructureOf (Rep (Widget fk))
 
--- |
--- To declare `Eq` and `Show` for a continuation kind, we first need a `Conkin.Functor` instance
+-- | To declare `Eq` and `Show` for a continuation kind, we first need a `Conkin.Functor` instance.
 instance Conkin.Functor Widget where
   fmap fn = \case
     Foo1 x -> Foo1 x
@@ -52,7 +54,13 @@ instance Conkin.Functor Widget where
     Blarg x -> Blarg x
     Bleeble x -> Bleeble x
     Glorp x -> Glorp (fn x)
--- | Declare `Eq` instance using helper from "PersistWrap.Conkin.Extra.TH"
+
+-- | To use the `Eq` TH helper for Widget, we first need a `GEq` instance for all of its fields.
+instance GEq Foo where geq = (==)
+-- | Declare `Eq` instance using helper from "PersistWrap.Conkin.Extra.TH".
 $(deriveFnEq [t| Widget |])
--- | Declare `Show` instance using helper from "PersistWrap.Conkin.Extra.TH"
+
+-- | To use the `Show` TH helper for Widget, we first need a `GShow` instance for all of its fields.
+instance GShow Foo where gshowsPrec = showsPrec
+-- | Declare `Show` instance using helper from "PersistWrap.Conkin.Extra.TH".
 $(deriveFnShow [t| Widget |])
