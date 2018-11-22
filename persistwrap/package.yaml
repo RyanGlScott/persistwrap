@@ -32,7 +32,6 @@ dependencies:
 - persistwrap-primitives
 - persistwrap-structure
 - persistwrap-table
-- pointless-fun
 - singletons
 - stream-reader
 - template-haskell

@@ -3,10 +3,7 @@
 
 module PersistWrap.Embedding.Class.Embeddable where
 
-import Control.Monad.Trans (MonadTrans, lift)
 import Data.Bifunctor (second)
-import Data.Function.Pointless ((.:))
-import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons
 import Data.Singletons.Decide
@@ -25,37 +22,11 @@ import PersistWrap.Table
 
 class MonadTransactable m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
   getXs :: m [(ForeignKey m schemaName, x)]
-  default getXs :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
-    => m [(ForeignKey m schemaName, x)]
-  getXs = lift getXs
   getX :: ForeignKey m schemaName -> m (Maybe x)
-  default getX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
-    => ForeignKey m schemaName -> m (Maybe x)
-  getX = lift . getX
   insertX :: x -> m (ForeignKey m schemaName)
-  default insertX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
-    => x -> m (ForeignKey m schemaName)
-  insertX = lift . insertX
   deleteX :: ForeignKey m schemaName -> m Bool
-  default deleteX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
-    => ForeignKey m schemaName -> m Bool
-  deleteX = lift . deleteX @schemaName @x
   stateX :: ForeignKey m schemaName -> (x -> (b,x)) -> m (Maybe b)
-  default stateX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
-    => ForeignKey m schemaName -> (x -> (b,x)) -> m (Maybe b)
-  stateX = lift .: stateX
   modifyX :: ForeignKey m schemaName -> (x -> x) -> m Bool
-  default modifyX :: (m ~ t n, MonadTrans t, Embeddable schemaName x n, ForeignKey m ~ ForeignKey n)
-    => ForeignKey m schemaName -> (x -> x) -> m Bool
-  modifyX = lift .: modifyX
-
-modifyXFromStateX
-  :: forall schemaName x m
-   . Embeddable schemaName x m
-  => ForeignKey m schemaName
-  -> (x -> x)
-  -> m Bool
-modifyXFromStateX key fn = isJust <$> stateX @schemaName key (((), ) . fn)
 
 newtype MRow m cols = MRow {unMRow :: Row (ForeignKey m) cols}
 
