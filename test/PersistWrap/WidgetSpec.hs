@@ -31,6 +31,9 @@ spec =
     -- Initializes empty tables in `STM` backend.
     $ BackEnd.withEmptyTablesItemized @TestTables widgetTest
 
+-- |
+-- We can declare what the _entire_ persistence layer looks like by wrapping the monad we're working
+-- in with @ Itemized TestTables @. For a more fine-grained approach, see `insertWidget3`.
 widgetTest :: (MonadDML m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
 widgetTest = atomicTransaction $ do
   -- The compiler knows 3 is an `Int` because we're inserting it into the \"abc\" table.
@@ -57,5 +60,9 @@ widget3 :: Widget fk
 widget3 = Foo2
   [Foo { bar = 10, baz = A 3 4, qux = Just Green }, Foo { bar = 11, baz = B, qux = Nothing }]
 
+-- |
+-- We can specify a subset of tables in the persistence layer on which we'll be operating using
+-- `Embedded` (or `Emb`) constraints. In this example we claim that the monad we're working in has
+-- a table named "widget" which contains @ Widget fk @ \'s.
 insertWidget3 :: Embedded "widget" (Widget fk) m => m (ForeignKey m "widget")
 insertWidget3 = insertX @"widget" widget3
