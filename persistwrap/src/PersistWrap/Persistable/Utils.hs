@@ -1,4 +1,4 @@
-module PersistWrap.Embedding.Utils
+module PersistWrap.Persistable.Utils
     ( getTags
     , getNonEmptyTags
     , withSomeTable
@@ -14,12 +14,12 @@ import Data.Singletons.TypeLits
 import qualified Data.Text as Text
 import GHC.Stack (HasCallStack)
 
-import PersistWrap.Embedding.Rep
+import PersistWrap.Persistable.Rep
 import PersistWrap.Table
 
 withSomeTable
   :: forall tabName m y
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => SSymbol tabName
   -> (  forall tab
       . (TabName tab ~ tabName, WithinTable m tab)

@@ -1,4 +1,4 @@
-module PersistWrap.Embedding.Get
+module PersistWrap.Persistable.Get
     ( get
     ) where
 
@@ -19,9 +19,9 @@ import GHC.Stack (HasCallStack)
 import Conkin.Extra (htraverse, mapUncheck, noHere)
 import Consin
 import qualified Consin.Tuple.StreamReader as Tuple
-import PersistWrap.Embedding.Columns
-import PersistWrap.Embedding.Rep
-import PersistWrap.Embedding.Utils
+import PersistWrap.Persistable.Columns
+import PersistWrap.Persistable.Rep
+import PersistWrap.Persistable.Utils
 import PersistWrap.Functor.Extra
 import PersistWrap.Maybe.Extra (fromJust)
 import PersistWrap.Structure
@@ -31,7 +31,7 @@ import qualified StreamReader
 
 get
   :: forall schemaName structure m
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => NamedSchemaRep (ForeignKey m) schemaName structure
   -> ForeignKey m schemaName
   -> m (Maybe (EntityOf (ForeignKey m) structure))
@@ -45,7 +45,7 @@ type ValueStreamT m = Tuple.StreamReaderT (ValueSnd (ForeignKey m)) m
 type ValueStream fk = Tuple.StreamReader (ValueSnd fk)
 
 getFromRow
-  :: (HasCallStack, MonadTransactable m)
+  :: (HasCallStack, MonadTransaction m)
   => Some (ForeignKey m)
   -> SchemaRep (ForeignKey m) structure
   -> ValueStreamT m (EntityOf (ForeignKey m) structure)
@@ -83,7 +83,7 @@ nonNullCol = \case
 
 getIndexed
   :: forall nxs m
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => Some (ForeignKey m)
   -> Tuple nxs (NamedColumnRep (ForeignKey m))
   -> Tagged nxs Proxy
@@ -134,7 +134,7 @@ checkNullValue = StreamReader.ask <&> \case
   _                           -> False
 
 getColumnAs
-  :: (HasCallStack, MonadTransactable m)
+  :: (HasCallStack, MonadTransaction m)
   => Some (ForeignKey m)
   -> NamedColumnRep (ForeignKey m) nx
   -> ValueStreamT m (EntityOfSnd (ForeignKey m) nx)
@@ -142,7 +142,7 @@ getColumnAs selfKey (NamedColumnRep colname cr) = EntityOfSnd <$> getColumn coln
 
 getColumn
   :: forall x m colName
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => SSymbol colName
   -> Some (ForeignKey m)
   -> ColumnRep (ForeignKey m) x
@@ -167,7 +167,7 @@ getColumn colName selfKey = \case
 
 collectionList
   :: forall m a tabName
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => (Some (ForeignRow (ForeignKey m)) -> m a)
   -> Some (ForeignKey m)
   -> SSymbol tabName
@@ -187,7 +187,7 @@ data ListItem x = ListItem{index :: Int, value :: x}
 
 getListItem
   :: forall m structure
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => SchemaRep (ForeignKey m) structure
   -> Some (ForeignRow (ForeignKey m))
   -> m (ListItem (EntityOf (ForeignKey m) structure))
@@ -202,7 +202,7 @@ data MapItem k v = MapItem{key :: k, value:: v}
 
 getMapItem
   :: forall m keystruct valstruct
-   . (HasCallStack, MonadTransactable m)
+   . (HasCallStack, MonadTransaction m)
   => ColumnRep (ForeignKey m) (EntityOf (ForeignKey m) keystruct)
   -> SchemaRep (ForeignKey m) valstruct
   -> Some (ForeignRow (ForeignKey m))

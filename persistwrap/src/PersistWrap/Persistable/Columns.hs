@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module PersistWrap.Embedding.Columns where
+module PersistWrap.Persistable.Columns where
 
 import Data.List.NonEmpty
 import Data.Singletons.Prelude

@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module PersistWrap.Embedding.Class.Embeddable where
+module PersistWrap.Persistable where
 
 import Data.Bifunctor (second)
 import Data.Proxy (Proxy)
@@ -12,16 +12,16 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Stack (HasCallStack)
 
-import PersistWrap.Embedding.Get
-import PersistWrap.Embedding.Insert
-import PersistWrap.Embedding.Rep
-import PersistWrap.Embedding.Schemas
+import PersistWrap.Persistable.Get
+import PersistWrap.Persistable.Insert
+import PersistWrap.Persistable.Rep
+import PersistWrap.Persistable.Schemas
 import PersistWrap.Functor.Extra
 import PersistWrap.Structure
 import PersistWrap.Table
 
 lookupExpectTable
-  :: forall schema m . (HasCallStack, MonadTransactable m) => SSchema schema -> m (Table m schema)
+  :: forall schema m . (HasCallStack, MonadTransaction m) => SSchema schema -> m (Table m schema)
 lookupExpectTable (SSchema tn cols) = lookupTable tn <&> \case
   Nothing                       -> error $ "Missing table: " ++ Text.unpack (fromSing tn)
   Just (SomeTableNamed cols' t) -> case cols %~ cols' of
@@ -30,7 +30,7 @@ lookupExpectTable (SSchema tn cols) = lookupTable tn <&> \case
 
 withExpectTable
   :: forall (tabname :: Symbol) (cols :: [(Symbol, Column Symbol)]) (m :: * -> *) (y :: *)
-   . (MonadTransactable m, SingI tabname, SingI cols)
+   . (MonadTransaction m, SingI tabname, SingI cols)
   => (  forall (tab :: (*, Schema Symbol))
       . (WithinTable m tab, TabSchema tab ~ ( 'Schema tabname cols))
      => Proxy tab
@@ -48,7 +48,7 @@ instance (SingI schemaName, SingI structure) => HasRep schemaName structure wher
   rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
   entitySchemas = uncurry (:) $ repToSchemas $ rep @schemaName @structure
 
-class MonadTransactable m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
+class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
   getXs :: m [(ForeignKey m schemaName, x)]
   getX :: ForeignKey m schemaName -> m (Maybe x)
   insertX :: x -> m (ForeignKey m schemaName)
@@ -57,8 +57,8 @@ class MonadTransactable m => Embeddable (schemaName :: Symbol) (x :: *) (m :: * 
   modifyX :: ForeignKey m schemaName -> (x -> x) -> m Bool
 
 instance
-    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransactable m, fk ~ ForeignKey m)
-    => Embeddable schemaName x m where
+    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, fk ~ ForeignKey m)
+    => Persistable schemaName x m where
   getXs = map (second (fromEntity @fk)) <$> undefined
   getX = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))
   insertX = insert (rep @schemaName @(StructureOf x)) . toEntity @fk

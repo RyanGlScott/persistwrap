@@ -1,4 +1,4 @@
-module PersistWrap.Embedding.Insert
+module PersistWrap.Persistable.Insert
     ( insert
     ) where
 
@@ -21,14 +21,14 @@ import GHC.Stack (HasCallStack)
 
 import Conkin.Extra (mapUncheck, noHere, zipUncheck)
 import qualified Consin.Tuple.StreamWriter as Tuple
-import PersistWrap.Embedding.Columns
-import PersistWrap.Embedding.Rep
-import PersistWrap.Embedding.Utils
+import PersistWrap.Persistable.Columns
+import PersistWrap.Persistable.Rep
+import PersistWrap.Persistable.Utils
 import PersistWrap.Structure as Structure
 import PersistWrap.Table
 
 insert
-  :: (HasCallStack, MonadTransactable m, fk ~ ForeignKey m)
+  :: (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
   => NamedSchemaRep fk selfSchemaName structure
   -> EntityOf fk structure
   -> m (ForeignKey m selfSchemaName)
@@ -37,7 +37,7 @@ insert (NamedSchemaRep selfSchemaName rep) x =
 
 insertRowItems
   :: forall m selfSchemaName structure fk cols
-   . (HasCallStack, MonadTransactable m, fk ~ ForeignKey m)
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> SchemaRep fk structure
   -> EntityOf fk structure
@@ -69,7 +69,7 @@ getSumTag (_ :%| names0) = EnumVal . \case
 
 insertSumItem
   :: forall xs m selfSchemaName fk cols
-   . (HasCallStack, MonadTransactable m, fk ~ ForeignKey m)
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> Tuple xs (NamedColumnRep fk)
   -> Tagged xs (EntityOfSnd fk)
@@ -118,7 +118,7 @@ newtype NextOperation (selfSchemaName :: Symbol) fk m x =
 
 withPerformInsert
   :: forall tabName m
-   . (MonadTransactable m)
+   . (MonadTransaction m)
   => SSymbol tabName
   -> (forall cols . InsertT tabName cols (ForeignKey m) m ())
   -> m (ForeignKey m tabName)
@@ -156,7 +156,7 @@ nextWrite :: Monad m => (fk selfSchemaName -> m ()) -> InsertT selfSchemaName co
 nextWrite act = InsertT $ Writer.tell (NextOperation (ReaderT act))
 
 writeColumnNamed
-  :: (MonadTransactable m, fk ~ ForeignKey m)
+  :: (MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> NamedColumnRep fk ncr
   -> EntityOfSnd fk ncr
@@ -165,7 +165,7 @@ writeColumnNamed selfSchemaName (NamedColumnRep _ cr) (EntityOfSnd x) =
   writeColumn selfSchemaName cr x
 
 writeColumn
-  :: (MonadTransactable m, fk ~ ForeignKey m)
+  :: (MonadTransaction m, fk ~ ForeignKey m)
   => SSymbol selfSchemaName
   -> ColumnRep fk x
   -> x

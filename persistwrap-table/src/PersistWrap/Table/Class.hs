@@ -16,11 +16,12 @@ type TabSubRow m tab = Row.SubRow (ForeignKey m) (TabCols tab)
 
 type Entity m tab = Entity' (Key m tab) (TabRow m tab)
 
+type family ForeignKey (m :: * -> *) :: Symbol -> *
+
 class (HEq (ForeignKey m), AlwaysS Eq (ForeignKey m), AlwaysS Ord (ForeignKey m), Monad m)
-    => MonadTransaction m where
+    => MonadBaseTransaction m where
   data Table m :: Schema Symbol -> *
   data Key m :: (*,Schema Symbol) -> *
-  type ForeignKey m :: Symbol -> *
   getEntities :: forall tab . WithinTable m tab
     => Proxy tab -> TabSubRow m tab -> m [Entity m tab]
   getRow :: forall tab . WithinTable m tab => Key m tab -> m (Maybe (TabRow m tab))
@@ -46,7 +47,7 @@ type WithinTable m tab = WithinTableOf (Table m) tab
 
 entityToForeign
   :: forall tab m schema
-   . (MonadTransaction m, WithinTable m tab, schema ~ TabSchema tab)
+   . (MonadBaseTransaction m, WithinTable m tab, schema ~ TabSchema tab)
   => Entity m tab
   -> ForeignRow (ForeignKey m) schema
 entityToForeign (Entity k r) = case sing @_ @schema of

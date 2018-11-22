@@ -1,7 +1,7 @@
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module PersistWrap.Table.BackEnd.TH
+module PersistWrap.TH
     ( declareTables
     ) where
 
@@ -12,7 +12,7 @@ import Language.Haskell.TH (Dec(DataD), Q, TyVarBndr(KindedTV), Type(ConT), mkNa
 
 import Conkin.Extra (Always)
 import qualified Conkin.Extra
-import PersistWrap.Table.BackEnd.Helper (AllEmbed)
+import PersistWrap.BackEnd.Helper (AllEmbed)
 
 declareTables :: String -> Q [Dec]
 declareTables s = do

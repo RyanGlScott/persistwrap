@@ -1,7 +1,15 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module PersistWrap.Table.BackEnd.STM.Internal where
+module PersistWrap.Table.BackEnd.STM.Internal
+    ( STMPersist
+    , STMTransaction
+    , showAllTables
+    , unsafeSetupEmptyTables
+    , withEmptyTables
+    , withEmptyTableProxies
+    ) where
+
 
 import Conkin (Tuple)
 import Control.Arrow ((&&&), (***))
@@ -26,14 +34,14 @@ import Conkin.Extra (htraverse)
 import Consin
 import Consin.SymMap (SymMap)
 import qualified Consin.SymMap as SymMap
-import PersistWrap.Table.Class (Entity, MonadTransaction)
+import PersistWrap.Table.Class (Entity, MonadBaseTransaction)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row
 import PersistWrap.Table.STM.Future (stateTVar)
-import PersistWrap.Table.Transactable (MonadDML, MonadTransactable, getAllEntities)
-import qualified PersistWrap.Table.Transactable as Transactable
+import PersistWrap.Table.Transaction (ForeignKey, MonadPersist, MonadTransaction, getAllEntities)
+import qualified PersistWrap.Table.Transaction as Transaction
 
 type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 
@@ -75,10 +83,11 @@ instance AlwaysS Ord (FK s) where dictS = Dict
 type Key s = Class.Key (STMTransaction s)
 type Table s = Class.Table (STMTransaction s)
 
-instance MonadTransaction (STMTransaction s) where
+type instance ForeignKey (STMTransaction s) = FK s
+
+instance MonadBaseTransaction (STMTransaction s) where
   newtype Table (STMTransaction s) schema = Table (TVar [TVarMaybeRow s (SchemaCols schema)])
   newtype Key (STMTransaction s) tab = Key {unKey :: TVarMaybeRow s (TabCols tab)}
-  type ForeignKey (STMTransaction s) = FK s
   getEntities (proxy :: Proxy tab) restriction = liftBase $ do
     let Table refs = getTable proxy
     (result :: [Entity (STMTransaction s) tab])
@@ -106,41 +115,43 @@ instance MonadTransaction (STMTransaction s) where
           Disproved{} -> case Dict :: Dict (SchemaName sch ~ TabName tab) of
             Dict -> error "Two tables with the same name and different schemas"
 
-instance MonadTransactable (STMTransaction s) where
+instance MonadTransaction (STMTransaction s) where
   type BaseTransactionMonad (STMTransaction s) = STMTransaction s
   liftTransaction = id
 
-newtype TVarDMLT s m x = TVarDMLT {unTVarDMLT :: ReaderT (TableMap s) m x}
+newtype STMPersist s m x = STMPersist {unSTMPersist :: ReaderT (TableMap s) m x}
   deriving (Functor, Applicative, Monad, MonadIO)
 
-instance MonadIO m => MonadDML (TVarDMLT s m) where
-  type Transaction (TVarDMLT s m) = STMTransaction s
-  atomicTransaction (STMTransaction act) = TVarDMLT $ mapReaderT (liftIO . atomically) act
+type instance ForeignKey (STMPersist s m) = FK s
+
+instance MonadIO m => MonadPersist (STMPersist s m) where
+  type Transaction (STMPersist s m) = STMTransaction s
+  atomicTransaction (STMTransaction act) = STMPersist $ mapReaderT (liftIO . atomically) act
 
 withEmptyTables
   :: MonadIO m
   => SList (schemas :: [Schema Symbol])
-  -> (forall s . Tuple schemas (Table s) -> TVarDMLT s m x)
+  -> (forall s . Tuple schemas (Table s) -> STMPersist s m x)
   -> m x
-withEmptyTables = setupEmptyTables
+withEmptyTables = unsafeSetupEmptyTables
 
-setupEmptyTables
+unsafeSetupEmptyTables
   :: MonadIO m
   => SList (schemas :: [Schema Symbol])
-  -> (Tuple schemas (Table s) -> TVarDMLT s m x)
+  -> (Tuple schemas (Table s) -> STMPersist s m x)
   -> m x
-setupEmptyTables sschemas action
+unsafeSetupEmptyTables sschemas action
   | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas)) = error
     "Schema names are not distinct"
   | otherwise = do
     tables <- liftIO $ htraverse newTable schemasTuple
-    runReaderT (unTVarDMLT $ action tables) (constructMap sschemas tables)
+    runReaderT (unSTMPersist $ action tables) (constructMap sschemas tables)
   where schemasTuple = singToTuple sschemas
 
 withEmptyTableProxies
   :: MonadIO m
   => SList schemas
-  -> (forall s . Tuple schemas (SomeTableProxy (Table s)) -> TVarDMLT s m x)
+  -> (forall s . Tuple schemas (SomeTableProxy (Table s)) -> STMPersist s m x)
   -> m x
 withEmptyTableProxies schemas action =
   withEmptyTables schemas $ withSingI schemas (`withinTables` action)

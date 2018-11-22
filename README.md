@@ -16,9 +16,9 @@ easily stored and retrieved from a relational backend.
 - Primary tables (associated to a top-level type) are _named_ (associated to a
   unique `GHC.TypeLits.Symbol`) rather than keyed by type. You may have multiple tables each holding
   the same type of object.
-- Distinguishes between `MonadDML m` and `MonadTransactable m` where the latter is a monad in which
-  a collection of persistent actions can occur _atomically_ and the former provides a method
-  `atomicTransaction` to drop into a `Transactable` monad.
+- Distinguishes between `MonadPersist m` and `MonadTransaction m` where the latter is a monad in
+  which a collection of persistent actions can occur _atomically_ and the former provides a method
+  `atomicTransaction` to drop into a `Transaction` monad.
 - Complements a style in which data-structures which contain foreign keys are parameterized over the
   type of the foreign key `fk`. In this way you can easily switch out backends without having to
   make any changes to how your data is defined.

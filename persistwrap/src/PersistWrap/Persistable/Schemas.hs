@@ -1,4 +1,4 @@
-module PersistWrap.Embedding.Schemas
+module PersistWrap.Persistable.Schemas
    ( repToSchemas
    ) where
 
@@ -10,9 +10,9 @@ import Data.Singletons.TypeLits (Symbol)
 import Data.Text (Text)
 
 import Conkin.Extra (mapUncheck)
-import PersistWrap.Embedding.Columns
-import PersistWrap.Embedding.Rep
-import PersistWrap.Embedding.Utils
+import PersistWrap.Persistable.Columns
+import PersistWrap.Persistable.Rep
+import PersistWrap.Persistable.Utils
 import PersistWrap.Table as Table
 
 listKeys :: Text -> [(Text, Column Text)]

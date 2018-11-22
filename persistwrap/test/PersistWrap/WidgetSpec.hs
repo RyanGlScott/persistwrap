@@ -8,11 +8,9 @@ import Control.Monad (join)
 import qualified Data.ByteString.Char8 as BS
 import Test.Hspec
 
-import PersistWrap.Embedding.Class.Embedded
-import PersistWrap.Table
-import PersistWrap.Table.BackEnd.Helper
-import PersistWrap.Table.BackEnd.TH (declareTables)
-import qualified PersistWrap.Table.BackEnd.STM.Itemized as BackEnd
+import PersistWrap
+import PersistWrap.TH (declareTables)
+import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
 
 import PersistWrap.SpecUtil.Widget
 
@@ -34,7 +32,7 @@ spec =
 -- |
 -- We can declare what the _entire_ persistence layer looks like by wrapping the monad we're working
 -- in with @ Itemized TestTables @. For a more fine-grained approach, see `insertWidget3`.
-widgetTest :: (MonadDML m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
+widgetTest :: (MonadPersist m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
 widgetTest = atomicTransaction $ do
   -- The compiler knows 3 is an `Int` because we're inserting it into the \"abc\" table.
   -- @ fk3 :: FK m "abc" @
@@ -62,7 +60,7 @@ widget3 = Foo2
 
 -- |
 -- We can specify a subset of tables in the persistence layer on which we'll be operating using
--- `Embedded` (or `Emb`) constraints. In this example we claim that the monad we're working in has
--- a table named "widget" which contains @ Widget fk @ \'s.
-insertWidget3 :: Embedded "widget" (Widget fk) m => m (ForeignKey m "widget")
+-- `Persisted` constraints. In this example we claim that the monad we're working
+-- in has a table named "widget" which contains @ Widget fk @ \'s.
+insertWidget3 :: Persisted "widget" (Widget fk) m => m (ForeignKey m "widget")
 insertWidget3 = insertX @"widget" widget3

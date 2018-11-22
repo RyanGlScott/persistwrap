@@ -2,8 +2,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Table.BackEnd.STM
-    ( FK
-    , TVarDMLT
+    ( STMPersist
     , STMTransaction
     , showAllTables
     , withEmptyTables

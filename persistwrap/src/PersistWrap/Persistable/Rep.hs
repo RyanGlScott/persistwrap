@@ -1,4 +1,4 @@
-module PersistWrap.Embedding.Rep
+module PersistWrap.Persistable.Rep
     ( ColumnRep(..)
     , NamedColumnRep(..)
     , NamedSchemaRep(..)
@@ -21,7 +21,7 @@ import Data.Singletons.TypeLits
 import GHC.Stack (HasCallStack)
 
 import Conkin.Extra
-import PersistWrap.Embedding.Columns (sKeyColumnName)
+import PersistWrap.Persistable.Columns (sKeyColumnName)
 import PersistWrap.Maybe.Extra (fromJust)
 import PersistWrap.Structure as Structure
 import PersistWrap.Table as Table
