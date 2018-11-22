@@ -35,7 +35,7 @@ instance All EmbedPair (Items x) => AllEmbed x
 
 setupHelper
   :: forall fnitems m n x
-   . (MonadDML m, Always AllEmbed fnitems)
+   . Always AllEmbed fnitems
   => (forall (sch :: [Schema Symbol]) . SList sch -> m x -> n x)
   -> Itemized (Items (fnitems (FK m))) m x
   -> n x
