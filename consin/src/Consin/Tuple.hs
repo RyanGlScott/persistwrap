@@ -9,12 +9,10 @@ import Prelude hiding (unzip)
 import Conkin (Tuple(..))
 import Data.Constraint (Dict(Dict))
 import Data.List (find)
-import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
-import Conkin.Extra ((:*:)((:*:)), mapUncheck)
 import Consin.Class (AlwaysS, compare1, (==*))
 import qualified Consin.Class as AlwaysS (AlwaysS(..))
 

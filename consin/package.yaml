@@ -37,7 +37,6 @@ default-extensions:
 dependencies:
 - base >= 4.7 && < 5
 - conkin
-- conkin-extra
 - constraints
 - containers
 - generic-deriving
@@ -49,3 +48,8 @@ dependencies:
 
 library:
   source-dirs: src
+
+ghc-options:
+- -Wall
+- -Werror
+- -Wredundant-constraints

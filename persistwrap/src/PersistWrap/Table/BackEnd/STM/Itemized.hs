@@ -8,7 +8,7 @@ module PersistWrap.Table.BackEnd.STM.Itemized
 import Control.Monad.IO.Class (MonadIO)
 
 import Conkin.Extra (Always)
-import PersistWrap.Embedding.Class.Embedded (Itemized)
+import PersistWrap.Embedding.Class.Itemized (Itemized)
 import PersistWrap.Table.BackEnd.Helper (AllEmbed, Items, setupHelper)
 import PersistWrap.Table.BackEnd.STM.Internal
 

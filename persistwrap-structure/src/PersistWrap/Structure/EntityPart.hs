@@ -24,7 +24,7 @@ import Data.Singletons.Prelude.List (SList, Sing(SCons, SNil))
 import Data.Singletons.Prelude.Maybe (FromMaybeSym0)
 import Data.Singletons.Prelude.Show (Show_)
 import Data.Singletons.Prelude.Tuple (Sing(STuple2))
-import Data.Singletons.TypeLits (KnownSymbol, Nat, SNat)
+import Data.Singletons.TypeLits (Nat, SNat)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time.Calendar (Day)
@@ -140,8 +140,7 @@ class SingI (GenericConsTail f) => GenericConsPart (fk :: Symbol -> *) f where
 
 type GenericConsList f = GenericConsHead f ': GenericConsTail f
 
-instance (GEntityPart fk a, KnownSymbol na)
-    => GenericConsPart fk (C1 ('MetaCons na fa sa) a) where
+instance (GEntityPart fk a) => GenericConsPart fk (C1 ('MetaCons na fa sa) a) where
   type GenericConsHead (C1 ('MetaCons na fa sa) a) = '(na, GStructureOf a)
   type GenericConsTail (C1 ('MetaCons na fa sa) a) = '[]
   fromTag = \case

@@ -21,6 +21,7 @@ import qualified Conkin.Extra as All (All(..))
 import qualified Conkin.Extra as Always (Always(..))
 import PersistWrap.Embedding.Class.Embeddable (HasRep, entitySchemas)
 import PersistWrap.Embedding.Class.Embedded
+import PersistWrap.Embedding.Class.Itemized
 import PersistWrap.Structure (StructureOf)
 import PersistWrap.Table.Column
 import PersistWrap.Table.Transactable

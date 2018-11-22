@@ -99,13 +99,12 @@ instance MonadTransaction (STMTransaction s) where
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
       -- If the names are the same, then the schemas must be the same.
-      coerceSchema
-        :: forall. SchemaName sch ~ TabName tab
-        => TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
+      coerceSchema :: forall. TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
       coerceSchema = case sing @_ @(TabSchema tab) of
         SSchema _ tabCols -> case schCols %~ tabCols of
           Proved Refl -> id
-          Disproved{} -> error "Two tables with the same name and different schemas"
+          Disproved{} -> case Dict :: Dict (SchemaName sch ~ TabName tab) of
+            Dict -> error "Two tables with the same name and different schemas"
 
 instance MonadTransactable (STMTransaction s) where
   type BaseTransactionMonad (STMTransaction s) = STMTransaction s

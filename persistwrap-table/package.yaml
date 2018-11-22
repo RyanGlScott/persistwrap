@@ -66,6 +66,7 @@ library:
 ghc-options:
 - -Wall
 - -Werror
+- -Wredundant-constraints
 
 tests:
   persistwrap-table-test:

@@ -45,3 +45,4 @@ library:
 ghc-options:
 - -Wall
 - -Werror
+- -Wredundant-constraints

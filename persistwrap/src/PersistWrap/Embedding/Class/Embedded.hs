@@ -1,21 +1,25 @@
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
-module PersistWrap.Embedding.Class.Embedded where
+module PersistWrap.Embedding.Class.Embedded
+    ( Embedded
+    , deleteX
+    , getX
+    , getXs
+    , insertX
+    , modifyX
+    , stateX
+    ) where
 
-import Control.Monad.Except (MonadError)
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Reader (MonadReader)
-import Control.Monad.State (MonadState)
-import Control.Monad.Trans (MonadTrans(..))
-import Control.Monad.Writer (MonadWriter)
 import Data.Promotion.Prelude (type (==))
-import Data.Singletons.TypeLits (Symbol)
+import GHC.TypeLits (KnownSymbol, Symbol)
 
-import PersistWrap.Embedding.Class.Embeddable (Embeddable, HasRep)
+import PersistWrap.Embedding.Class.Embeddable (Embeddable)
 import qualified PersistWrap.Embedding.Class.Embeddable as E
-import PersistWrap.Structure (EntityPart, StructureOf)
-import PersistWrap.Table (ForeignKey, MonadDML(..), MonadTransactable(..))
+import PersistWrap.Embedding.Class.Itemized
+import PersistWrap.Structure (EntityPart)
+import PersistWrap.Table (ForeignKey)
 
 class Embeddable schemaName x m => Embedded schemaName x m | schemaName m -> x
 
@@ -32,20 +36,10 @@ stateX = E.stateX
 modifyX :: Embedded schemaName x m => ForeignKey m schemaName -> (x -> x) -> m Bool
 modifyX = E.modifyX
 
-newtype Itemized (items :: [(Symbol, *)]) m x = Itemized {runItemized :: m x}
-  deriving ( Functor, Applicative, Monad, MonadTransactable, MonadIO
-           , MonadReader r, MonadWriter w, MonadState s, MonadError e
-           )
-instance MonadTrans (Itemized items) where
-  lift = Itemized
-instance MonadDML m => MonadDML (Itemized items m) where
-  type Transaction (Itemized items m) = Itemized items (Transaction m)
-  atomicTransaction (Itemized act) = Itemized $ atomicTransaction act
-
 instance
   ( EntityPart (ForeignKey m) x
-  , HasRep schemaName (StructureOf x)
-  , MonadTransactable m
+  , Embeddable schemaName x m
+  , KnownSymbol schemaName
   , MapsTo schemaName x items
   ) => Embedded schemaName x (Itemized items m)
 

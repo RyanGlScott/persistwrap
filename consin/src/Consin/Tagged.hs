@@ -10,11 +10,10 @@ module Consin.Tagged
     , rightTag
     ) where
 
-import Conkin (Tagged(..), Tuple(..))
+import Conkin (Tagged(..))
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
-import Conkin.Extra (noHere)
 import Consin.Class (AlwaysS, compare1, (==*))
 
 pickSide

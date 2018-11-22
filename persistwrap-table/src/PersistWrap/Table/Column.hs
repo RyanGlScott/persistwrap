@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module PersistWrap.Table.Column where
 
@@ -15,16 +16,12 @@ import PersistWrap.Primitives (PrimName)
 
 $(singletons [d|
   data BaseColumn text = Prim PrimName | Enum (NonEmpty text) | ForeignKey text | JSON
-    deriving (Show)
+    deriving (Eq, Ord, Show)
   data Column text = Column Bool (BaseColumn text)
-    deriving (Show)
+    deriving (Eq, Ord, Show)
   data Schema text = Schema text [(text,Column text)]
-    deriving (Show)
+    deriving (Eq, Ord, Show)
   |])
-
-$(singDecideInstances [''BaseColumn, ''Column, ''Schema])
-$(singEqInstances [''BaseColumn, ''Column, ''Schema])
-$(singOrdInstances [''BaseColumn, ''Column, ''Schema])
 
 $(singletonsOnly [d|
   schemaCols :: Schema Symbol -> [(Symbol, Column Symbol)]
