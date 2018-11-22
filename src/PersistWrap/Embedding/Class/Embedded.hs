@@ -3,8 +3,8 @@
 
 module PersistWrap.Embedding.Class.Embedded where
 
-import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Except (MonadError)
+import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.State (MonadState)
 import Control.Monad.Trans (MonadTrans(..))

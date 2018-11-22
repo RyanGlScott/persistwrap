@@ -35,9 +35,9 @@ import PersistWrap.Conkin.Extra.SymMap (SymMap)
 import qualified PersistWrap.Conkin.Extra.SymMap as SymMap
 import PersistWrap.Embedding.Class.Embedded (Itemized)
 import PersistWrap.STM.Future
+import PersistWrap.Table.BackEnd.Helper (AllEmbed, Items, setupHelper)
 import PersistWrap.Table.Class (Entity, MonadTransaction)
 import qualified PersistWrap.Table.Class as Class
-import PersistWrap.Table.BackEnd.Helper (AllEmbed, Items, setupHelper)
 import PersistWrap.Table.Column
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row

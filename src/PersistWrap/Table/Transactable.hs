@@ -22,17 +22,16 @@ module PersistWrap.Table.Transactable
     , stateRow
     ) where
 
-import Control.Monad.Trans (lift)
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT)
-import Control.Monad.Writer (WriterT)
 import Control.Monad.State (StateT)
+import Control.Monad.Trans (lift)
+import Control.Monad.Writer (WriterT)
 import Data.Function.Pointless ((.:))
 import Data.Proxy (Proxy)
 import Data.Singletons.TypeLits (SSymbol)
 
-import PersistWrap.Table.Class
-  (MonadTransaction, entityToForeign, foreignToKey, keyToForeign)
+import PersistWrap.Table.Class (MonadTransaction, entityToForeign, foreignToKey, keyToForeign)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column (Sing(SSchema))
 import PersistWrap.Table.Reflect (SomeTableNamed, getSchemaSing)

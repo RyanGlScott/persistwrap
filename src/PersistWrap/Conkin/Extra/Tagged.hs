@@ -18,7 +18,7 @@ import Conkin (Tagged(..), Tuple(..))
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
-import PersistWrap.Conkin.Extra.Class (AlwaysS, (==*), compare1)
+import PersistWrap.Conkin.Extra.Class (AlwaysS, compare1, (==*))
 import PersistWrap.Conkin.Extra.Tagged.NoHere (noHere)
 
 pickSide
@@ -67,15 +67,14 @@ findJust fn = go
 compareAlwaysSTags
   :: forall xs f . (AlwaysS Ord f, SingI xs) => Tagged xs f -> Tagged xs f -> Ordering
 compareAlwaysSTags xs ys = case (sing @_ @xs, xs, ys) of
-  ((sx :: Sing x) `SCons` _, Here x, Here y) -> withSingI sx compare1 x y
-  (_, Here{}, There{}) -> LT
-  (_, There{}, Here{}) -> GT
-  (_ `SCons` sxs, There x, There y) -> withSingI sxs compareAlwaysSTags x y
+  ((sx :: Sing x) `SCons` _, Here x , Here y ) -> withSingI sx compare1 x y
+  (_                       , Here{} , There{}) -> LT
+  (_                       , There{}, Here{} ) -> GT
+  (_ `SCons` sxs           , There x, There y) -> withSingI sxs compareAlwaysSTags x y
 
-eqAlwaysSTags
-  :: forall xs f . (AlwaysS Eq f, SingI xs) => Tagged xs f -> Tagged xs f -> Bool
+eqAlwaysSTags :: forall xs f . (AlwaysS Eq f, SingI xs) => Tagged xs f -> Tagged xs f -> Bool
 eqAlwaysSTags xs ys = case (sing @_ @xs, xs, ys) of
-  ((sx :: Sing x) `SCons` _, Here x, Here y) -> withSingI sx (==*) x y
-  (_, Here{}, There{}) -> False
-  (_, There{}, Here{}) -> False
-  (_ `SCons` sxs, There x, There y) -> withSingI sxs eqAlwaysSTags x y
+  ((sx :: Sing x) `SCons` _, Here x , Here y ) -> withSingI sx (==*) x y
+  (_                       , Here{} , There{}) -> False
+  (_                       , There{}, Here{} ) -> False
+  (_ `SCons` sxs           , There x, There y) -> withSingI sxs eqAlwaysSTags x y

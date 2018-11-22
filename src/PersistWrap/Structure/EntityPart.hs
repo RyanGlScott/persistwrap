@@ -12,16 +12,16 @@ import Control.Arrow ((***))
 import Data.ByteString (ByteString)
 import Data.Functor.Identity (Identity(..))
 import Data.Int (Int64)
-import Data.List.NonEmpty(NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Promotion.Prelude (type (++), Symbol)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
-import Data.Singletons.Prelude.Maybe (FromMaybeSym0)
 import Data.Singletons.Prelude.Enum (Succ, sSucc)
 import Data.Singletons.Prelude.List (SList, Sing(SCons, SNil))
+import Data.Singletons.Prelude.Maybe (FromMaybeSym0)
 import Data.Singletons.Prelude.Show (Show_)
 import Data.Singletons.Prelude.Tuple (Sing(STuple2))
 import Data.Singletons.TypeLits (KnownSymbol, Nat, SNat)

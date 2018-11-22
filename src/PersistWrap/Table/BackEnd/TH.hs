@@ -10,8 +10,8 @@ import Data.Kind (type (*))
 import GHC.TypeLits (Symbol)
 import Language.Haskell.TH (Dec(DataD), Q, TyVarBndr(KindedTV), Type(ConT), mkName)
 
-import qualified PersistWrap.Conkin.Extra
 import PersistWrap.Conkin.Extra (Always)
+import qualified PersistWrap.Conkin.Extra
 import PersistWrap.Table.BackEnd.Helper (AllEmbed)
 
 declareTables :: String -> Q [Dec]

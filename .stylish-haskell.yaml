@@ -238,10 +238,10 @@ language_extensions:
   - MultiParamTypeClasses
   - NamedFieldPuns
   - PolyKinds
+  - RecordWildCards
   - ScopedTypeVariables
   - TupleSections
   - TypeApplications
   - TypeFamilies
   - TypeOperators
-  # - TemplateHaskell
-  # - QuasiQuotes
+  - ViewPatterns

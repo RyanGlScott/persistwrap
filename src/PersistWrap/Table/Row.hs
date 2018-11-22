@@ -13,8 +13,8 @@ import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Aeson.Extra ()
-import qualified PersistWrap.Conkin.Extra
 import PersistWrap.Conkin.Extra (AlwaysS, compare1, showsPrec1, singToTuple, (==*))
+import qualified PersistWrap.Conkin.Extra
 import qualified PersistWrap.Conkin.Extra.Tuple as Tuple
 import PersistWrap.Structure.Primitives (PrimType, deriveConstraint)
 import PersistWrap.Table.Column

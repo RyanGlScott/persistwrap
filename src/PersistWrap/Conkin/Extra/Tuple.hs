@@ -15,8 +15,8 @@ import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 import GHC.Generics ((:*:)((:*:)))
 
+import PersistWrap.Conkin.Extra.Class (AlwaysS, compare1, (==*))
 import qualified PersistWrap.Conkin.Extra.Class as AlwaysS (AlwaysS(..))
-import PersistWrap.Conkin.Extra.Class (AlwaysS, (==*), compare1)
 import PersistWrap.Conkin.Extra.Traversal (mapUncheck)
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)

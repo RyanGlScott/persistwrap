@@ -38,9 +38,7 @@ setupHelper
   -> n x
 setupHelper setup action = case Always.dict @AllEmbed @fnitems @(FK m) of
   Dict ->
-    let schemas = concat $ mapUncheck
-          schemasOf
-          (All.dicts @EmbedPair @(Items (fnitems (FK m))))
+    let schemas = concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems (FK m))))
     in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)
 
 schemasOf :: forall schx . DictC EmbedPair schx -> [Schema Text]

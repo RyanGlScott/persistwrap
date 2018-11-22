@@ -4,8 +4,8 @@ module PersistWrap.Embedding.Insert
 
 import Conkin (Tagged(..), Tuple(..))
 import Control.Monad (forM_, replicateM_, void)
-import Control.Monad.Trans (MonadTrans, lift)
 import Control.Monad.Reader (ReaderT(ReaderT), runReaderT)
+import Control.Monad.Trans (MonadTrans, lift)
 import Control.Monad.Writer (WriterT, execWriterT)
 import qualified Control.Monad.Writer as Writer
 import Data.Bijection (biFrom)

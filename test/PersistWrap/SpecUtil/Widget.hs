@@ -13,7 +13,7 @@ import GHC.Generics (Generic, Rep)
 
 import PersistWrap.Conkin.Extra.TH (deriveFnEq, deriveFnShow)
 import PersistWrap.SpecUtil.Orphans ()
-import PersistWrap.Structure (EntityPart, StructureOf, GStructureOf)
+import PersistWrap.Structure (EntityPart, GStructureOf, StructureOf)
 import PersistWrap.Structure.TH (deriveEntityPart)
 
 data Color = Red | Green | Blue

@@ -18,10 +18,10 @@ import GHC.Stack (HasCallStack)
 
 import PersistWrap.Conkin.Extra
 import qualified PersistWrap.Conkin.Extra.Tuple.Reader as Tuple
-import PersistWrap.Functor.Extra
 import PersistWrap.Embedding.Columns
 import PersistWrap.Embedding.Rep
 import PersistWrap.Embedding.Utils
+import PersistWrap.Functor.Extra
 import PersistWrap.Maybe.Extra (fromJust)
 import PersistWrap.Stream (runStreamT, splitStream)
 import qualified PersistWrap.Stream as Stream

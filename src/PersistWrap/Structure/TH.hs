@@ -5,7 +5,7 @@ module PersistWrap.Structure.TH
     ) where
 
 import GHC.Generics (Rep)
-import Language.Haskell.TH (Dec, Type, Q)
+import Language.Haskell.TH (Dec, Q, Type)
 
 import PersistWrap.Structure.EntityPart
 
