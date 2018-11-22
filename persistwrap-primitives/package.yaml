@@ -29,6 +29,7 @@ default-extensions:
 - KindSignatures
 - RankNTypes
 - ScopedTypeVariables
+- TypeApplications
 - TypeFamilies
 
 dependencies:
