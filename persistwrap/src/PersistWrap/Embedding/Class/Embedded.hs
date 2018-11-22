@@ -43,10 +43,9 @@ instance MonadDML m => MonadDML (Itemized items m) where
   atomicTransaction (Itemized act) = Itemized $ atomicTransaction act
 
 instance
-  ( EntityPart fk x
+  ( EntityPart (ForeignKey m) x
   , HasRep schemaName (StructureOf x)
   , MonadTransactable m
-  , fk ~ ForeignKey m
   , MapsTo schemaName x items
   ) => Embedded schemaName x (Itemized items m)
 
