@@ -17,10 +17,7 @@ import PersistWrap.Table.BackEnd.Helper (AllEmbed)
 declareTables :: String -> Q [Dec]
 declareTables s = do
   argKind <- [t| Symbol -> * |]
-  let n = mkName s
+  let n       = mkName s
       dataDec = DataD [] n [KindedTV (mkName "fk") argKind] Nothing [] []
-  instanceDec <-
-    [d|
-      instance Always AllEmbed $(return $ ConT n) where dict = Dict
-      |]
+  instanceDec <- [d| instance Always AllEmbed $(return $ ConT n) where dict = Dict |]
   return $ dataDec : instanceDec
