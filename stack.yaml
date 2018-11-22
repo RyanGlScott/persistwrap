@@ -33,7 +33,13 @@ resolver: lts-12.19
 #  - auto-update
 #  - wai
 packages:
-- .
+- conkin-extra
+- consin
+- persistwrap
+- persistwrap-primitives
+- persistwrap-structure
+- persistwrap-table
+- stream-reader
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)

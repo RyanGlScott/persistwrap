@@ -1,0 +1,82 @@
+name:                persistwrap-table
+version:             0.1.0.0
+github:              "dspies-leapyear/persistwrap-table"
+license:             BSD3
+author:              "David Spies"
+maintainer:          "david@leapyear.io"
+copyright:           "2018 David Spies"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/dspies-leapyear/persistwrap-table#readme>
+
+default-extensions:
+- ConstraintKinds
+- DataKinds
+- EmptyCase
+- ExistentialQuantification
+- FlexibleContexts
+- FlexibleInstances
+- GADTs
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MultiParamTypeClasses
+- RankNTypes
+- ScopedTypeVariables
+- StandaloneDeriving
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeOperators
+- ViewPatterns
+
+dependencies:
+- aeson
+- base >= 4.7 && < 5
+- bytestring
+- conkin
+- conkin-extra
+- consin
+- constraints
+- monad-extras
+- mtl
+- persistwrap-primitives
+- pointless-fun
+- reflection
+- singletons
+- stm
+- template-haskell
+- text
+- time
+- transformers-base
+
+library:
+  source-dirs: src
+
+ghc-options:
+- -Wall
+- -Werror
+
+tests:
+  persistwrap-table-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    default-extensions:
+    - OverloadedStrings
+    dependencies:
+    - hspec
+    - persistwrap-table

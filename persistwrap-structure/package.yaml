@@ -1,0 +1,60 @@
+name:                persistwrap-structure
+version:             0.1.0.0
+github:              "dspies-leapyear/persistwrap-structure"
+license:             BSD3
+author:              "David Spies"
+maintainer:          "david@leapyear.io"
+copyright:           "2018 David Spies"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/dspies-leapyear/persistwrap-structure#readme>
+
+default-extensions:
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- EmptyCase
+- ExistentialQuantification
+- FlexibleContexts
+- FlexibleInstances
+- GADTs
+- KindSignatures
+- InstanceSigs
+- LambdaCase
+- MultiParamTypeClasses
+- RankNTypes
+- ScopedTypeVariables
+- TypeApplications
+- TypeFamilies
+- TypeOperators
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring
+- conkin
+- consin
+- constraints
+- containers
+- generic-deriving
+- persistwrap-primitives
+- singletons
+- template-haskell
+- text
+- time
+
+library:
+  source-dirs: src
+
+ghc-options:
+- -Wall
+- -Werror

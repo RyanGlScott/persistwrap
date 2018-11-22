@@ -1,0 +1,47 @@
+name:                conkin-extra
+version:             0.1.0.0
+github:              "dspies-leapyear/conkin-extra"
+license:             BSD3
+author:              "David Spies"
+maintainer:          "david@leapyear.io"
+copyright:           "2018 David Spies"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/dspies-leapyear/conkin-extra#readme>
+
+default-extensions:
+- ConstraintKinds
+- DataKinds
+- EmptyCase
+- FlexibleInstances
+- GADTs
+- LambdaCase
+- MultiParamTypeClasses
+- RankNTypes
+- ScopedTypeVariables
+- TypeOperators
+- ViewPatterns
+
+dependencies:
+- base >= 4.7 && < 5
+- conkin
+- constraints
+- dlist
+- template-haskell
+
+library:
+  source-dirs: src
+
+ghc-options:
+- -Wall
+- -Werror

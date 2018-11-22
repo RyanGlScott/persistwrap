@@ -25,5 +25,6 @@ easily stored and retrieved from a relational backend.
 - Comes with a pure-Haskell _in-memory_ `STM`-based backend for efficient unit testing.
 
 ## Examples
-- Declaring with an `EntityPart` instance: [Widget.hs](test/PersistWrap/SpecUtil/Widget.hs)
-- Working with persisted data: [WidgetSpec.hs](test/PersistWrap/WidgetSpec.hs)
+- Declaring with an `EntityPart` instance:
+  [Widget.hs](persistwrap/test/PersistWrap/SpecUtil/Widget.hs)
+- Working with persisted data: [WidgetSpec.hs](persistwrap/test/PersistWrap/WidgetSpec.hs)
