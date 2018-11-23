@@ -21,8 +21,8 @@ import Data.Singletons.TypeLits
 import GHC.Stack (HasCallStack)
 
 import Conkin.Extra
-import PersistWrap.Persistable.Columns (sKeyColumnName)
 import PersistWrap.Maybe.Extra (fromJust)
+import PersistWrap.Persistable.Columns (sKeyColumnName)
 import PersistWrap.Structure as Structure
 import PersistWrap.Table as Table
 

@@ -12,11 +12,11 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Stack (HasCallStack)
 
+import PersistWrap.Functor.Extra
 import PersistWrap.Persistable.Get
 import PersistWrap.Persistable.Insert
 import PersistWrap.Persistable.Rep
 import PersistWrap.Persistable.Schemas
-import PersistWrap.Functor.Extra
 import PersistWrap.Structure
 import PersistWrap.Table
 

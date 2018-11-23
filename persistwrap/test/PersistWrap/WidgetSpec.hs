@@ -9,8 +9,8 @@ import qualified Data.ByteString.Char8 as BS
 import Test.Hspec
 
 import PersistWrap
-import PersistWrap.TH (declareTables)
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
+import PersistWrap.TH (declareTables)
 
 import PersistWrap.SpecUtil.Widget
 

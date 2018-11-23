@@ -16,8 +16,8 @@ import Conkin.Extra
 import qualified Conkin.Extra as All (All(..))
 import qualified Conkin.Extra as Always (Always(..))
 import PersistWrap (Items)
-import PersistWrap.Persistable (HasRep, entitySchemas)
 import PersistWrap.Itemized (Itemized(runItemized))
+import PersistWrap.Persistable (HasRep, entitySchemas)
 import PersistWrap.Structure (StructureOf)
 import PersistWrap.Table (ForeignKey, Schema)
 

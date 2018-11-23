@@ -19,11 +19,11 @@ import GHC.Stack (HasCallStack)
 import Conkin.Extra (htraverse, mapUncheck, noHere)
 import Consin
 import qualified Consin.Tuple.StreamReader as Tuple
+import PersistWrap.Functor.Extra
+import PersistWrap.Maybe.Extra (fromJust)
 import PersistWrap.Persistable.Columns
 import PersistWrap.Persistable.Rep
 import PersistWrap.Persistable.Utils
-import PersistWrap.Functor.Extra
-import PersistWrap.Maybe.Extra (fromJust)
 import PersistWrap.Structure
 import PersistWrap.Table as Table
 import StreamReader (runStreamReaderT, splitStreamReader)

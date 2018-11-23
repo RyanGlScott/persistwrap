@@ -8,7 +8,7 @@ import Data.Time (Day, TimeOfDay, UTCTime)
 import Generics.Deriving.Eq (GEq(..))
 import Generics.Deriving.Show (GShow(..))
 
-import PersistWrap.Primitives (PrimType, SingPrim, SPrimName, deriveConstraint)
+import PersistWrap.Primitives (PrimType, SPrimName, SingPrim, deriveConstraint)
 
 instance GEq ByteString where geq = (==)
 instance GEq Text where geq = (==)

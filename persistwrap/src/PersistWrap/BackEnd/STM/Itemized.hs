@@ -8,10 +8,10 @@ module PersistWrap.BackEnd.STM.Itemized
 import Control.Monad.IO.Class (MonadIO)
 
 import Conkin.Extra (Always)
-import PersistWrap.Itemized (Itemized)
 import PersistWrap.BackEnd.Helper (AllEmbed, Items, setupHelper)
-import PersistWrap.Table.BackEnd.STM.Internal (STMPersist, unsafeSetupEmptyTables)
+import PersistWrap.Itemized (Itemized)
 import PersistWrap.Table (ForeignKey)
+import PersistWrap.Table.BackEnd.STM.Internal (STMPersist, unsafeSetupEmptyTables)
 
 withEmptyTablesItemized
   :: forall fnitems m x

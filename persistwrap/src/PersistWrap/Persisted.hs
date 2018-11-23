@@ -15,9 +15,9 @@ module PersistWrap.Persisted
 import Data.Promotion.Prelude (type (==))
 import GHC.TypeLits (KnownSymbol, Symbol)
 
+import PersistWrap.Itemized
 import PersistWrap.Persistable (Persistable)
 import qualified PersistWrap.Persistable as E
-import PersistWrap.Itemized
 import PersistWrap.Structure (EntityPart)
 import PersistWrap.Table (ForeignKey)
 
