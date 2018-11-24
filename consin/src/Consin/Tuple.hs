@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE PolyKinds #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Consin.Tuple where
 
@@ -11,7 +12,9 @@ import Data.List (find)
 import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
+import Test.QuickCheck (Arbitrary(..))
 
+import Conkin.Extra (htraverse)
 import Consin.Class (AlwaysS, compare1, (==*), withAlwaysS)
 
 (++&) :: Tuple xs f -> Tuple ys f -> Tuple (xs ++ ys) f
@@ -89,3 +92,14 @@ withAlwaysSShow = go (sing @_ @xs)
     go = \case
       SNil                       -> id
       ((x :: Sing x) `SCons` xs) -> \cont -> withSingI x $ withAlwaysS @Show @f @x $ go xs cont
+
+instance (SingI xs, AlwaysS Arbitrary f) => Arbitrary (Tuple xs f) where
+  arbitrary = htraverse (\(s :: Sing x) -> withSingI s $ withAlwaysS @Arbitrary @f @x arbitrary)
+    $ singToTuple (sing @_ @xs)
+  shrink = go (sing @_ @xs)
+    where
+      go :: forall xs' . SList xs' -> Tuple xs' f -> [Tuple xs' f]
+      go SNil Nil = []
+      go ((sx :: Sing x) `SCons` sxs) (x `Cons` xs) =
+        map (`Cons` xs) (withSingI sx $ withAlwaysS @Arbitrary @f @x shrink x)
+          ++ map (x `Cons`) (go sxs xs)

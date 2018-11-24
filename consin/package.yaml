@@ -37,8 +37,10 @@ default-extensions:
 - TypeOperators
 
 dependencies:
+- QuickCheck
 - base >= 4.7 && < 5
 - conkin
+- conkin-extra
 - constraints
 - containers
 - generic-deriving

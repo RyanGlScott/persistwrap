@@ -14,6 +14,7 @@ import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (Sing(..))
 import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
+import Test.QuickCheck (Arbitrary(..))
 
 import Consin
 import PersistWrap.Primitives (PrimType, deriveConstraint)
@@ -70,3 +71,39 @@ instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI x) => Ord (EntityOfSnd fk x) wher
   compare (EntityOfSnd x) (EntityOfSnd y) = case sing @_ @x of
     STuple2 _ sx -> withSingI sx compare x y
 instance (AlwaysS Eq fk, AlwaysS Ord fk) => AlwaysS Ord (EntityOfSnd fk) where withAlwaysS = id
+
+instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
+    => Arbitrary (EntityOf fk structure) where
+  arbitrary = case sing @_ @structure of
+    SPrimitive pn -> Prim <$> deriveConstraint @Arbitrary pn arbitrary
+    SForeign (fkn :: Sing name) ->
+      withSingI fkn $ ForeignKey <$> withAlwaysS @Arbitrary @fk @name arbitrary
+    SUnitType -> pure Unit
+    SProductType xs -> Product <$> withSingI xs arbitrary
+    SSumType (x0 :%| xs) -> Sum <$> withSingI (x0 `SCons` xs) arbitrary
+    SListType x  -> List <$> withSingI x arbitrary
+    SMapType k v -> Map <$> withSingI k (withSingI v arbitrary)
+  shrink = case sing @_ @structure of
+    SPrimitive pn -> \case
+      Prim p -> map Prim $ deriveConstraint @Arbitrary pn $ shrink p
+    SForeign (_ :: Sing fkn) -> \case
+      ForeignKey fk -> withAlwaysS @Arbitrary @fk @fkn $ map ForeignKey $ shrink fk
+    SUnitType -> \case
+      Unit -> []
+    SProductType sxs -> \case
+      Product xs -> map Product $ withSingI sxs shrink xs
+    SSumType (sx :%| sxs) -> \case
+      Sum xs -> map Sum $ withSingI (sx `SCons` sxs) shrink xs
+    SListType sx -> \case
+      List xs -> map List $ withSingI sx shrink xs
+    SMapType sk sv -> \case
+      Map kvm -> map Map $ withSingI sk (withSingI sv shrink) kvm
+
+instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI nx)
+    => Arbitrary (EntityOfSnd fk nx) where
+  arbitrary = case sing @_ @nx of
+    STuple2 _ x -> EntityOfSnd <$> withSingI x arbitrary
+
+instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk)
+    => AlwaysS Arbitrary (EntityOfSnd fk) where
+  withAlwaysS = id

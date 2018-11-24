@@ -7,12 +7,15 @@ module PersistWrap.Primitives where
 
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
+import Data.Singletons (withSomeSing)
 import Data.Singletons.Prelude
 import Data.Singletons.TH
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Time.LocalTime (TimeOfDay)
+import Test.QuickCheck (Arbitrary(..), arbitraryBoundedEnum)
+import Test.QuickCheck.Instances ()
 
 $(singletons [d|
   data PrimName
@@ -97,3 +100,12 @@ instance Show SingPrim where
     showString "SingPrim " .
     showsPrec 11 s . showString " " .
     deriveConstraint @Show s showsPrec 11 p
+
+instance Arbitrary PrimName where
+  arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary SingPrim where
+  arbitrary = do
+    pn <- arbitrary
+    withSomeSing pn $ \spn -> SingPrim spn <$> deriveConstraint @Arbitrary spn arbitrary
+  shrink (SingPrim spn x) = map (SingPrim spn) $ deriveConstraint @Arbitrary spn shrink x

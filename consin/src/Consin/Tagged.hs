@@ -14,8 +14,11 @@ module Consin.Tagged
 import Conkin (Tagged(..))
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
+import Test.QuickCheck (Arbitrary(..), oneof)
 
-import Consin.Class (AlwaysS, compare1, (==*))
+import Conkin.Extra (htraverse, noHere, tagCases)
+import Consin.Class (AlwaysS, compare1, (==*), withAlwaysS)
+import Consin.Tuple (singToTuple)
 
 pickSide
   :: forall (xs :: [k]) (ys :: [k]) (f :: k -> *)
@@ -54,3 +57,15 @@ eqAlwaysSTags xs ys = case (sing @_ @xs, xs, ys) of
   (_                       , Here{} , There{}) -> False
   (_                       , There{}, Here{} ) -> False
   (_ `SCons` sxs           , There x, There y) -> withSingI sxs eqAlwaysSTags x y
+
+instance (AlwaysS Arbitrary f, SingI (x ': xs)) => Arbitrary (Tagged (x ': xs) f) where
+  arbitrary = oneof $ map
+    (htraverse (\(sx :: Sing x') -> withSingI sx $ withAlwaysS @Arbitrary @f @x' arbitrary))
+    (tagCases (singToTuple (sing @_ @(x ': xs))))
+  shrink = go (sing @_ @(x ': xs))
+    where
+      go :: forall xs' . Sing xs' -> Tagged xs' f -> [Tagged xs' f]
+      go ((sx :: Sing x') `SCons` _) (Here x) =
+        map Here $ withSingI sx (withAlwaysS @Arbitrary @f @x' shrink x)
+      go (_ `SCons` sxs) (There xs) = map There $ go sxs xs
+      go SNil            t          = noHere t
