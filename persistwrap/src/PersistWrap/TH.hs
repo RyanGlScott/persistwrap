@@ -5,7 +5,6 @@ module PersistWrap.TH
     ( declareTables
     ) where
 
-import Data.Constraint (Dict(Dict))
 import Data.Kind (type (*))
 import GHC.TypeLits (Symbol)
 import Language.Haskell.TH (Dec(DataD), Q, TyVarBndr(KindedTV), Type(ConT), mkName)
@@ -19,5 +18,5 @@ declareTables s = do
   argKind <- [t| Symbol -> * |]
   let n       = mkName s
       dataDec = DataD [] n [KindedTV (mkName "fk") argKind] Nothing [] []
-  instanceDec <- [d| instance Always AllEmbed $(return $ ConT n) where dict = Dict |]
+  instanceDec <- [d| instance Always AllEmbed $(return $ ConT n) where withAlways = id |]
   return $ dataDec : instanceDec

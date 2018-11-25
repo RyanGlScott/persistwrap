@@ -8,7 +8,6 @@ module PersistWrap.Structure.EntityOf
     ) where
 
 import Conkin (Tagged(..), Tuple(..))
-import Data.Constraint (Dict(Dict))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import Data.Singletons (SingI, sing, withSingI)
@@ -66,8 +65,8 @@ data EntityOfSnd fk x where
 instance (AlwaysS Eq fk, SingI x) => Eq (EntityOfSnd fk x) where
   (==) (EntityOfSnd x) (EntityOfSnd y) = case sing @_ @x of
     STuple2 _ sx -> withSingI sx (==) x y
-instance AlwaysS Eq fk => AlwaysS Eq (EntityOfSnd fk) where dictS = Dict
+instance AlwaysS Eq fk => AlwaysS Eq (EntityOfSnd fk) where withAlwaysS = id
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI x) => Ord (EntityOfSnd fk x) where
   compare (EntityOfSnd x) (EntityOfSnd y) = case sing @_ @x of
     STuple2 _ sx -> withSingI sx compare x y
-instance (AlwaysS Eq fk, AlwaysS Ord fk) => AlwaysS Ord (EntityOfSnd fk) where dictS = Dict
+instance (AlwaysS Eq fk, AlwaysS Ord fk) => AlwaysS Ord (EntityOfSnd fk) where withAlwaysS = id

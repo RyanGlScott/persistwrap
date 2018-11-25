@@ -37,13 +37,14 @@ default-extensions:
 - TypeApplications
 - TypeFamilies
 - TypeOperators
+- ViewPatterns
 
 dependencies:
 - base >= 4.7 && < 5
 - bytestring
 - conkin
+- conkin-extra
 - consin
-- constraints
 - containers
 - generic-deriving
 - persistwrap-primitives

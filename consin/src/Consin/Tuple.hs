@@ -7,14 +7,12 @@ module Consin.Tuple where
 import Prelude hiding (unzip)
 
 import Conkin (Tuple(..))
-import Data.Constraint (Dict(Dict))
 import Data.List (find)
 import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, sing, withSingI)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 
-import Consin.Class (AlwaysS, compare1, (==*))
-import qualified Consin.Class as AlwaysS (AlwaysS(..))
+import Consin.Class (AlwaysS, compare1, (==*), withAlwaysS)
 
 (++&) :: Tuple xs f -> Tuple ys f -> Tuple (xs ++ ys) f
 (++&) Nil         t  = t
@@ -85,12 +83,9 @@ eqAlwaysSTuples :: (SingI xs, AlwaysS Eq f) => Tuple xs f -> Tuple xs f -> Bool
 eqAlwaysSTuples x y = and $ zipUncheckSing (==*) x y
 
 withAlwaysSShow :: forall xs f y . (SingI xs, AlwaysS Show f) => (Show (Tuple xs f) => y) -> y
-withAlwaysSShow cont = case buildShowDict (sing @_ @xs) of
-  Dict -> cont
+withAlwaysSShow = go (sing @_ @xs)
   where
-    buildShowDict :: forall xs' . SList xs' -> Dict (Show (Tuple xs' f))
-    buildShowDict = \case
-      SNil -> Dict
-      ((x :: Sing x) `SCons` xs) ->
-        case (withSingI x $ AlwaysS.dictS @Show @f @x, buildShowDict xs) of
-          (Dict, Dict) -> Dict
+    go :: forall xs' . SList xs' -> (Show (Tuple xs' f) => y) -> y
+    go = \case
+      SNil                       -> id
+      ((x :: Sing x) `SCons` xs) -> \cont -> withSingI x $ withAlwaysS @Show @f @x $ go xs cont

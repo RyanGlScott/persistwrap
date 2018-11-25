@@ -14,7 +14,6 @@ import Data.Text (Text)
 
 import Conkin.Extra
 import qualified Conkin.Extra as All (All(..))
-import qualified Conkin.Extra as Always (Always(..))
 import PersistWrap (Items)
 import PersistWrap.Itemized (Itemized(runItemized))
 import PersistWrap.Persistable (HasRep, entitySchemas)
@@ -33,11 +32,11 @@ setupHelper
   => (forall (sch :: [Schema Symbol]) . SList sch -> m x -> n x)
   -> Itemized (Items (fnitems (ForeignKey m))) m x
   -> n x
-setupHelper setup action = case Always.dict @AllEmbed @fnitems @(ForeignKey m) of
-  Dict ->
-    let schemas =
-          concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems (ForeignKey m))))
-    in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)
+setupHelper setup action =
+  withAlways @AllEmbed @fnitems @(ForeignKey m)
+    $ let schemas =
+            concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems (ForeignKey m))))
+      in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)
 
 schemasOf :: forall schx . DictC EmbedPair schx -> [Schema Text]
 schemasOf (DictC Dict) = entitySchemas @(Fst schx) @(StructureOf (Snd schx))

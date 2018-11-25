@@ -27,7 +27,6 @@ import Data.Proxy (Proxy)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
 import Data.Singletons.Decide ((:~:)(..), Decision(..), (%~))
 import Data.Singletons.Prelude hiding (All, Map)
-import qualified Data.Singletons.TypeLits as S (SSymbol)
 import qualified Data.Text as Text
 
 import Conkin.Extra (htraverse)
@@ -45,14 +44,6 @@ import qualified PersistWrap.Table.Transaction as Transaction
 
 type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 
-newtype SSymbolCon name = SSymbolCon (S.SSymbol name)
-instance HEq SSymbolCon where
-  heq (SSymbolCon x) (SSymbolCon y) = case x %~ y of
-    Proved dec -> Just $ case dec of {Refl -> Dict}
-    Disproved _ -> Nothing
-instance HOrd SSymbolCon where
-  hcompare (SSymbolCon x) (SSymbolCon y) = compare (fromSing x) (fromSing y)
-
 type TableMap s = SymMap (SomeTableNamed (Table s))
 
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
@@ -63,13 +54,13 @@ data FK s name = forall sch . SchemaName sch ~ name
 
 instance Show (FK s name) where
   show (FK (SSchema schname _) _) = "<foreign key: " ++ Text.unpack (fromSing schname) ++ ">"
-instance AlwaysS Show (FK s) where dictS = Dict
+instance AlwaysS Show (FK s) where withAlwaysS = id
 
 instance Eq (FK s name) where
   (==) (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> l == r
     Disproved{} -> False
-instance AlwaysS Eq (FK s) where dictS = Dict
+instance AlwaysS Eq (FK s) where withAlwaysS = id
 instance HEq (FK s) where
   heq (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> if l == r then Just Dict else Nothing
@@ -78,7 +69,7 @@ instance HEq (FK s) where
 instance Ord (FK s name) where
   -- TODO Figure this one out.
   compare _ _ = error "TVars not comparable"
-instance AlwaysS Ord (FK s) where dictS = Dict
+instance AlwaysS Ord (FK s) where withAlwaysS = id
 
 type Key s = Class.Key (STMTransaction s)
 type Table s = Class.Table (STMTransaction s)

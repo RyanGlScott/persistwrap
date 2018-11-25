@@ -20,9 +20,11 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/dspies-leapyear/consin#readme>
 
 default-extensions:
+- ConstraintKinds
 - DataKinds
 - ExistentialQuantification
 - FlexibleContexts
+- FlexibleInstances
 - GADTs
 - GeneralizedNewtypeDeriving
 - KindSignatures

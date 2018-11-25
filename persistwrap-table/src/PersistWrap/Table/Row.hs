@@ -5,7 +5,6 @@ module PersistWrap.Table.Row where
 import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
-import Data.Constraint (Dict(Dict))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (Fst, SList, Sing(SCons, STuple2))
@@ -86,7 +85,7 @@ instance (AlwaysS Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
 instance (AlwaysS Show fk, SingI nc) => Show (ValueSnd fk nc) where
   showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing @_ @nc of
     STuple2 _ scol -> withSingI scol showsPrec 11 x
-instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where dictS = Dict
+instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where withAlwaysS = id
 
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
   MaybeValueSnd :: Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)

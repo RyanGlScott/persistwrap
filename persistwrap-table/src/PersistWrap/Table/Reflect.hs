@@ -1,7 +1,6 @@
 module PersistWrap.Table.Reflect where
 
 import Conkin (Tuple)
-import Data.Constraint (Dict(Dict))
 import Data.Promotion.Prelude (Fst, Snd)
 import Data.Proxy (Proxy(Proxy))
 import Data.Reflection (Reifies, reflect, reify)
@@ -22,7 +21,7 @@ instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) wh
     showParen (d > 10) $
       showString "SomeTableNamed " . showsPrec 11 cols . showString " " . showsPrec1 11 tab
 
-instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where dictS = Dict
+instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where withAlwaysS = id
 
 type WithinTableOf (table :: Schema Symbol -> *) tab =
   (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))

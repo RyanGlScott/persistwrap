@@ -7,6 +7,7 @@ module Conkin.Extra.Tagged
     , getSingle
     , noHere
     , swapOptions
+    , tagCases
     ) where
 
 import Conkin (Tagged(..), Tuple(..))
@@ -32,3 +33,8 @@ findJust fn = go
       x `Cons` xs -> case fn x of
         Just y  -> Just $ Here y
         Nothing -> There <$> go xs
+
+tagCases :: Tuple xs f -> [Tagged xs f]
+tagCases = \case
+  Nil         -> []
+  x `Cons` xs -> Here x : map There (tagCases xs)

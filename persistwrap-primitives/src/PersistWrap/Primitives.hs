@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Primitives where
@@ -29,7 +30,7 @@ $(singletons [d|
     | PrimMap
     | PrimObjectId
     | PrimDbSpecific
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Bounded, Enum)
   |])
 
 type family PrimType p where
