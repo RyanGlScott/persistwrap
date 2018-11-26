@@ -6,7 +6,7 @@ import Conkin (Tuple)
 import qualified Conkin
 import qualified Data.Aeson as JSON
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Singletons (SingI, sing, withSingI)
+import Data.Singletons (SingI, SingInstance(SingInstance), sing, singInstance, withSingI)
 import Data.Singletons.Prelude (Fst, SList, Sing(SCons, STuple2))
 import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (Symbol)
@@ -29,7 +29,7 @@ instance (SingI bc, AlwaysS Show fk) => Show (BaseValue fk bc) where
   showsPrec d bv = showParen (d > 10) $ case (sing @_ @bc, bv) of
     (SPrim sp, PV p) -> showString "PV " . deriveConstraint @Show sp showsPrec 11 p
     (SEnum (n1 :%| nr), EV ev) -> showString "EV " . withSingI (n1 `SCons` nr) showsPrec 11 ev
-    (SForeignKey sfk, FKV fk) -> showString "FKV " . withSingI sfk showsPrec1 11 fk
+    (SForeignKey (singInstance -> SingInstance), FKV fk) -> showString "FKV " . showsPrec1 11 fk
     (SJSON, JSONV v) -> showString "JSONV " . showsPrec 11 v
 
 instance (AlwaysS Eq fk, SingI bc) => Eq (BaseValue fk bc) where
@@ -38,7 +38,7 @@ instance (AlwaysS Eq fk, SingI bc) => Eq (BaseValue fk bc) where
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
       go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Eq n (==) pl pr
       go (SEnum (opt :%| opts)) (EV x) (EV y) = withSingI (opt `SCons` opts) (==) x y
-      go (SForeignKey sym) (FKV il) (FKV ir) = withSingI sym (==*) il ir
+      go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = il ==* ir
       go SJSON (JSONV vl) (JSONV vr) = vl == vr
 
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI bc) => Ord (BaseValue fk bc) where
@@ -47,7 +47,7 @@ instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI bc) => Ord (BaseValue fk bc) wher
       go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Ordering
       go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Ord n compare pl pr
       go (SEnum (opt :%| opts)) (EV x) (EV y) = withSingI (opt `SCons` opts) compare x y
-      go (SForeignKey sym) (FKV il) (FKV ir) = withSingI sym compare1 il ir
+      go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = compare1 il ir
       go SJSON (JSONV vl) (JSONV vr) = vl `compare` vr
 
 
@@ -57,12 +57,12 @@ data Value fk (c :: Column Symbol) where
 
 instance (AlwaysS Show fk, SingI c) => Show (Value fk c) where
   showsPrec d v0 = showParen (d > 10) $ case (sing @_ @c, v0) of
-    (SColumn _ sbc, V v) -> showString "V " . withSingI sbc showsPrec 11 v
-    (SColumn _ sbc, N v) -> showString "N " . withSingI sbc showsPrec 11 v
+    (SColumn _ (singInstance -> SingInstance), V v) -> showString "V " . showsPrec 11 v
+    (SColumn _ (singInstance -> SingInstance), N v) -> showString "N " . showsPrec 11 v
 
 instance (AlwaysS Eq fk, SingI c) => Eq (Value fk c) where
   (==) = case sing @_ @c of
-      SColumn _ sctype -> withSingI sctype go
+      SColumn _ (singInstance -> SingInstance) -> go
     where
       go :: forall bc n. SingI bc
         => Value fk ('Column n bc) -> Value fk ('Column n bc) -> Bool
@@ -71,7 +71,7 @@ instance (AlwaysS Eq fk, SingI c) => Eq (Value fk c) where
 
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI c) => Ord (Value fk c) where
   compare = case sing @_ @c of
-      SColumn _ sctype -> withSingI sctype go
+      SColumn _ (singInstance -> SingInstance) -> go
     where
       go :: forall bc n. SingI bc
         => Value fk ('Column n bc) -> Value fk ('Column n bc) -> Ordering
@@ -84,7 +84,7 @@ instance (AlwaysS Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
   (==) (ValueSnd x) (ValueSnd y) = colEq @(Fst nc) x y
 instance (AlwaysS Show fk, SingI nc) => Show (ValueSnd fk nc) where
   showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing @_ @nc of
-    STuple2 _ scol -> withSingI scol showsPrec 11 x
+    STuple2 _ (singInstance -> SingInstance) -> showsPrec 11 x
 instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where withAlwaysS = id
 
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
@@ -117,7 +117,7 @@ colEq
   -> Value fk col
   -> Bool
 colEq = case sing @_ @'(name,col) of
-  STuple2 _ (sc :: SColumn col) -> withSingI sc (==)
+  STuple2 _ ((singInstance -> SingInstance) :: SColumn col) -> (==)
 
 unrestricted :: SList cols -> SubRow fk cols
 unrestricted scols = Conkin.fmap (\(STuple2 _ _) -> MaybeValueSnd Nothing) (singToTuple scols)

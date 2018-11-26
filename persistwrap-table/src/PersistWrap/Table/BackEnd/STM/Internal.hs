@@ -85,7 +85,7 @@ instance MonadBaseTransaction (STMTransaction s) where
       <- mapMaybeM (\k -> fmap (Entity (Key k)) <$> readTVar k) =<< readTVar refs
     writeTVar refs $ map (unKey . entityKey) result
     return $ case getSchemaSing proxy of
-      SSchema _ scols ->  filter (withSingI scols matches restriction . entityVal) result
+      SSchema _ (singInstance -> SingInstance) -> filter (matches restriction . entityVal) result
   getRow (Key r) = liftBase $ readTVar r
   insertRow proxy rowValues = liftBase $ do
     let Table refs = getTable proxy
