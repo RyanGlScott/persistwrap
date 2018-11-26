@@ -85,7 +85,8 @@ instance (AlwaysS Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
 instance (AlwaysS Show fk, SingI nc) => Show (ValueSnd fk nc) where
   showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing @_ @nc of
     STuple2 _ (singInstance -> SingInstance) -> showsPrec 11 x
-instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where withAlwaysS = id
+instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where
+  withAlwaysS (singInstance -> SingInstance) = id
 
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
   MaybeValueSnd :: Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)

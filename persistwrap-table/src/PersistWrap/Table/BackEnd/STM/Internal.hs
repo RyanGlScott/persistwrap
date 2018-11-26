@@ -28,9 +28,10 @@ import Data.Singletons (SingI, fromSing, sing, withSingI)
 import Data.Singletons.Decide ((:~:)(..), Decision(..), (%~))
 import Data.Singletons.Prelude hiding (All, Map)
 import qualified Data.Text as Text
+import GHC.Stack (HasCallStack)
 
 import Conkin.Extra (htraverse)
-import Consin
+import Consin hiding (Functor(..))
 import Consin.SingMap (SingMap)
 import qualified Consin.SingMap as SingMap
 import PersistWrap.Table.Class (Entity, MonadBaseTransaction)
@@ -54,13 +55,13 @@ data FK s name = forall sch . SchemaName sch ~ name
 
 instance Show (FK s name) where
   show (FK (SSchema schname _) _) = "<foreign key: " ++ Text.unpack (fromSing schname) ++ ">"
-instance AlwaysS Show (FK s) where withAlwaysS = id
+instance AlwaysS Show (FK s) where withAlwaysS = const id
 
 instance Eq (FK s name) where
   (==) (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> l == r
     Disproved{} -> False
-instance AlwaysS Eq (FK s) where withAlwaysS = id
+instance AlwaysS Eq (FK s) where withAlwaysS = const id
 instance HEq (FK s) where
   heq (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> if l == r then Just Dict else Nothing
@@ -69,7 +70,7 @@ instance HEq (FK s) where
 instance Ord (FK s name) where
   -- TODO Figure this one out.
   compare _ _ = error "TVars not comparable"
-instance AlwaysS Ord (FK s) where withAlwaysS = id
+instance AlwaysS Ord (FK s) where withAlwaysS = const id
 
 type Key s = Class.Key (STMTransaction s)
 type Table s = Class.Table (STMTransaction s)
@@ -127,13 +128,13 @@ withEmptyTables
 withEmptyTables = unsafeSetupEmptyTables
 
 unsafeSetupEmptyTables
-  :: MonadIO m
+  :: (HasCallStack, MonadIO m)
   => SList (schemas :: [Schema Symbol])
   -> (Tuple schemas (Table s) -> STMPersist s m x)
   -> m x
 unsafeSetupEmptyTables sschemas action
-  | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas)) = error
-    "Schema names are not distinct"
+  | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas)) = error $
+    "Schema names are not distinct: " ++ show (fromSing sschemas)
   | otherwise = do
     tables <- liftIO $ htraverse newTable schemasTuple
     runReaderT (unSTMPersist $ action tables) (constructMap sschemas tables)
@@ -169,6 +170,6 @@ showAllTables = do
       $ \(getSome -> GetSome name (SomeTableNamed (cols :: SList cols) tab)) ->
           withSingI name $ withSingI cols $ do
             rows <- withinTable tab $ fmap (map (\(Entity _ v) -> v)) . getAllEntities
-            return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysSShow @cols @(ValueSnd (FK s))
+            return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysSTupleShow @cols @(ValueSnd (FK s))
               (show rows)
   return $ unlines tabLines

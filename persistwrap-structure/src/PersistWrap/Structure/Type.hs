@@ -1,5 +1,8 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module PersistWrap.Structure.Type where
 
@@ -7,7 +10,7 @@ import Control.Arrow ((&&&))
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Ratio
-import Data.Singletons.TH (singletons)
+import Data.Singletons.TH
 import Data.Text (Text)
 import Test.QuickCheck (Arbitrary(..), Gen, choose, elements, scale, sized, vector)
 
@@ -22,6 +25,7 @@ $(singletons [d|
     | ProductType [(text, Structure text)]
     | ListType (Structure text)
     | MapType (Structure text) (Structure text)
+    deriving (Eq, Ord, Show)
   |])
 
 data StructTag =
@@ -61,7 +65,7 @@ instance Arbitrary (Structure Text) where
         NonEmpty.fromList <$> scale (`quot` subSize) (vector subSize)
       ProductTypeC -> ProductType <$> do
         subSize <- sized $ geometricBounded (1 % 2)
-        scale (`quot` subSize) (vector subSize)
+        scale (`quot` max 1 subSize) (vector subSize)
       ListTypeC -> ListType <$> arbitrary
       MapTypeC  -> scale (`quot` 2) $ MapType <$> arbitrary <*> arbitrary
   shrink = \case

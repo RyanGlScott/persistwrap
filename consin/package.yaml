@@ -28,6 +28,7 @@ default-extensions:
 - GADTs
 - GeneralizedNewtypeDeriving
 - KindSignatures
+- InstanceSigs
 - LambdaCase
 - MultiParamTypeClasses
 - RankNTypes
