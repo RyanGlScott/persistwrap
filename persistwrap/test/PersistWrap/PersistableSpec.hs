@@ -1,141 +1,112 @@
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.PersistableSpec
     ( spec
     ) where
 
-import Conkin (Tagged(..), Tuple(..))
-import Control.Applicative (empty, (<|>))
-import Data.List.NonEmpty (NonEmpty(..))
+import Control.Monad (forM)
+import qualified Control.Monad.State as State
+import Control.Monad.State (State, evalState, evalStateT)
+import Data.IntMap (IntMap)
+import qualified Data.IntMap as IntMap
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe)
-import Data.Singletons (SingI, withSingI)
+import Data.Singletons
+import Data.Singletons.Decide
 import Data.Singletons.Prelude (SList, Sing(SCons, SNil, STuple2))
-import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 import Test.Hspec
-import Test.QuickCheck (Arbitrary(..))
+import Test.QuickCheck
 
-import Consin (AlwaysS)
-import PersistWrap
-import PersistWrap.Functor.Extra ((<&>))
-
-data Operation fk where
-  Insert :: SingI structure => SSymbol name -> EntityOf fk structure -> Operation fk
-  Lookup :: SSymbol name -> Int -> Operation fk
-
-shrinkOperation
-  :: (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk) => Operation fk -> [Operation fk]
-shrinkOperation = \case
-  Insert n x -> Insert n <$> shrink x
-  Lookup{}   -> empty
-
-data StructureShrink structure where
-  StructureShrink
-    :: SStructure newStructure
-    -> (forall fk. (AlwaysS Eq fk, AlwaysS Ord fk)
-        => EntityOf fk structure -> Maybe (EntityOf fk newStructure)
-        )
-    -> StructureShrink structure
-
-buildShrinks :: SStructure structure -> [StructureShrink structure]
-buildShrinks = \case
-  SPrimitive{}              -> empty
-  SForeign{}                -> empty
-  SUnitType                 -> empty
-  SSumType     (sx :%| sxs) -> sumToStructure <$> sumShrinks (sx `SCons` sxs)
-  SProductType sxs          -> productToStructure <$> productShrinks sxs
-  SListType    sx           -> listShrinks <$> buildShrinks sx
-  SMapType sk sv ->
-    (mapKeyShrinks <$> buildShrinks sk <*> pure sv)
-      <|> (mapValShrinks <$> pure sk <*> buildShrinks sv)
-
-data SumShrink (nxs :: [(Symbol, Structure Symbol)]) where
-  SumShrink
-    :: SList ((newNX ': newNXs) :: [(Symbol, Structure Symbol)])
-    -> (forall fk. (AlwaysS Eq fk, AlwaysS Ord fk)
-        => Tagged nxs (EntityOfSnd fk) -> Maybe (Tagged (newNX ': newNXs) (EntityOfSnd fk))
-        )
-    -> SumShrink nxs
-
-sumToStructure :: SumShrink (nx ': nxs) -> StructureShrink ( 'SumType (nx ':| nxs))
-sumToStructure (SumShrink (sx `SCons` sxs) fn) =
-  StructureShrink (SSumType (sx :%| sxs)) (\(Sum x) -> Sum <$> fn x)
-
-sumShrinks :: forall nxs . SList nxs -> [SumShrink nxs]
-sumShrinks = \case
-  SNil -> empty
-  snx@(STuple2 sn (sx :: SStructure nx)) `SCons` (sxs :: SList nxs') ->
-    removeInitial <|> (shrinkInitial <$> buildShrinks sx) <|> shrinkLater sxs
-    where
-      removeInitial = case sxs of
-        SNil               -> empty
-        (sx' `SCons` sxs') -> pure $ SumShrink
-          (sx' `SCons` sxs')
-          (\case
-            Here{}  -> Nothing
-            There x -> Just x
-          )
-      shrinkInitial :: StructureShrink nx -> SumShrink nxs
-      shrinkInitial (StructureShrink sx' fn) = SumShrink
-        (STuple2 sn sx' `SCons` sxs)
-        (\case
-          Here  (EntityOfSnd x) -> Here . EntityOfSnd <$> fn x
-          There xs              -> Just $ There xs
-        )
-      shrinkLater :: SList nxs' -> [SumShrink nxs]
-      shrinkLater sxs' = sumShrinks sxs' <&> \(SumShrink snexs fn) ->
-        SumShrink (snx `SCons` snexs) $ \case
-          Here  x -> Just $ Here x
-          There x -> There <$> fn x
-
-data ProductShrink nxs where
-  ProductShrink
-    :: SList (newNXs :: [(Symbol, Structure Symbol)])
-    -> (forall fk. (AlwaysS Eq fk, AlwaysS Ord fk)
-        => Tuple nxs (EntityOfSnd fk) -> Maybe (Tuple newNXs (EntityOfSnd fk))
-        )
-    -> ProductShrink nxs
-
-productToStructure :: ProductShrink nxs -> StructureShrink ( 'ProductType nxs)
-productToStructure (ProductShrink sxs fn) =
-  StructureShrink (SProductType sxs) (\(Product x) -> Product <$> fn x)
-
-productShrinks :: forall (nxs :: [(Symbol, Structure Symbol)]) . SList nxs -> [ProductShrink nxs]
-productShrinks = \case
-  SNil -> empty
-  snx@(STuple2 sn (sx :: SStructure nx)) `SCons` (sxs :: SList nxs') ->
-    pure removeInitial
-      <|> (shrinkInitial <$> buildShrinks sx)
-      <|> (shrinkLater <$> productShrinks sxs)
-    where
-      removeInitial :: ProductShrink nxs
-      removeInitial = ProductShrink sxs (\(_ `Cons` xs) -> Just xs)
-      shrinkInitial :: StructureShrink nx -> ProductShrink nxs
-      shrinkInitial (StructureShrink sx' fn) = ProductShrink
-        (STuple2 sn sx' `SCons` sxs)
-        (\(EntityOfSnd x `Cons` xs) -> (`Cons` xs) . EntityOfSnd <$> fn x)
-      shrinkLater :: ProductShrink nxs' -> ProductShrink nxs
-      shrinkLater (ProductShrink sxs' fn) =
-        ProductShrink (snx `SCons` sxs') (\(x `Cons` xs) -> (x `Cons`) <$> fn xs)
-
-listShrinks :: forall x . StructureShrink x -> StructureShrink ( 'ListType x)
-listShrinks (StructureShrink x fn) =
-  StructureShrink (SListType x) (\(List xs) -> Just $ List $ mapMaybe fn xs)
-
-mapKeyShrinks :: forall k v . StructureShrink k -> SStructure v -> StructureShrink ( 'MapType k v)
-mapKeyShrinks (StructureShrink sk fn) sv = StructureShrink
-  (SMapType sk sv)
-  (\(Map (Map.toList -> kvs)) ->
-    Just $ Map $ withSingI sk $ Map.fromList $ mapMaybe (\(k, v) -> (, v) <$> fn k) kvs
-  )
-
-mapValShrinks :: forall k v . SStructure k -> StructureShrink v -> StructureShrink ( 'MapType k v)
-mapValShrinks sk (StructureShrink sv fn) = StructureShrink
-  (SMapType sk sv)
-  (\(Map (Map.toList -> kvs)) ->
-    Just $ Map $ withSingI sk $ Map.fromList $ mapMaybe (\(k, v) -> (k, ) <$> fn v) kvs
-  )
+import Conkin.Extra (All, Always(..))
+import Consin (AlwaysS(..), Some(Some))
+import PersistWrap hiding (fmapFK)
+import qualified PersistWrap.Structure as Structure (fmapFK)
+import PersistWrap.BackEnd.Helper (AllEmbed, EmbedPair)
+import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
+import qualified PersistWrap.Persistable as Persistable
+import PersistWrap.Table.BackEnd.STM (STMTransaction)
+import qualified PersistWrap.Table.BackEnd.STM as BackEnd
+import PersistWrap.SpecUtil.Operations
 
 spec :: Spec
-spec = describe "Insertion and lookup" $ it "should behave like the model" pending
+spec =
+  describe "Insertion and lookup"
+    $ it "should behave like the model"
+    $ withMaxSuccess 1000
+    $ property
+    $ \ops -> ioProperty $ do
+        actualRes <- operateActual ops
+        return $ actualRes === operateModel ops
+
+data UnitFK (name :: Symbol) = UnitFK
+  deriving (Eq, Ord, Show)
+instance AlwaysS Eq UnitFK where withAlwaysS = const id
+instance AlwaysS Ord UnitFK where withAlwaysS = const id
+instance AlwaysS Show UnitFK where withAlwaysS = const id
+
+anyToUnit :: fk name -> UnitFK name
+anyToUnit = const UnitFK
+
+type LookupResults = [(Int, Maybe (Value UnitFK))]
+
+data Value fk = forall struct. SingI struct => Value (EntityOf fk struct)
+instance AlwaysS Eq fk => Eq (Value fk) where
+  (==) (Value (lent :: EntityOf fk sl)) (Value (rent :: EntityOf fk sr)) =
+    case sing @_ @sl %~ sing @_ @sr of
+      Proved Refl -> lent == rent
+      Disproved{} -> False
+deriving instance AlwaysS Show fk => Show (Value fk)
+
+fmapFK
+  :: (AlwaysS Eq fk2, AlwaysS Ord fk2)
+  => (forall name . fk1 name -> fk2 name)
+  -> Value fk1
+  -> Value fk2
+fmapFK fn (Value ent) = Value (Structure.fmapFK fn ent)
+
+operateModel :: Operations -> LookupResults
+operateModel (Operations _ ops) = evalState (mapM go ops) IntMap.empty
+  where
+    go :: Operation -> State (IntMap (Value DummyFK)) (Int, Maybe (Value UnitFK))
+    go = \case
+      Insert (singInstance -> SingInstance) i _ val -> do
+        State.modify (IntMap.insert i (Value val))
+        pure (i, Nothing)
+      Lookup i _ _ -> do
+        x <- State.gets (IntMap.lookup i)
+        pure (i, fmapFK dummyToAny <$> x)
+
+data General (kvs :: [(Symbol, Structure Symbol)]) (fk :: Symbol -> *)
+type instance Items (General kvs fk) = Entities kvs fk
+type family Entities kvs fk where
+  Entities '[] fk = '[]
+  Entities ('(k,v) ': kvs) fk = '(k, EntityOf fk v) ': Items (General kvs fk)
+instance SingI kvs => Always AllEmbed (General kvs) where
+  withAlways :: forall proxy fk y. proxy fk -> (AllEmbed (General kvs fk) => y) -> y
+  withAlways _ y0 = go y0 (sing @_ @kvs)
+    where
+      go :: forall kvs'. (All EmbedPair (Entities kvs' fk) => y) -> SList kvs' -> y
+      go y = \case
+        SNil -> y
+        STuple2 (singInstance -> SingInstance) (singInstance -> SingInstance) `SCons` xs -> go y xs
+
+operateActual :: Operations -> IO LookupResults
+operateActual (Operations (toSing . Map.toList -> (SomeSing (kvs :: SList kvs))) ops) =
+  withSingI kvs $ BackEnd.withEmptyTablesItemized @(General kvs) $ atomicTransaction go
+  where
+    go :: forall s . ItemizedIn (General kvs) (STMTransaction s) LookupResults
+    go = (`evalStateT` IntMap.empty) $ forM ops $ \case
+      Insert (singInstance -> SingInstance) i (toSing -> (SomeSing (sname :: SSymbol name))) x ->
+        withSingI sname $ do
+          fki <- Persistable.insertX @name
+            (Structure.fmapFK
+              (dummyToAny :: forall n . DummyFK n -> ForeignKey (BackEnd.STMTransaction s) n)
+              x
+            )
+          State.modify (IntMap.insert i (Some fki))
+          return (i, Nothing)
+      Lookup i _ (toSing -> SomeSing ((singInstance -> SingInstance) :: SStructure structure)) -> do
+        Some fkj <- State.gets (IntMap.! i)
+        ent      <- Persistable.getX @_ @(EntityOf (ForeignKey (STMTransaction s)) structure) fkj
+        return (i, fmapFK anyToUnit . Value <$> ent)

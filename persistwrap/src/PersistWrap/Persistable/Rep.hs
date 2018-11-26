@@ -284,6 +284,8 @@ buildRep prefix = \case
   SUnitType                 -> Left $ UnitRep Unit
   SProductType nxs          -> buildProductRep prefix nxs
   SSumType     (nx :%| nxs) -> buildSumRep prefix (nx `SCons` nxs)
-  SListType    x            -> Left $ ListRep $ getSchemaRep prefix x
-  SMapType k v              -> Left
-    $ withSingI k MapRep (buildColRep (addName prefix sKeyColumnName) k) (getSchemaRep prefix v)
+  SListType    x            -> Left $ ListRep $ getSchemaRep (addName prefix (SSym @"elems")) x
+  SMapType k v              -> Left $ withSingI k
+                                                MapRep
+                                                (buildColRep (addName prefix sKeyColumnName) k)
+                                                (getSchemaRep (addName prefix (SSym @"entries")) v)

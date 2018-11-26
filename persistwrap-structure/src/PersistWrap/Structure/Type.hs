@@ -1,15 +1,20 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module PersistWrap.Structure.Type where
 
 import Control.Arrow ((&&&))
+import Data.Bifunctor (first)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Ratio
-import Data.Singletons.TH (singletons)
+import Data.Singletons.TH
 import Data.Text (Text)
-import Test.QuickCheck (Arbitrary(..), Gen, choose, elements, scale, sized, vector)
+import qualified Data.Text as Text
+import Test.QuickCheck
 
 import PersistWrap.Primitives
 
@@ -22,11 +27,12 @@ $(singletons [d|
     | ProductType [(text, Structure text)]
     | ListType (Structure text)
     | MapType (Structure text) (Structure text)
+    deriving (Eq, Ord, Show)
   |])
 
 data StructTag =
   PrimitiveC | ForeignC | UnitTypeC | SumTypeC | ProductTypeC | ListTypeC | MapTypeC
-  deriving (Bounded,Enum)
+  deriving (Eq,Bounded,Enum)
 
 _constructorOf :: Structure text -> StructTag
 _constructorOf = \case
@@ -51,24 +57,44 @@ geometricBounded ((fromInteger . numerator) &&& (fromInteger . denominator) -> (
         if x * denom < num then return 0 else (1 +) <$> go (bound - 1)
 
 instance Arbitrary (Structure Text) where
-  arbitrary = sized $ \s ->
-    elements (if s <= 0 then terminals else [minBound .. maxBound]) >>= \case
-      PrimitiveC -> Primitive <$> arbitrary
-      ForeignC   -> Foreign <$> arbitrary
-      UnitTypeC  -> pure UnitType
-      SumTypeC   -> SumType <$> do
-        subSize <- sized $ fmap (max 1) . geometricBounded (1 % 2)
-        NonEmpty.fromList <$> scale (`quot` subSize) (vector subSize)
-      ProductTypeC -> ProductType <$> do
-        subSize <- sized $ geometricBounded (1 % 2)
-        scale (`quot` subSize) (vector subSize)
-      ListTypeC -> ListType <$> arbitrary
-      MapTypeC  -> scale (`quot` 2) $ MapType <$> arbitrary <*> arbitrary
+  arbitrary =
+    sized
+        (\s ->
+          elements (if s <= 1 then terminals else [minBound .. maxBound]) `suchThat` (/= ForeignC)
+        )
+      >>= \case
+            PrimitiveC -> Primitive <$> arbitrary
+            ForeignC   -> error "Unreachable"
+            UnitTypeC  -> pure UnitType
+            SumTypeC   -> SumType <$> do
+              subSize <- sized $ fmap (max 1) . geometricBounded (1 % 2)
+              NonEmpty.fromList <$> scale
+                (\s -> max 0 $ (s - 1) `quot` subSize)
+                (zip [ Text.pack ("Con" ++ show i) | i <- [(0 :: Int) ..] ] <$> vector subSize)
+            ProductTypeC -> ProductType <$> do
+              subSize <- sized $ fmap (max 1) . geometricBounded (1 % 2)
+              scale
+                (\s -> max 0 $ (s - 1) `quot` subSize)
+                (zip [ Text.pack ("field" ++ show i) | i <- [(0 :: Int) ..] ] <$> vector subSize)
+            ListTypeC -> scale (\s -> floorSqrt $ max 0 $ s - 1) $ ListType <$> arbitrary
+            MapTypeC ->
+              scale (\s -> floorSqrt (max 0 (s - 1)) `quot` 2) $ MapType <$> arbitrary <*> arbitrary
   shrink = \case
-    Primitive x -> map Primitive $ shrink x
-    Foreign tabName -> map Foreign $ shrink tabName
-    UnitType -> []
-    SumType xs -> map SumType $ shrink xs
-    ProductType xs -> map ProductType $ shrink xs
-    ListType x -> map ListType $ shrink x
-    MapType k v -> map (`MapType` v) (shrink k) ++ map (MapType k) (shrink v)
+    Primitive x    -> map Primitive $ shrink x
+    Foreign   _    -> []
+    UnitType       -> []
+    SumType     xs -> map SumType $ shrinkValues xs
+    ProductType xs -> map ProductType $ shrinkValues xs
+    ListType    x  -> map ListType $ shrink x
+    MapType k v    -> map (`MapType` v) (shrink k) ++ map (MapType k) (shrink v)
+
+newtype Unshrinkable a = Unshrinkable {unUnshrinkable :: a}
+instance Arbitrary (Unshrinkable a) where
+  arbitrary = error "Should not be used"
+  shrink = const []
+
+shrinkValues :: (Functor f, Arbitrary (f (Unshrinkable a, b))) => f (a, b) -> [f (a, b)]
+shrinkValues = map (fmap (first unUnshrinkable)) . shrink . fmap (first Unshrinkable)
+
+floorSqrt :: Int -> Int
+floorSqrt = floor . sqrt . (fromIntegral :: Int -> Float)

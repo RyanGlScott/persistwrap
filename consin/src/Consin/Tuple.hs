@@ -5,7 +5,7 @@
 
 module Consin.Tuple where
 
-import Prelude hiding (unzip)
+import Prelude hiding (Functor(..), unzip)
 
 import Conkin (Tuple(..))
 import Data.List (find)
@@ -15,7 +15,7 @@ import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 import Test.QuickCheck (Arbitrary(..))
 
 import Conkin.Extra (htraverse)
-import Consin.Class (AlwaysS, compare1, (==*), withAlwaysS)
+import Consin.Class (AlwaysS, Functor(..), compare1, (==*), withAlwaysS)
 
 (++&) :: Tuple xs f -> Tuple ys f -> Tuple (xs ++ ys) f
 (++&) Nil         t  = t
@@ -38,13 +38,13 @@ tupleToSing = \case
   Nil       -> SNil
   Cons x xs -> SCons x (tupleToSing xs)
 
-fmapSing
-  :: forall a b xs . SingI xs => (forall x . SingI x => a x -> b x) -> Tuple xs a -> Tuple xs b
-fmapSing fn = go sing
-  where
-    go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b
-    go SNil Nil           = Nil
-    go ((singInstance -> SingInstance) `SCons` sxs) (x `Cons` xs) = fn x `Cons` go sxs xs
+instance SingI xs => Functor (Tuple xs) where
+  fmapSing :: forall a b . (forall x . SingI x => a x -> b x) -> Tuple xs a -> Tuple xs b
+  fmapSing fn = go sing
+    where
+      go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b
+      go SNil Nil           = Nil
+      go ((singInstance -> SingInstance) `SCons` sxs) (x `Cons` xs) = fn x `Cons` go sxs xs
 
 zipWithSing
   :: forall a b c xs
@@ -87,23 +87,23 @@ compareAlwaysSTuples x y = fromMaybe EQ $ find (/= EQ) $ zipUncheckSing compare1
 eqAlwaysSTuples :: (SingI xs, AlwaysS Eq f) => Tuple xs f -> Tuple xs f -> Bool
 eqAlwaysSTuples x y = and $ zipUncheckSing (==*) x y
 
-withAlwaysSShow :: forall xs f y . (SingI xs, AlwaysS Show f) => (Show (Tuple xs f) => y) -> y
-withAlwaysSShow = go (sing @_ @xs)
+withAlwaysSTupleShow :: forall xs f y . (SingI xs, AlwaysS Show f) => (Show (Tuple xs f) => y) -> y
+withAlwaysSTupleShow = go (sing @_ @xs)
   where
     go :: forall xs' . SList xs' -> (Show (Tuple xs' f) => y) -> y
     go = \case
       SNil -> id
       (((singInstance -> SingInstance) :: Sing x) `SCons` xs) ->
-        \cont -> withAlwaysS @Show @f @x $ go xs cont
+        \cont -> withAlwaysS @Show @f @x sing $ go xs cont
 
 instance (SingI xs, AlwaysS Arbitrary f) => Arbitrary (Tuple xs f) where
   arbitrary =
     htraverse
-        (\((singInstance -> SingInstance) :: Sing x) -> withAlwaysS @Arbitrary @f @x arbitrary)
+        (\((singInstance -> SingInstance) :: Sing x) -> withAlwaysS @Arbitrary @f @x sing arbitrary)
       $ singToTuple (sing @_ @xs)
   shrink = go (sing @_ @xs)
     where
       go :: forall xs' . SList xs' -> Tuple xs' f -> [Tuple xs' f]
       go SNil Nil = []
       go (((singInstance -> SingInstance) :: Sing x) `SCons` sxs) (x `Cons` xs) =
-        map (`Cons` xs) (withAlwaysS @Arbitrary @f @x shrink x) ++ map (x `Cons`) (go sxs xs)
+        map (`Cons` xs) (withAlwaysS @Arbitrary @f @x sing shrink x) ++ map (x `Cons`) (go sxs xs)
