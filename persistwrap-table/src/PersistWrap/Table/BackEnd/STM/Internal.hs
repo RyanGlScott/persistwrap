@@ -31,8 +31,8 @@ import qualified Data.Text as Text
 
 import Conkin.Extra (htraverse)
 import Consin
-import Consin.SymMap (SymMap)
-import qualified Consin.SymMap as SymMap
+import Consin.SingMap (SingMap)
+import qualified Consin.SingMap as SingMap
 import PersistWrap.Table.Class (Entity, MonadBaseTransaction)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Column
@@ -44,7 +44,7 @@ import qualified PersistWrap.Table.Transaction as Transaction
 
 type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 
-type TableMap s = SymMap (SomeTableNamed (Table s))
+type TableMap s = SingMap (SomeTableNamed (Table s))
 
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
@@ -94,7 +94,7 @@ instance MonadBaseTransaction (STMTransaction s) where
     return $ Key newRowKey
   deleteRow (Key r) = liftBase $ stateTVar r $ isJust &&& const Nothing
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
-  lookupTable = asks . SymMap.lookup
+  lookupTable = asks . SingMap.lookup
   keyToForeign (Key r :: Key s tab) = FK (sing @_ @(TabSchema tab)) r
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
@@ -151,7 +151,7 @@ anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
 
 constructMap :: SList schemas -> Tuple schemas (Table s) -> TableMap s
-constructMap schemas = SymMap.fromList . mapUncheckSing schemas tableToMapEntry
+constructMap schemas = SingMap.fromList . mapUncheckSing schemas tableToMapEntry
 
 tableToMapEntry
   :: forall s schema . SingI schema => Table s schema -> Some (SomeTableNamed (Table s))
@@ -165,7 +165,7 @@ showAllTables :: forall s . STMTransaction s String
 showAllTables = do
   tm       <- ask
   tabLines <-
-    forM (SymMap.toList tm)
+    forM (SingMap.toList tm)
       $ \(getSome -> GetSome name (SomeTableNamed (cols :: SList cols) tab)) ->
           withSingI name $ withSingI cols $ do
             rows <- withinTable tab $ fmap (map (\(Entity _ v) -> v)) . getAllEntities
