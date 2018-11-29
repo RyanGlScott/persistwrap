@@ -17,9 +17,11 @@ import Prelude hiding (Functor(..))
 import Conkin (Tagged(..))
 import Data.Singletons (SingI, sing)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil), SingInstance(..), singInstance)
+import Test.QuickCheck (Arbitrary(..), oneof)
 
-import Conkin.Extra (noHere)
+import Conkin.Extra (htraverse, noHere, tagCases)
 import Consin.Class (AlwaysS, Functor(..), compare1, (==*), withAlwaysS)
+import Consin.Tuple (singToTuple)
 
 pickSide
   :: forall (xs :: [k]) (ys :: [k]) (f :: k -> *)
@@ -68,6 +70,20 @@ withAlwaysSTaggedShow = go (sing @_ @xs)
       SNil -> id
       (((singInstance -> SingInstance) :: Sing x) `SCons` xs) ->
         \cont -> withAlwaysS @Show @f @x sing $ go xs cont
+
+instance (AlwaysS Arbitrary f, SingI (x ': xs)) => Arbitrary (Tagged (x ': xs) f) where
+  arbitrary = oneof $ map
+    (htraverse
+      (\((singInstance -> SingInstance) :: Sing x') -> withAlwaysS @Arbitrary @f @x' sing arbitrary)
+    )
+    (tagCases (singToTuple (sing @_ @(x ': xs))))
+  shrink = go (sing @_ @(x ': xs))
+    where
+      go :: forall xs' . Sing xs' -> Tagged xs' f -> [Tagged xs' f]
+      go (((singInstance -> SingInstance) :: Sing x') `SCons` _) (Here x) =
+        map Here $ withAlwaysS @Arbitrary @f @x' sing shrink x
+      go (_ `SCons` sxs) (There xs) = map There $ go sxs xs
+      go SNil            t          = noHere t
 
 instance SingI xs => Functor (Tagged xs) where
   fmapSing :: forall a b . (forall x . SingI x => a x -> b x) -> Tagged xs a -> Tagged xs b

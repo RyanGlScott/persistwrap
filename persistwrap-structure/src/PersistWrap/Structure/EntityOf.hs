@@ -14,11 +14,12 @@ import Data.Constraint (Dict(Dict))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Singletons (SingI, SingInstance(SingInstance), sing, singInstance, withSingI)
+import Data.Singletons (SingI, SingInstance(SingInstance), fromSing, sing, singInstance, withSingI)
 import Data.Singletons.Decide (Decision(..), (:~:)(..), (%~))
 import Data.Singletons.Prelude (SList, Sing(..))
 import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
+import Test.QuickCheck (Arbitrary(..), scale)
 
 import Consin
 import PersistWrap.Primitives (PrimType, deriveConstraint)
@@ -142,4 +143,47 @@ instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI x) => Ord (EntityOfSnd fk x) wher
   compare (EntityOfSnd x) (EntityOfSnd y) = case sing @_ @x of
     STuple2 _ (singInstance -> SingInstance) -> compare x y
 instance (AlwaysS Eq fk, AlwaysS Ord fk) => AlwaysS Ord (EntityOfSnd fk) where
+  withAlwaysS (singInstance -> SingInstance) = id
+
+instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
+    => Arbitrary (EntityOf fk structure) where
+  arbitrary = case sing @_ @structure of
+    SPrimitive pn  -> Prim <$> deriveConstraint @Arbitrary pn arbitrary
+    SForeign   sfk -> withSingI sfk $ ForeignKey <$> withAlwaysS @Arbitrary @fk sfk arbitrary
+    SUnitType      -> pure Unit
+    SProductType sxs@(singInstance -> SingInstance) ->
+      scale (\s -> max 0 $ (s - 1) `quot` max 1 (length (fromSing sxs))) $ Product <$> arbitrary
+    SSumType sxs@(x0 :%| xs) ->
+      scale (\s -> max 0 $ (s - 1) `quot` length (fromSing sxs))
+        $   Sum
+        <$> withSingI (x0 `SCons` xs) arbitrary
+    SListType (singInstance -> SingInstance)                               ->
+      scale (\s -> floorSqrt $ max 0 $ s - 1) $ List <$> arbitrary
+    SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) ->
+      scale (\s -> floorSqrt (max 0 (s - 1)) `quot` 2) $ Map <$> arbitrary
+  shrink = case sing @_ @structure of
+    SPrimitive pn -> \case
+      Prim p -> map Prim $ deriveConstraint @Arbitrary pn $ shrink p
+    SForeign sfk -> \case
+      ForeignKey fk -> withAlwaysS @Arbitrary @fk sfk $ map ForeignKey $ shrink fk
+    SUnitType -> \case
+      Unit -> []
+    SProductType (singInstance -> SingInstance) -> \case
+      Product xs -> map Product $ shrink xs
+    SSumType (sx :%| sxs) -> \case
+      Sum xs -> map Sum $ withSingI (sx `SCons` sxs) shrink xs
+    SListType (singInstance -> SingInstance) -> \case
+      List xs -> map List $ shrink xs
+    SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) -> \case
+      Map kvm -> map Map $ shrink kvm
+
+instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI nx)
+    => Arbitrary (EntityOfSnd fk nx) where
+  arbitrary = case sing @_ @nx of
+    STuple2 _ (singInstance -> SingInstance) -> EntityOfSnd <$> arbitrary
+  shrink = case sing @_ @nx of
+    STuple2 _ (singInstance -> SingInstance) -> \(EntityOfSnd x) -> EntityOfSnd <$> shrink x
+
+instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk)
+    => AlwaysS Arbitrary (EntityOfSnd fk) where
   withAlwaysS (singInstance -> SingInstance) = id

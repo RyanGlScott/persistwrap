@@ -39,6 +39,7 @@ default-extensions:
 - ViewPatterns
 
 dependencies:
+- QuickCheck
 - base >= 4.7 && < 5
 - conkin
 - conkin-extra

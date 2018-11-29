@@ -12,7 +12,9 @@ import Data.List (find)
 import Data.Maybe (fromMaybe)
 import Data.Singletons (Sing, SingI, SingInstance(SingInstance), sing, singInstance)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
+import Test.QuickCheck (Arbitrary(..))
 
+import Conkin.Extra (htraverse)
 import Consin.Class (AlwaysS, Functor(..), compare1, (==*), withAlwaysS)
 
 (++&) :: Tuple xs f -> Tuple ys f -> Tuple (xs ++ ys) f
@@ -93,3 +95,15 @@ withAlwaysSTupleShow = go (sing @_ @xs)
       SNil -> id
       (((singInstance -> SingInstance) :: Sing x) `SCons` xs) ->
         \cont -> withAlwaysS @Show @f @x sing $ go xs cont
+
+instance (SingI xs, AlwaysS Arbitrary f) => Arbitrary (Tuple xs f) where
+  arbitrary =
+    htraverse
+        (\((singInstance -> SingInstance) :: Sing x) -> withAlwaysS @Arbitrary @f @x sing arbitrary)
+      $ singToTuple (sing @_ @xs)
+  shrink = go (sing @_ @xs)
+    where
+      go :: forall xs' . SList xs' -> Tuple xs' f -> [Tuple xs' f]
+      go SNil Nil = []
+      go (((singInstance -> SingInstance) :: Sing x) `SCons` sxs) (x `Cons` xs) =
+        map (`Cons` xs) (withAlwaysS @Arbitrary @f @x sing shrink x) ++ map (x `Cons`) (go sxs xs)
