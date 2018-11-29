@@ -28,6 +28,7 @@ default-extensions:
 - GADTs
 - GeneralizedNewtypeDeriving
 - KindSignatures
+- InstanceSigs
 - LambdaCase
 - MultiParamTypeClasses
 - RankNTypes
@@ -35,10 +36,12 @@ default-extensions:
 - StandaloneDeriving
 - TypeApplications
 - TypeOperators
+- ViewPatterns
 
 dependencies:
 - base >= 4.7 && < 5
 - conkin
+- conkin-extra
 - constraints
 - containers
 - generic-deriving

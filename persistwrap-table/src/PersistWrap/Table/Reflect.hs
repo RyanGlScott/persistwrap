@@ -4,11 +4,10 @@ import Conkin (Tuple)
 import Data.Promotion.Prelude (Fst, Snd)
 import Data.Proxy (Proxy(Proxy))
 import Data.Reflection (Reifies, reflect, reify)
-import Data.Singletons (SingI, sing, withSingI)
+import Data.Singletons (SingI, SingInstance(SingInstance), sing, singInstance, withSingI)
 import Data.Singletons.TypeLits (Symbol)
 
-import Consin (AlwaysS(..), showsPrec1)
-import qualified Consin.Tuple as Tuple (fmapSing)
+import Consin (AlwaysS(..), fmapSing, showsPrec1)
 import PersistWrap.Table.Column
 
 data Entity' k v = Entity {entityKey :: k, entityVal :: v}
@@ -21,7 +20,8 @@ instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) wh
     showParen (d > 10) $
       showString "SomeTableNamed " . showsPrec 11 cols . showString " " . showsPrec1 11 tab
 
-instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where withAlwaysS = id
+instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where
+  withAlwaysS (singInstance -> SingInstance) = id
 
 type WithinTableOf (table :: Schema Symbol -> *) tab =
   (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))
@@ -43,7 +43,7 @@ withinTables
   => Tuple schemas table
   -> (Tuple schemas (SomeTableProxy table) -> y)
   -> y
-withinTables tables cont = cont $ Tuple.fmapSing (`withinTable` STP) tables
+withinTables tables cont = cont $ fmapSing (`withinTable` STP) tables
 
 getTable :: forall tab table proxy . WithinTableOf table tab => proxy tab -> table (TabSchema tab)
 getTable _ = reflect (Proxy @(Fst tab))

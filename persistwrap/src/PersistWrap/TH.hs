@@ -18,5 +18,5 @@ declareTables s = do
   argKind <- [t| Symbol -> * |]
   let n       = mkName s
       dataDec = DataD [] n [KindedTV (mkName "fk") argKind] Nothing [] []
-  instanceDec <- [d| instance Always AllEmbed $(return $ ConT n) where withAlways = id |]
+  instanceDec <- [d| instance Always AllEmbed $(return $ ConT n) where withAlways = const id |]
   return $ dataDec : instanceDec

@@ -3,12 +3,14 @@
 
 module PersistWrap.BackEnd.Helper
     ( AllEmbed
+    , EmbedPair
     , ForeignKey
     , Items
     , setupHelper
     ) where
 
 import Data.Constraint (Dict(Dict))
+import Data.Proxy (Proxy(Proxy))
 import Data.Singletons.Prelude hiding (All, Map)
 import Data.Text (Text)
 
@@ -33,7 +35,7 @@ setupHelper
   -> Itemized (Items (fnitems (ForeignKey m))) m x
   -> n x
 setupHelper setup action =
-  withAlways @AllEmbed @fnitems @(ForeignKey m)
+  withAlways @AllEmbed @fnitems (Proxy @(ForeignKey m))
     $ let schemas =
             concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems (ForeignKey m))))
       in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)

@@ -1,10 +1,13 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module PersistWrap.Structure.Type where
 
-import Data.List.NonEmpty (NonEmpty(..))
-import Data.Singletons.TH (singletons)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Singletons.TH
 
 import PersistWrap.Primitives
 
@@ -17,11 +20,12 @@ $(singletons [d|
     | ProductType [(text, Structure text)]
     | ListType (Structure text)
     | MapType (Structure text) (Structure text)
+    deriving (Eq, Ord, Show)
   |])
 
 data StructTag =
   PrimitiveC | ForeignC | UnitTypeC | SumTypeC | ProductTypeC | ListTypeC | MapTypeC
-  deriving (Bounded,Enum)
+  deriving (Eq,Bounded,Enum)
 
 _constructorOf :: Structure text -> StructTag
 _constructorOf = \case

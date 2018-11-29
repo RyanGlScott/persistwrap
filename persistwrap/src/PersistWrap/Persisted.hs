@@ -3,7 +3,8 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module PersistWrap.Persisted
-    ( Persisted
+    ( MapsTo
+    , Persisted
     , deleteX
     , getX
     , getXs

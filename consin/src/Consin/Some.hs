@@ -5,14 +5,14 @@ module Consin.Some where
 import Data.Constraint (Dict)
 import Data.Function.Pointless ((.:))
 import Data.Maybe (isJust)
-import Data.Singletons (Sing, SingI, sing, withSingI)
+import Data.Singletons (Sing, SingI, SingInstance(SingInstance), sing, singInstance)
 
 import Consin.Class (AlwaysS, showsPrec1)
 
 data Some f = forall x. SingI x => Some (f x)
 
 some :: Sing x -> f x -> Some f
-some s = withSingI s Some
+some (singInstance -> SingInstance) = Some
 
 data GetSome f = forall x. GetSome (Sing x) (f x)
 

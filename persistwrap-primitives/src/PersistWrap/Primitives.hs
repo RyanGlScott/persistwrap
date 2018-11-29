@@ -14,6 +14,7 @@ import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Time.LocalTime (TimeOfDay)
 
+-- TODO Add list and map. Careful about the Arbitrary instances.
 $(singletons [d|
   data PrimName
     = PrimText
@@ -26,8 +27,6 @@ $(singletons [d|
     | PrimTimeOfDay
     | PrimUTCTime
     | PrimNull
-    | PrimList
-    | PrimMap
     | PrimObjectId
     | PrimDbSpecific
     deriving (Eq, Ord, Show, Bounded, Enum)
@@ -44,8 +43,6 @@ type family PrimType p where
   PrimType 'PrimTimeOfDay = TimeOfDay
   PrimType 'PrimUTCTime = UTCTime
   PrimType 'PrimNull = ()
-  PrimType 'PrimList = [SingPrim]
-  PrimType 'PrimMap = [(Text, SingPrim)]
   PrimType 'PrimObjectId = ByteString
   PrimType 'PrimDbSpecific = ByteString
 
@@ -60,8 +57,6 @@ deriveConstraint
      , c Day
      , c TimeOfDay
      , c UTCTime
-     , c [SingPrim]
-     , c [(Text, SingPrim)]
      , c ()
      )
   => SPrimName p
@@ -78,8 +73,6 @@ deriveConstraint p cont = case p of
   SPrimTimeOfDay  -> cont
   SPrimUTCTime    -> cont
   SPrimNull       -> cont
-  SPrimList       -> cont
-  SPrimMap        -> cont
   SPrimObjectId   -> cont
   SPrimDbSpecific -> cont
 
