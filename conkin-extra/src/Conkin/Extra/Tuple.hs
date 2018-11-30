@@ -1,6 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE PolyKinds #-}
 
 module Conkin.Extra.Tuple where
 

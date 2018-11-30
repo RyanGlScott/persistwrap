@@ -1,5 +1,4 @@
 {-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
 

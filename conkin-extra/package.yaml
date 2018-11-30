@@ -27,6 +27,7 @@ default-extensions:
 - GADTs
 - LambdaCase
 - MultiParamTypeClasses
+- PolyKinds
 - RankNTypes
 - ScopedTypeVariables
 - TypeOperators

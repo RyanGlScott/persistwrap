@@ -1,5 +1,3 @@
-{-# LANGUAGE PolyKinds #-}
-
 module Conkin.Extra.Traversal where
 
 import Conkin (Dispose(..), getFlip)

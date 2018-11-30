@@ -1,5 +1,3 @@
-{-# LANGUAGE PolyKinds #-}
-
 module Consin.Some where
 
 import Data.Constraint (Dict)

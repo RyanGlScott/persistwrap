@@ -1,4 +1,3 @@
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeInType #-}
 
 module Consin.Tuple.StreamWriter

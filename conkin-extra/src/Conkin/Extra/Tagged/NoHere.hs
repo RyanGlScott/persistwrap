@@ -1,5 +1,3 @@
-{-# LANGUAGE PolyKinds #-}
-
 module Conkin.Extra.Tagged.NoHere
     ( noHere
     ) where
