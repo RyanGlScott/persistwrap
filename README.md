@@ -23,6 +23,16 @@ easily stored and retrieved from a relational backend.
   type of the foreign key `fk`. In this way you can easily switch out backends without having to
   make any changes to how your data is defined.
 - Comes with a pure-Haskell _in-memory_ `STM`-based backend for efficient unit testing.
+- Can abstract over the set of datastructures which are available in a given context. This allows
+  you to interact with the datastructures in the persistence layer that are relevant without
+  having to have yet defined every datastructures you mean to persist.
+  Ex.
+  ```
+  getFoo :: Persisted "foo" Foo m => ForeignKey m "foo" -> m Foo
+  getFoo = lookupX
+  ```
+  Note how we don't need to know anything about what other types are persisted in order to define or
+  call `getFoo`.
 
 ## Examples
 - Declaring with an `EntityPart` instance:
