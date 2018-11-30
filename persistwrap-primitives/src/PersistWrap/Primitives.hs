@@ -32,7 +32,6 @@ $(singletons [d|
     | PrimDay
     | PrimTimeOfDay
     | PrimUTCTime
-    | PrimNull
     | PrimObjectId
     | PrimDbSpecific
     deriving (Eq, Ord, Show, Bounded, Enum)
@@ -48,23 +47,12 @@ type family PrimType p where
   PrimType 'PrimDay = Day
   PrimType 'PrimTimeOfDay = TimeOfDay
   PrimType 'PrimUTCTime = UTCTime
-  PrimType 'PrimNull = ()
   PrimType 'PrimObjectId = ByteString
   PrimType 'PrimDbSpecific = ByteString
 
 deriveConstraint
   :: forall c p y
-   . ( c Text
-     , c ByteString
-     , c Int64
-     , c Double
-     , c Rational
-     , c Bool
-     , c Day
-     , c TimeOfDay
-     , c UTCTime
-     , c ()
-     )
+   . (c Text, c ByteString, c Int64, c Double, c Rational, c Bool, c Day, c TimeOfDay, c UTCTime)
   => SPrimName p
   -> (c (PrimType p) => y)
   -> y
@@ -78,7 +66,6 @@ deriveConstraint p cont = case p of
   SPrimDay        -> cont
   SPrimTimeOfDay  -> cont
   SPrimUTCTime    -> cont
-  SPrimNull       -> cont
   SPrimObjectId   -> cont
   SPrimDbSpecific -> cont
 
@@ -118,6 +105,5 @@ instance PromotedLift PrimName where
     PrimDay -> [t| 'PrimDay |]
     PrimTimeOfDay -> [t| 'PrimTimeOfDay |]
     PrimUTCTime -> [t| 'PrimUTCTime |]
-    PrimNull -> [t| 'PrimNull |]
     PrimObjectId -> [t| 'PrimObjectId |]
     PrimDbSpecific -> [t| 'PrimDbSpecific |]

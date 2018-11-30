@@ -24,7 +24,6 @@ data SimpleColUnnamedType
   | Day
   | TimeOfDay
   | UTCTime
-  | Null
   | ObjectId
   | DbSpecific
   | Enum [String]
@@ -61,7 +60,6 @@ fromPrimitive = \case
   PrimDay        -> Day
   PrimTimeOfDay  -> TimeOfDay
   PrimUTCTime    -> UTCTime
-  PrimNull       -> Null
   PrimObjectId   -> ObjectId
   PrimDbSpecific -> DbSpecific
 
@@ -81,7 +79,6 @@ toColumnType (name ::: untype) = (Text.pack name, Column nullability (bt untype)
       Day               -> Prim PrimDay
       TimeOfDay         -> Prim PrimTimeOfDay
       UTCTime           -> Prim PrimUTCTime
-      Null              -> Prim PrimNull
       ObjectId          -> Prim PrimObjectId
       DbSpecific        -> Prim PrimDbSpecific
       Enum []           -> error "Empty enum options"
