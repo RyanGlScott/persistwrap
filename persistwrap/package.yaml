@@ -79,7 +79,7 @@ ghc-options:
 
 tests:
   persistwrap-test:
-    main:                Spec.hs
+    main:                Driver.hs
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -91,3 +91,9 @@ tests:
     - generic-deriving
     - hspec
     - persistwrap
+    - pretty-show
+    - tasty
+    - tasty-discover
+    - tasty-golden
+    - tasty-hspec
+    - tasty-quickcheck

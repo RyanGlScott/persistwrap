@@ -1,0 +1,39 @@
+[ toSchema
+    "widget"
+    [ "Foo1" ::: Nullable (Key "widget_Foo1")
+    , "Blarg" ::: Nullable (Key "widget_Blarg")
+    , "Bleeble" ::: Nullable Text
+    , "Glorp" ::: Nullable (Key "abc")
+    ]
+, toSchema
+    "widget_Foo1"
+    [ "bar" ::: Int64
+    , "baz" ::: Key "widget_Foo1_baz"
+    , "qux" ::: Nullable (Enum [ "Red" , "Green" , "Blue" ])
+    ]
+, toSchema
+    "widget_Foo1_baz"
+    [ "_tag" ::: Enum [ "A" , "B" , "C" , "D" , "E" ]
+    , "A" ::: Nullable (Key "widget_Foo1_baz_A")
+    , "E" ::: Nullable Text
+    ]
+, toSchema "widget_Foo1_baz_A" [ "x" ::: Int64 , "y" ::: Int64 ]
+, toSchema
+    "widget_Foo2_elems"
+    [ "_container" ::: Key "widget"
+    , "_index" ::: Int64
+    , "bar" ::: Int64
+    , "baz" ::: Key "widget_Foo2_elems_baz"
+    , "qux" ::: Nullable (Enum [ "Red" , "Green" , "Blue" ])
+    ]
+, toSchema
+    "widget_Foo2_elems_baz"
+    [ "_tag" ::: Enum [ "A" , "B" , "C" , "D" , "E" ]
+    , "A" ::: Nullable (Key "widget_Foo2_elems_baz_A")
+    , "E" ::: Nullable Text
+    ]
+, toSchema
+    "widget_Foo2_elems_baz_A" [ "x" ::: Int64 , "y" ::: Int64 ]
+, toSchema
+    "widget_Blarg" [ "1" ::: Bool , "2" ::: Bool , "3" ::: ByteString ]
+]

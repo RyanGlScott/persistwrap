@@ -39,6 +39,7 @@ packages:
 - persistwrap-primitives
 - persistwrap-structure
 - persistwrap-table
+- promoted-lift
 - stream-reader
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.

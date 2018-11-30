@@ -16,8 +16,10 @@ class AlwaysS c f where
 
 instance Eq x => AlwaysS Eq (Const x) where withAlwaysS = const id
 instance Ord x => AlwaysS Ord (Const x) where withAlwaysS = const id
+instance Show x => AlwaysS Show (Const x) where withAlwaysS = const id
 instance AlwaysS Eq Proxy where withAlwaysS = const id
 instance AlwaysS Ord Proxy where withAlwaysS = const id
+instance AlwaysS Show Proxy where withAlwaysS = const id
 
 (==*) :: forall f x . (AlwaysS Eq f, SingI x) => f x -> f x -> Bool
 (==*) = withAlwaysS @Eq @f @x sing (==)

@@ -17,75 +17,19 @@ import Data.Singletons (sing)
 import Data.Singletons.Prelude
 import Data.Text (Text)
 import Data.Time (Day, TimeOfDay, UTCTime)
-import Language.Haskell.TH (Exp(ListE, VarE), Q, TyLit(StrTyLit), Type(..))
+import Language.Haskell.TH (Exp(ListE, VarE), Q, Type(..))
 
+import Language.Haskell.TH.PromotedLift (promotedLift)
 import PersistWrap.Primitives
 import PersistWrap.Table.Column hiding (Enum, JSON)
 import qualified PersistWrap.Table.Column as Column
 import PersistWrap.Table.EnumVal
 import PersistWrap.Table.Row
-
-data SimpleColUnnamedType
-  = Text
-  | ByteString
-  | Int64
-  | Double
-  | Rational
-  | Bool
-  | Day
-  | TimeOfDay
-  | UTCTime
-  | Null
-  | ObjectId
-  | DbSpecific
-  | Enum [String]
-  | JSON
-  | Key String
-  | Nullable SimpleColUnnamedType
-
-data SimpleColType = (:::) String SimpleColUnnamedType
-
-promotedListT :: [Type] -> Type
-promotedListT = foldr (AppT . AppT PromotedConsT) PromotedNilT
-
-toColumnType :: SimpleColType -> Q Type
-toColumnType (name ::: untype) =
-    [t| '( $(return $ LitT (StrTyLit name)) , 'Column $(nullability) $(bt untype)) |]
-  where
-    nullability = case untype of
-      Nullable{} -> [t| 'True |]
-      _          -> [t| 'False |]
-    bt = \case
-      Text       -> [t| 'Prim 'PrimText |]
-      ByteString -> [t| 'Prim 'PrimByteString |]
-      Int64      -> [t| 'Prim 'PrimInt64 |]
-      Double     -> [t| 'Prim 'PrimDouble |]
-      Rational   -> [t| 'Prim 'PrimRational |]
-      Bool       -> [t| 'Prim 'PrimBool |]
-      Day        -> [t| 'Prim 'PrimDay |]
-      TimeOfDay  -> [t| 'Prim 'PrimTimeOfDay |]
-      UTCTime    -> [t| 'Prim 'PrimUTCTime |]
-      Null       -> [t| 'Prim 'PrimNull |]
-      ObjectId   -> [t| 'Prim 'PrimObjectId |]
-      DbSpecific -> [t| 'Prim 'PrimDbSpecific |]
-      Enum []    -> error "Empty enum options"
-      Enum (opt : opts)
-        -> [t|
-              'Column.Enum
-                ( $(return $ LitT (StrTyLit opt))
-                ':| $(return $ promotedListT (map (LitT . StrTyLit) opts))
-                )
-            |]
-      JSON       -> [t| 'Column.JSON |]
-      Key      s -> [t| 'ForeignKey $(return $ LitT (StrTyLit s)) |]
-      Nullable n -> bt n
+import PersistWrap.Table.Schema.Simple (SimpleColType, SimpleColUnnamedType)
+import qualified PersistWrap.Table.Schema.Simple as Simple
 
 schema :: String -> [SimpleColType] -> Q Type
-schema s xs0 = do
-  let go = \case
-        []     -> [t| '[] |]
-        x : xs -> [t| $(toColumnType x) ': $(go xs) |]
-  [t| 'Schema $(return $ LitT (StrTyLit s)) $(go xs0) |]
+schema s cols = promotedLift $ Simple.toSchema s cols
 
 class BCValue (bc :: BaseColumn Symbol) where
   type DataType (fk :: Symbol -> *) bc :: *

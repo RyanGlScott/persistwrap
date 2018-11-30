@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -14,6 +15,8 @@ import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Time.LocalTime (TimeOfDay)
+import qualified Language.Haskell.TH.Lift as TH
+import Language.Haskell.TH.PromotedLift (PromotedLift(..))
 import Test.QuickCheck (Arbitrary(..), arbitraryBoundedEnum)
 import Test.QuickCheck.Instances ()
 
@@ -102,3 +105,19 @@ instance Arbitrary SingPrim where
     pn <- arbitrary
     withSomeSing pn $ \spn -> SingPrim spn <$> deriveConstraint @Arbitrary spn arbitrary
   shrink (SingPrim spn x) = map (SingPrim spn) $ deriveConstraint @Arbitrary spn shrink x
+
+deriving instance TH.Lift PrimName
+instance PromotedLift PrimName where
+  promotedLift = \case
+    PrimText -> [t| 'PrimText |]
+    PrimByteString -> [t| 'PrimByteString |]
+    PrimInt64 -> [t| 'PrimInt64 |]
+    PrimDouble -> [t| 'PrimDouble |]
+    PrimRational -> [t| 'PrimRational |]
+    PrimBool -> [t| 'PrimBool |]
+    PrimDay -> [t| 'PrimDay |]
+    PrimTimeOfDay -> [t| 'PrimTimeOfDay |]
+    PrimUTCTime -> [t| 'PrimUTCTime |]
+    PrimNull -> [t| 'PrimNull |]
+    PrimObjectId -> [t| 'PrimObjectId |]
+    PrimDbSpecific -> [t| 'PrimDbSpecific |]

@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module PersistWrap.PersistableSpec
-    ( spec
+module PersistWrap.PersistableTest
+    ( prop_insert_lookup
     ) where
 
 import Conkin (Tuple(..))
@@ -13,7 +13,6 @@ import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap
 import Data.Singletons
 import Data.Singletons.TypeLits (SSymbol, Symbol)
-import Test.Hspec
 import Test.QuickCheck
 
 import Conkin.Extra (All, Always(..))
@@ -25,26 +24,13 @@ import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
 import qualified PersistWrap.Persistable as Persistable
 import PersistWrap.Table.BackEnd.STM (STMTransaction)
 import qualified PersistWrap.Table.BackEnd.STM as BackEnd
-import PersistWrap.SpecUtil.Operations
+import PersistWrap.TestUtils.Operations
 
-spec :: Spec
-spec =
-  describe "Insertion and lookup"
-    $ it "should behave like the model"
-    $ withMaxSuccess 1000
-    $ property
-    $ \(OpSchema _ (_ :: Proxy items)) -> property $ \(ops :: Operations items) -> ioProperty $ do
-        actualRes <- operateActual ops
-        return $ actualRes === operateModel ops
-
-data UnitFK (name :: Symbol) = UnitFK
-  deriving (Eq, Ord, Show)
-instance AlwaysS Eq UnitFK where withAlwaysS = const id
-instance AlwaysS Ord UnitFK where withAlwaysS = const id
-instance AlwaysS Show UnitFK where withAlwaysS = const id
-
-anyToUnit :: fk name -> UnitFK name
-anyToUnit = const UnitFK
+prop_insert_lookup :: Property
+prop_insert_lookup = withMaxSuccess 1000 $ property $ \(OpSchema _ (_ :: Proxy items)) ->
+  property $ \(ops :: Operations items) -> ioProperty $ do
+    actualRes <- operateActual ops
+    return $ actualRes === operateModel ops
 
 data ConvertFK fk2 x where
   ConvertFK :: SingI x => EntityOf fk2 x -> ConvertFK fk2 (EntityOf fk1 x)
@@ -59,16 +45,19 @@ instance (x ~ EntityOf fk1 struct, EntityPart fk1 x)
 instance AlwaysS Show fk2 => ConvertF (ConvertFK fk2) where
   showsPrecOrig d (ConvertFK x) = showsPrec d x
 
-convertFK :: Member items Identity -> Member items (ConvertFK UnitFK)
+anyToUnit :: fk (name :: Symbol) -> Proxy name
+anyToUnit = const Proxy
+
+convertFK :: Member items Identity -> Member items (ConvertFK Proxy)
 convertFK (Member (MemberX name (Identity val))) =
   Member $ MemberX name (ConvertFK $ Structure.fmapFK anyToUnit val)
 
-type LookupResults items = [Maybe (Member items (ConvertFK UnitFK))]
+type LookupResults items = [Maybe (Member items (ConvertFK Proxy))]
 
 operateModel :: Operations xs -> LookupResults xs
 operateModel (Operations ops) = evalState (mapM go ops) IntMap.empty
   where
-    go :: Operation xs -> State (IntMap (Member xs Identity)) (Maybe (Member xs (ConvertFK UnitFK)))
+    go :: Operation xs -> State (IntMap (Member xs Identity)) (Maybe (Member xs (ConvertFK Proxy)))
     go = \case
       Insert i mem -> do
         State.modify (IntMap.insert i mem)

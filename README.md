@@ -26,5 +26,7 @@ easily stored and retrieved from a relational backend.
 
 ## Examples
 - Declaring with an `EntityPart` instance:
-  [Widget.hs](persistwrap/test/PersistWrap/SpecUtil/Widget.hs)
+  [Widget.hs](persistwrap/test/PersistWrap/TestUtils/Widget.hs). The generated schema for the
+  `Widget` type can be found in
+  [widget_schemas.golden](persistwrap/test/goldens/widget_schemas.golden)
 - Working with persisted data: [WidgetSpec.hs](persistwrap/test/PersistWrap/WidgetSpec.hs)

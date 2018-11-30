@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module PersistWrap.WidgetSpec
-    ( spec
+    ( spec_widget
     ) where
 
 import Control.Monad (join)
@@ -10,9 +10,8 @@ import Test.Hspec
 
 import PersistWrap
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
+import PersistWrap.TestUtils.Widget
 import PersistWrap.TH (declareTables)
-
-import PersistWrap.SpecUtil.Widget
 
 -- | We're declaring a new table context which called \"TestTables\".
 $(declareTables "TestTables")
@@ -21,19 +20,19 @@ $(declareTables "TestTables")
 -- \"widget\" stores `Widget`s.
 type instance Items (TestTables fk) = '[ '("abc", Int), '("widget", Widget fk)]
 
-spec :: Spec
-spec =
+spec_widget :: Spec
+spec_widget =
   describe "Widget"
     $ it "should get back what you put in"
     $ join
     -- Initializes empty tables in `STM` backend.
-    $ BackEnd.withEmptyTablesItemized @TestTables widgetTest
+    $ BackEnd.withEmptyTablesItemized @TestTables widgetAssertions
 
 -- |
 -- We can declare what the _entire_ persistence layer looks like by wrapping the monad we're working
 -- in with @ Itemized TestTables @. For a more fine-grained approach, see `insertWidget3`.
-widgetTest :: (MonadPersist m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
-widgetTest = atomicTransaction $ do
+widgetAssertions :: (MonadPersist m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
+widgetAssertions = atomicTransaction $ do
   -- The compiler knows 3 is an `Int` because we're inserting it into the \"abc\" table.
   -- @ fk3 :: FK m "abc" @
   fk3 <- insertX @"abc" 3

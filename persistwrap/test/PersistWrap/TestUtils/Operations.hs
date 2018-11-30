@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
-module PersistWrap.SpecUtil.Operations
+module PersistWrap.TestUtils.Operations
     ( ConvertF(..)
     , DummyFK
     , ItemList(..)

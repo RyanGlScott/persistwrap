@@ -14,7 +14,7 @@ import Consin.Class
 
 -- | Derive `Eq` for a continuation kind.
 --
--- See "PersistWrap.SpecUtil.Widget" for example usage.
+-- See "PersistWrap.TestUtils.Widget" for example usage.
 deriveFnEq :: Q Type -> Q [Dec]
 deriveFnEq t = [d|
   instance AlwaysS Eq f => Eq ($t f) where
@@ -23,7 +23,7 @@ deriveFnEq t = [d|
 
 -- | Derive `Show` for a continuation kind.
 --
--- See "PersistWrap.SpecUtil.Widget" for example usage.
+-- See "PersistWrap.TestUtils.Widget" for example usage.
 deriveFnShow :: Q Type -> Q [Dec]
 deriveFnShow t = [d|
   instance AlwaysS Show f => Show ($t f) where

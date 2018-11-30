@@ -1,6 +1,6 @@
-name:                persistwrap-primitives
+name:                promoted-lift
 version:             0.1.0.0
-github:              "dspies-leapyear/persistwrap-primitives"
+github:              "dspies-leapyear/promoted-lift"
 license:             BSD3
 author:              "David Spies"
 maintainer:          "david@leapyear.io"
@@ -17,33 +17,19 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/dspies-leapyear/persistwrap-primitives#readme>
+description:         Please see the README on GitHub at <https://github.com/dspies-leapyear/promoted-lift#readme>
 
 default-extensions:
-- ConstraintKinds
 - DataKinds
-- EmptyCase
-- ExistentialQuantification
-- GADTs
-- InstanceSigs
-- KindSignatures
 - LambdaCase
-- RankNTypes
 - ScopedTypeVariables
-- StandaloneDeriving
-- TypeApplications
-- TypeFamilies
+- TypeOperators
 
 dependencies:
-- QuickCheck
 - base >= 4.7 && < 5
-- bytestring
-- promoted-lift
-- quickcheck-instances
 - singletons
+- template-haskell
 - text
-- time
-- th-lift
 
 library:
   source-dirs: src

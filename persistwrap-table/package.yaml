@@ -52,11 +52,13 @@ dependencies:
 - mtl
 - persistwrap-primitives
 - pointless-fun
+- promoted-lift
 - reflection
 - singletons
 - stm
 - template-haskell
 - text
+- th-lift
 - time
 - transformers-base
 

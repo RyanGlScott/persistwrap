@@ -1,35 +1,30 @@
-{-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeInType #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-redundant-constraints #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
-module PersistWrap.Table.Column where
+module PersistWrap.Table.Column
+  ( module X
+  ) where
 
-import Data.Kind (type (*))
-import Data.List.NonEmpty (NonEmpty)
-import Data.Singletons.Prelude hiding (type (*))
-import Data.Singletons.TH
+import Data.Singletons (fromSing)
+import Data.Singletons.ShowSing (ShowSing(..))
+import Data.Singletons.TypeLits (Symbol)
+import Data.Text (Text)
 
-import PersistWrap.Primitives (PrimName)
+import PersistWrap.Table.Schema.Internal as X
+import qualified PersistWrap.Table.Schema.Simple as Simple
 
-$(singletons [d|
-  data BaseColumn text = Prim PrimName | Enum (NonEmpty text) | ForeignKey text | JSON
-    deriving (Eq, Ord, Show)
-  data Column text = Column Bool (BaseColumn text)
-    deriving (Eq, Ord, Show)
-  data Schema text = Schema text [(text,Column text)]
-    deriving (Eq, Ord, Show)
-  |])
+schShow :: String -> Int -> Schema Text -> ShowS
+schShow constrName d (Simple.fromSchema -> (schemaName, schemaCols)) =
+  showParen (d > 10)
+    $ showString constrName
+    . showString " "
+    . showsPrec 11 schemaName
+    . showString " "
+    . showsPrec 11 schemaCols
 
-$(singletonsOnly [d|
-  schemaCols :: Schema Symbol -> [(Symbol, Column Symbol)]
-  schemaCols (Schema _ cs) = cs
-  schemaName :: Schema Symbol -> Symbol
-  schemaName (Schema n _) = n
-  |])
+instance Show (Schema Text) where
+  showsPrec = schShow "toSchema"
 
-type TabSchema (tab :: (*,Schema Symbol)) = Snd tab
-type TabName tab = SchemaName (TabSchema tab)
-type TabCols tab = SchemaCols (TabSchema tab)
+instance ShowSing (Schema Symbol) where
+  showsSingPrec _ schema = showString "$" . schShow "schema" 11 (fromSing schema)
+instance Show (SSchema (schema :: Schema Symbol)) where
+  showsPrec = showsSingPrec

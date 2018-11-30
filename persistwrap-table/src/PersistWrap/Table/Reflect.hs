@@ -15,10 +15,18 @@ data Entity' k v = Entity {entityKey :: k, entityVal :: v}
 data SomeTableNamed (table :: Schema Symbol -> *) (name :: Symbol)
   = forall cols. SomeTableNamed (Sing cols) (table ('Schema name cols))
 
+someTableNamed
+  :: SSchema ( 'Schema name cols) -> table ( 'Schema name cols) -> SomeTableNamed table name
+someTableNamed (SSchema _ c) = SomeTableNamed c
+
 instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) where
-  showsPrec d (SomeTableNamed cols tab) = withSingI cols $
-    showParen (d > 10) $
-      showString "SomeTableNamed " . showsPrec 11 cols . showString " " . showsPrec1 11 tab
+  showsPrec d (SomeTableNamed cols tab) =
+    withSingI cols
+      $ showParen (d > 10)
+      $ showString "someTableNamed "
+      . showsPrec 11 (SSchema (sing @_ @name) cols)
+      . showString " "
+      . showsPrec1 11 tab
 
 instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where
   withAlwaysS (singInstance -> SingInstance) = id
