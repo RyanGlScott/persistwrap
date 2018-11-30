@@ -86,6 +86,7 @@ data Operation items
   = Delete (Member items Proxy) Int
   | Insert Int (Member items Identity)
   | Lookup (Member items Proxy) Int
+  | Replace Int (Member items Identity)
 
 instance Show (Operation items) where
   showsPrec d = \case
@@ -109,15 +110,24 @@ instance Show (Operation items) where
         . showString ("fk" ++ show j)
         . showString " in "
         . showString (Text.unpack (fromSing name))
+    Replace j (Member (MemberX name (Identity x))) ->
+      showParen (d > 10)
+        $ showString "replace "
+        . showString ("fk" ++ show j)
+        . showString " with "
+        . showsPrec 11 x
+        . showString " in "
+        . showString (Text.unpack (fromSing name))
 
-data OperationC = DeleteC | InsertC | LookupC
+data OperationC = DeleteC | InsertC | LookupC | ReplaceC
   deriving (Eq, Bounded, Enum)
 
 _opConstructor :: Operation items -> OperationC
 _opConstructor = \case
-  Delete{} -> DeleteC
-  Insert{} -> InsertC
-  Lookup{} -> LookupC
+  Delete{}  -> DeleteC
+  Insert{}  -> InsertC
+  Lookup{}  -> LookupC
+  Replace{} -> ReplaceC
 
 data MemberX items f nx where
   MemberX
@@ -186,17 +196,23 @@ instance ItemList items => Arbitrary (Operations items) where
               opts   <- State.get
               (j, m) <- lift $ elements opts
               return $ Lookup m j
+            ReplaceC -> do
+              opts <- State.get
+              (j, Member (MemberX sn (_ :: Proxy x))) <- lift $ elements opts
+              Replace j . Member . MemberX sn . Identity <$> lift (arbitrary @x)
         return $ Operations $ firstInsertion : restOps
   shrink (Operations xs) = Operations . removeOrphanedLookups <$> shrinkList shrinkOp xs
 
 removeOrphanedLookups :: [Operation items] -> [Operation items]
 removeOrphanedLookups ops = (`evalState` Set.empty) $ (`filterM` ops) $ \case
-  Delete _ j -> State.gets (j `Set.member`)
-  Insert i _ -> State.modify (Set.insert i) >> return True
-  Lookup _ j -> State.gets (j `Set.member`)
+  Delete  _ j -> State.gets (j `Set.member`)
+  Insert  i _ -> State.modify (Set.insert i) >> return True
+  Lookup  _ j -> State.gets (j `Set.member`)
+  Replace j _ -> State.gets (j `Set.member`)
 
 shrinkOp :: Operation items -> [Operation items]
 shrinkOp = \case
-  Delete{}                        -> empty
-  Insert i (Member (MemberX n x)) -> Insert i . Member . MemberX n <$> shrink x
-  Lookup{}                        -> empty
+  Delete{}                         -> empty
+  Insert i (Member (MemberX n x))  -> Insert i . Member . MemberX n <$> shrink x
+  Lookup{}                         -> empty
+  Replace j (Member (MemberX n x)) -> Replace j . Member . MemberX n <$> shrink x

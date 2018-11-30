@@ -75,6 +75,10 @@ operateModel (Operations ops) = evalState (mapM go ops) IntMap.empty
       Lookup _ i -> State.gets (IntMap.lookup i) <&> \case
         Nothing -> NotFound
         Just r  -> Found $ convertFK r
+      Replace i mem -> do
+        present <- State.gets (i `IntMap.member`)
+        State.modify (IntMap.adjust (const mem) i)
+        pure $ if present then Done else NotFound
 
 data General (xs :: [(Symbol, *)]) (fk :: Symbol -> *)
 type instance Items (General xs fk) = Entities xs fk
@@ -124,3 +128,11 @@ operateActual (Operations ops) = BackEnd.withEmptyTablesItemized @(General xs)
                 Nothing -> NotFound
                 Just (ConvertFK x) ->
                   Found $ Member $ MemberX name $ ConvertFK $ Structure.fmapFK anyToUnit x
+            Replace j (Member (MemberX ((singInstance -> SingInstance) :: SSymbol name) (Identity (x :: x))))
+              -> do
+                Some fkj <- State.gets (IntMap.! j)
+                modified <-
+                  Persistable.modifyX @_ @(ConvertFK (ForeignKey (BackEnd.STMTransaction s)) x)
+                    fkj
+                    (const $ ConvertFK $ Structure.fmapFK dummyToAny x)
+                pure $ if modified then Done else NotFound
