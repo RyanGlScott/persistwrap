@@ -6,7 +6,7 @@ import Data.Singletons (sing)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
 import Consin (AlwaysS, HEq)
-import PersistWrap.Table.Column
+import PersistWrap.Table.Schema
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row (ForeignRow(..))
 import qualified PersistWrap.Table.Row as Row

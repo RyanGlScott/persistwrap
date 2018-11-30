@@ -21,8 +21,8 @@ import Language.Haskell.TH (Exp(ListE, VarE), Q, Type(..))
 
 import Language.Haskell.TH.PromotedLift (promotedLift)
 import PersistWrap.Primitives
-import PersistWrap.Table.Column hiding (Enum, JSON)
-import qualified PersistWrap.Table.Column as Column
+import PersistWrap.Table.Schema hiding (Enum, JSON)
+import qualified PersistWrap.Table.Schema as Column
 import PersistWrap.Table.EnumVal
 import PersistWrap.Table.Row
 import PersistWrap.Table.Schema.Simple (SimpleColType, SimpleColUnnamedType)

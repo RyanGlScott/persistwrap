@@ -36,7 +36,7 @@ import Consin.SingMap (SingMap)
 import qualified Consin.SingMap as SingMap
 import PersistWrap.Table.Class (Entity, MonadBaseTransaction)
 import qualified PersistWrap.Table.Class as Class
-import PersistWrap.Table.Column
+import PersistWrap.Table.Schema
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row
 import PersistWrap.Table.STM.Future (stateTVar)

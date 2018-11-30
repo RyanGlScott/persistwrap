@@ -16,7 +16,7 @@ import qualified Consin
 import qualified Consin as Tuple (zipUncheckSing)
 import PersistWrap.Primitives (PrimType, deriveConstraint)
 import PersistWrap.Table.Aeson.Orphans ()
-import PersistWrap.Table.Column
+import PersistWrap.Table.Schema
 import PersistWrap.Table.EnumVal
 
 data BaseValue fk (bc :: BaseColumn Symbol) where

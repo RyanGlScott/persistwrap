@@ -33,7 +33,7 @@ import Data.Singletons.TypeLits (SSymbol)
 import PersistWrap.Table.Class
     (ForeignKey, MonadBaseTransaction, entityToForeign, foreignToKey, keyToForeign)
 import qualified PersistWrap.Table.Class as Class
-import PersistWrap.Table.Column (Sing(SSchema))
+import PersistWrap.Table.Schema (Sing(SSchema))
 import PersistWrap.Table.Reflect (SomeTableNamed, getSchemaSing)
 import PersistWrap.Table.Row (unrestricted)
 

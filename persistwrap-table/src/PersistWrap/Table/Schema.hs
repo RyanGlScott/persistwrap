@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module PersistWrap.Table.Column
+module PersistWrap.Table.Schema
   ( module X
   ) where
 

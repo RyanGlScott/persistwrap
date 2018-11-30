@@ -8,7 +8,7 @@ import Data.Singletons (SingI, SingInstance(SingInstance), sing, singInstance, w
 import Data.Singletons.TypeLits (Symbol)
 
 import Consin (AlwaysS(..), fmapSing, showsPrec1)
-import PersistWrap.Table.Column
+import PersistWrap.Table.Schema
 
 data Entity' k v = Entity {entityKey :: k, entityVal :: v}
 
