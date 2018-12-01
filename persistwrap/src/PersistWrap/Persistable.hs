@@ -3,7 +3,13 @@
 
 module PersistWrap.Persistable where
 
+import Control.Arrow ((***))
+import Control.Monad (join, void)
+import Control.Monad.Trans.Maybe (MaybeT(..))
 import Data.Bifunctor (second)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe, isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons
 import Data.Singletons.Decide
@@ -55,6 +61,22 @@ class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * 
   deleteX :: ForeignKey m schemaName -> m Bool
   stateX :: ForeignKey m schemaName -> (x -> (b,x)) -> m (Maybe b)
   modifyX :: ForeignKey m schemaName -> (x -> x) -> m Bool
+  -- TODO Entity-aware implementations
+  getKV :: (x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> m (Maybe v)
+  getKV fk k = runMaybeT $ do
+    m <- MaybeT $ getX fk
+    MaybeT $ pure $ Map.lookup k m
+  insertKV :: (x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> v -> m ()
+  insertKV fk k v = void $ modifyX fk (Map.insert k v)
+  deleteKV :: (x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> m Bool
+  deleteKV fk k =
+    fromMaybe False <$> stateX @schemaName @x fk (\m -> (k `Map.member` m, Map.delete k m))
+  stateKV :: (x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> (v -> (b, v)) -> m (Maybe b)
+  stateKV fk k op = join <$> stateX
+    fk
+    (\m -> maybe (Nothing, m) ((Just *** (\v' -> Map.insert k v' m)) . op) (Map.lookup k m))
+  modifyKV :: (x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> (v -> v) -> m Bool
+  modifyKV fk k op = isJust <$> stateKV fk k (((),) . op)
 
 instance
     (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, fk ~ ForeignKey m)

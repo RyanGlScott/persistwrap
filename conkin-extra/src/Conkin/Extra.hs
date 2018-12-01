@@ -1,6 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE PolyKinds #-}
-
 module Conkin.Extra
   ( (:*:)(..)
   , module X

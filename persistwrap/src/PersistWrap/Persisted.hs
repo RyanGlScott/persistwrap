@@ -4,14 +4,20 @@
 module PersistWrap.Persisted
     ( MapsTo
     , Persisted
+    , deleteKV
     , deleteX
+    , getKV
     , getX
     , getXs
+    , insertKV
     , insertX
+    , modifyKV
     , modifyX
+    , stateKV
     , stateX
     ) where
 
+import Data.Map (Map)
 import Data.Promotion.Prelude (type (==))
 import GHC.TypeLits (KnownSymbol, Symbol)
 
@@ -35,6 +41,33 @@ stateX :: Persisted schemaName x m => ForeignKey m schemaName -> (x -> (b, x)) -
 stateX = E.stateX
 modifyX :: Persisted schemaName x m => ForeignKey m schemaName -> (x -> x) -> m Bool
 modifyX = E.modifyX
+getKV
+  :: (Persisted schemaName x m, x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> m (Maybe v)
+getKV = E.getKV
+insertKV
+  :: (Persisted schemaName x m, x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> v -> m ()
+insertKV = E.insertKV
+deleteKV
+  :: forall schemaName x m k v
+   . (Persisted schemaName x m, x ~ Map k v, Ord k)
+  => ForeignKey m schemaName
+  -> k
+  -> m Bool
+deleteKV = E.deleteKV @_ @x
+stateKV
+  :: (Persisted schemaName x m, x ~ Map k v, Ord k)
+  => ForeignKey m schemaName
+  -> k
+  -> (v -> (b, v))
+  -> m (Maybe b)
+stateKV = E.stateKV
+modifyKV
+  :: (Persisted schemaName x m, x ~ Map k v, Ord k)
+  => ForeignKey m schemaName
+  -> k
+  -> (v -> v)
+  -> m Bool
+modifyKV = E.modifyKV
 
 instance
   ( EntityPart (ForeignKey m) x

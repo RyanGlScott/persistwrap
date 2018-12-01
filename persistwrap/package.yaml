@@ -36,6 +36,7 @@ dependencies:
 - stream-reader
 - template-haskell
 - text
+- transformers
 
 default-extensions:
   ConstraintKinds
