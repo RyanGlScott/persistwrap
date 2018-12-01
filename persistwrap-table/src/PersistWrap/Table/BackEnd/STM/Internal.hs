@@ -62,10 +62,6 @@ instance Eq (FK s name) where
     Proved Refl -> l == r
     Disproved{} -> False
 instance AlwaysS Eq (FK s) where withAlwaysS = const id
-instance HEq (FK s) where
-  heq (FK sl l) (FK sr r) = case sl %~ sr of
-    Proved Refl -> if l == r then Just Dict else Nothing
-    Disproved{} -> Nothing
 
 instance Ord (FK s name) where
   -- TODO Figure this one out.
@@ -123,21 +119,22 @@ instance MonadIO m => MonadPersist (STMPersist s m) where
 withEmptyTables
   :: MonadIO m
   => SList (schemas :: [Schema Symbol])
-  -> (forall s . Tuple schemas (Table s) -> STMPersist s m x)
+  -> (forall s . SingI schemas => Tuple schemas (Table s) -> STMPersist s m x)
   -> m x
 withEmptyTables = unsafeSetupEmptyTables
 
 unsafeSetupEmptyTables
   :: (HasCallStack, MonadIO m)
   => SList (schemas :: [Schema Symbol])
-  -> (Tuple schemas (Table s) -> STMPersist s m x)
+  -> (SingI schemas => Tuple schemas (Table s) -> STMPersist s m x)
   -> m x
 unsafeSetupEmptyTables sschemas action
-  | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas)) = error $
-    "Schema names are not distinct: " ++ show (fromSing sschemas)
-  | otherwise = do
+  | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas))
+  = error $ "Schema names are not distinct: " ++ show (fromSing sschemas)
+  | otherwise
+  = do
     tables <- liftIO $ htraverse newTable schemasTuple
-    runReaderT (unSTMPersist $ action tables) (constructMap sschemas tables)
+    runReaderT (unSTMPersist $ withSingI sschemas action tables) (constructMap sschemas tables)
   where schemasTuple = singToTuple sschemas
 
 withEmptyTableProxies
@@ -145,8 +142,7 @@ withEmptyTableProxies
   => SList schemas
   -> (forall s . Tuple schemas (SomeTableProxy (Table s)) -> STMPersist s m x)
   -> m x
-withEmptyTableProxies schemas action =
-  withEmptyTables schemas $ withSingI schemas (`withinTables` action)
+withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` action)
 
 anyDuplicates :: Ord x => [x] -> Bool
 anyDuplicates = any (\grp -> length grp > 1) . group . sort
@@ -167,9 +163,8 @@ showAllTables = do
   tm       <- ask
   tabLines <-
     forM (SingMap.toList tm)
-      $ \(getSome -> GetSome name (SomeTableNamed (cols :: SList cols) tab)) ->
-          withSingI name $ withSingI cols $ do
+      $ \(getSome -> GetSome name (SomeTableNamed (singInstance -> SingInstance) tab)) ->
+          withSingI name $ do
             rows <- withinTable tab $ fmap (map (\(Entity _ v) -> v)) . getAllEntities
-            return $ Text.unpack (fromSing name) ++ ": " ++ withAlwaysSTupleShow @cols @(ValueSnd (FK s))
-              (show rows)
+            return $ Text.unpack (fromSing name) ++ ": " ++ show (map ConsinC rows)
   return $ unlines tabLines

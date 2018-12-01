@@ -43,3 +43,10 @@ instance (AlwaysS Show f, SingI x) => GShow (FromAlwaysS f x) where
 
 class Functor f where
   fmapSing :: forall a b . (forall x . SingI x => a x -> b x) -> f a -> f b
+
+class ConsinShow x where
+  showsPrecS :: Int -> x -> ShowS
+
+newtype ConsinC x = ConsinC x
+instance ConsinShow x => Show (ConsinC x) where
+  showsPrec d (ConsinC x) = showsPrecS d x

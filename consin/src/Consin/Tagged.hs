@@ -5,21 +5,22 @@
 module Consin.Tagged
     ( compareAlwaysSTags
     , eqAlwaysSTags
+    , getTaggedValueS
     , leftTag
     , pickSide
     , rightTag
-    , withAlwaysSTaggedShow
     ) where
 
 import Prelude hiding (Functor(..))
 
 import Conkin (Tagged(..))
+import Data.Constraint (Dict(Dict))
 import Data.Singletons (SingI, sing)
 import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil), SingInstance(..), singInstance)
 import Test.QuickCheck (Arbitrary(..), oneof)
 
 import Conkin.Extra (htraverse, noHere, tagCases)
-import Consin.Class (AlwaysS, Functor(..), compare1, (==*), withAlwaysS)
+import Consin.Class (AlwaysS, ConsinShow(..), Functor(..), compare1, (==*), withAlwaysS)
 import Consin.Tuple (singToTuple)
 
 pickSide
@@ -60,15 +61,18 @@ eqAlwaysSTags xs ys = case (sing @_ @xs, xs, ys) of
   (_, There{}, Here{} ) -> False
   (_ `SCons` (singInstance -> SingInstance), There x, There y) -> eqAlwaysSTags x y
 
-withAlwaysSTaggedShow
-  :: forall xs f y . (SingI xs, AlwaysS Show f) => (Show (Tagged xs f) => y) -> y
-withAlwaysSTaggedShow = go (sing @_ @xs)
+deriveShow :: forall xs f . (SingI xs, AlwaysS Show f) => Dict (Show (Tagged xs f))
+deriveShow = go (sing @_ @xs)
   where
-    go :: forall xs' . SList xs' -> (Show (Tagged xs' f) => y) -> y
+    go :: forall xs' . SList xs' -> Dict (Show (Tagged xs' f))
     go = \case
-      SNil -> id
-      (((singInstance -> SingInstance) :: Sing x) `SCons` xs) ->
-        \cont -> withAlwaysS @Show @f @x sing $ go xs cont
+      SNil             -> Dict
+      (sx `SCons` sxs) -> case go sxs of
+        Dict -> withAlwaysS @Show @f sx Dict
+
+instance (SingI xs, AlwaysS Show f) => ConsinShow (Tagged xs f) where
+  showsPrecS = case deriveShow @xs @f of
+    Dict -> showsPrec
 
 instance (AlwaysS Arbitrary f, SingI (x ': xs)) => Arbitrary (Tagged (x ': xs) f) where
   arbitrary = oneof $ map
@@ -92,3 +96,13 @@ instance SingI xs => Functor (Tagged xs) where
       go ((singInstance -> SingInstance) `SCons` _  ) (Here  x) = Here (fn x)
       go (_                              `SCons` sxs) (There x) = There $ go sxs x
       go SNil x = noHere x
+
+getTaggedValueS :: forall xs f y . SingI xs => (forall x . SingI x => f x -> y) -> Tagged xs f -> y
+getTaggedValueS fn = go (sing @_ @xs)
+  where
+    go :: forall xs' . SList xs' -> Tagged xs' f -> y
+    go = \case
+      SNil -> noHere
+      SCons (singInstance -> SingInstance) sxs -> \case
+        Here  x -> fn x
+        There x -> go sxs x

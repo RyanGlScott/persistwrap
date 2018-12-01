@@ -2,7 +2,15 @@
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Consin.Tuple where
+module Consin.Tuple
+    ( (++&)
+    , compareAlwaysSTuples
+    , eqAlwaysSTuples
+    , mapUncheckSing
+    , singToTuple
+    , splitTuple
+    , zipUncheckSing
+    ) where
 
 import Prelude hiding (Functor(..), unzip)
 
@@ -14,7 +22,7 @@ import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 import Test.QuickCheck (Arbitrary(..))
 
 import Conkin.Extra (htraverse)
-import Consin.Class (AlwaysS, Functor(..), compare1, (==*), withAlwaysS)
+import Consin.Class (AlwaysS, ConsinShow(..), Functor(..), compare1, (==*), withAlwaysS)
 
 (++&) :: Tuple xs f -> Tuple ys f -> Tuple (xs ++ ys) f
 (++&) Nil         t  = t
@@ -32,11 +40,6 @@ singToTuple = \case
   SNil       -> Nil
   SCons x xs -> Cons x (singToTuple xs)
 
-tupleToSing :: Tuple xs Sing -> SList xs
-tupleToSing = \case
-  Nil       -> SNil
-  Cons x xs -> SCons x (tupleToSing xs)
-
 instance SingI xs => Functor (Tuple xs) where
   fmapSing :: forall a b . (forall x . SingI x => a x -> b x) -> Tuple xs a -> Tuple xs b
   fmapSing fn = go sing
@@ -44,20 +47,6 @@ instance SingI xs => Functor (Tuple xs) where
       go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b
       go SNil Nil           = Nil
       go ((singInstance -> SingInstance) `SCons` sxs) (x `Cons` xs) = fn x `Cons` go sxs xs
-
-zipWithSing
-  :: forall a b c xs
-   . SingI xs
-  => (forall x . SingI x => a x -> b x -> c x)
-  -> Tuple xs a
-  -> Tuple xs b
-  -> Tuple xs c
-zipWithSing fn = go sing
-  where
-    go :: forall xs' . SList xs' -> Tuple xs' a -> Tuple xs' b -> Tuple xs' c
-    go SNil Nil Nil = Nil
-    go ((singInstance -> SingInstance) `SCons` sxs) (x `Cons` xs) (y `Cons` ys) =
-      fn x y `Cons` go sxs xs ys
 
 mapUncheckSing :: forall a xs y . SList xs -> (forall x . SingI x => a x -> y) -> Tuple xs a -> [y]
 mapUncheckSing s fn = go s
@@ -94,6 +83,9 @@ withAlwaysSTupleShow = go (sing @_ @xs)
       SNil -> id
       (((singInstance -> SingInstance) :: Sing x) `SCons` xs) ->
         \cont -> withAlwaysS @Show @f @x sing $ go xs cont
+
+instance (SingI xs, AlwaysS Show f) => ConsinShow (Tuple xs f) where
+  showsPrecS = withAlwaysSTupleShow @xs @f showsPrec
 
 instance (SingI xs, AlwaysS Arbitrary f) => Arbitrary (Tuple xs f) where
   arbitrary =

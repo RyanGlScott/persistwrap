@@ -10,12 +10,10 @@ module PersistWrap.Structure.EntityOf
 
 import Conkin (Tagged(..), Tuple(..))
 import Control.Arrow ((***))
-import Data.Constraint (Dict(Dict))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Singletons (SingI, SingInstance(SingInstance), fromSing, sing, singInstance, withSingI)
-import Data.Singletons.Decide (Decision(..), (:~:)(..), (%~))
+import Data.Singletons (SingI, SingInstance(SingInstance), fromSing, sing, singInstance)
 import Data.Singletons.Prelude (SList, Sing(..))
 import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (SSymbol, Symbol)
@@ -27,7 +25,7 @@ import PersistWrap.Structure.Type
 
 data EntityOf (fk :: Symbol -> *) (struct :: Structure Symbol) where
   Prim :: PrimType p -> EntityOf fk ('Primitive p)
-  ForeignKey :: SingI name => fk name -> EntityOf fk ('Foreign name)
+  ForeignKey :: fk name -> EntityOf fk ('Foreign name)
   Unit :: EntityOf fk 'UnitType
   Sum :: Tagged (x ': xs) (EntityOfSnd fk) -> EntityOf fk ('SumType (x ':| xs))
   Product :: Tuple xs (EntityOfSnd fk) -> EntityOf fk ('ProductType xs)
@@ -46,11 +44,11 @@ fmapFK fn = go (sing @_ @struct)
     go = \case
       SPrimitive{} -> \case
         Prim p -> Prim p
-      SForeign{} -> \case
+      SForeign (singInstance -> SingInstance) -> \case
         ForeignKey fk -> ForeignKey $ fn fk
       SUnitType -> \case
         Unit -> Unit
-      SSumType (xHead :%| xTail) -> withSingI (xHead `SCons` xTail) $ \case
+      SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance)) -> \case
         Sum xs -> Sum $ fmapSing (fmapFKSnd fn) xs
       SProductType (singInstance -> SingInstance) -> \case
         Product xs -> Product $ fmapSing (fmapFKSnd fn) xs
@@ -77,11 +75,9 @@ instance (SingI struct, AlwaysS Show fk) => Show (EntityOf fk struct) where
     SUnitType -> \case
       Unit -> showString "Unit"
     SProductType ((singInstance -> SingInstance) :: SList xs) -> \case
-      Product xs -> showParen (d > 10) $
-        showString "Product " . withAlwaysSTupleShow @xs @(EntityOfSnd fk) showsPrec 11 xs
-    SSumType ((sx :: Sing x) :%| (sxs :: SList xs)) -> \case
-      Sum xs -> showParen (d > 10) $ withSingI (sx `SCons` sxs) $
-        showString "Sum " . withAlwaysSTaggedShow @(x ': xs) @(EntityOfSnd fk) showsPrec 11 xs
+      Product xs -> showParen (d > 10) $ showString "Product " . showsPrecS 11 xs
+    SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance)) -> \case
+      Sum xs -> showParen (d > 10) $ showString "Sum " . showsPrecS 11 xs
     SListType (singInstance -> SingInstance) -> \case
       List xs -> showParen (d > 10) $ showString "List " . showsPrec 11 xs
     SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) -> \case
@@ -95,21 +91,18 @@ instance (SingI nx, AlwaysS Show fk) => Show (EntityOfSnd fk nx) where
 instance AlwaysS Show fk => AlwaysS Show (EntityOfSnd fk) where
   withAlwaysS (singInstance -> SingInstance) = id
 
-instance AlwaysS Eq fk => HEq (EntityOf fk) where
-  heq (x :: EntityOf fk x) (y :: EntityOf fk y) = case sing @_ @x %~ sing @_ @y of
-    Proved Refl -> if x == y then Just Dict else Nothing
-    Disproved{} -> Nothing
-
 foreignKey :: SSymbol name -> fk name -> EntityOf fk ( 'Foreign name)
 foreignKey (singInstance -> SingInstance) = ForeignKey
 
 instance (AlwaysS Eq fk, SingI struct) => Eq (EntityOf fk struct) where
   (==) (Prim x) (Prim y) = case sing @_ @struct of
     (SPrimitive pn) -> deriveConstraint @Eq pn (==) x y
-  (==) (ForeignKey x) (ForeignKey y) = x ==* y
-  (==) Unit Unit = True
-  (==) (Sum x) (Sum y) = case sing @_ @struct of
-    (SSumType (sx :%| sxs)) -> withSingI (sx `SCons` sxs) eqAlwaysSTags x y
+  (==) (ForeignKey x) (ForeignKey y) = case sing @_ @struct of
+    (SForeign (singInstance -> SingInstance)) -> x ==* y
+  (==) Unit           Unit           = True
+  (==) (Sum x)        (Sum y)        = case sing @_ @struct of
+    (SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance))) ->
+      eqAlwaysSTags x y
   (==) (Product x) (Product y) = case sing @_ @struct of
     (SProductType (singInstance -> SingInstance)) -> eqAlwaysSTuples x y
   (==) (List x) (List y) = case sing @_ @struct of
@@ -120,10 +113,12 @@ instance (AlwaysS Eq fk, SingI struct) => Eq (EntityOf fk struct) where
 instance (SingI struct, AlwaysS Eq fk, AlwaysS Ord fk) => Ord (EntityOf fk struct) where
   compare (Prim x) (Prim y) = case sing @_ @struct of
     (SPrimitive pn) -> deriveConstraint @Ord pn compare x y
-  compare (ForeignKey x) (ForeignKey y) = compare1 x y
-  compare Unit Unit = EQ
-  compare (Sum x) (Sum y) = case sing @_ @struct of
-    (SSumType (sx :%| sxs)) -> withSingI (sx `SCons` sxs) compareAlwaysSTags x y
+  compare (ForeignKey x) (ForeignKey y) = case sing @_ @struct of
+    SForeign (singInstance -> SingInstance) -> compare1 x y
+  compare Unit           Unit           = EQ
+  compare (Sum x)        (Sum y)        = case sing @_ @struct of
+    (SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance))) ->
+      compareAlwaysSTags x y
   compare (Product x) (Product y) = case sing @_ @struct of
     (SProductType (singInstance -> SingInstance)) -> compareAlwaysSTuples x y
   compare (List x) (List y) = case sing @_ @struct of
@@ -149,15 +144,13 @@ instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
     => Arbitrary (EntityOf fk structure) where
   arbitrary = case sing @_ @structure of
     SPrimitive pn  -> Prim <$> deriveConstraint @Arbitrary pn arbitrary
-    SForeign   sfk -> withSingI sfk $ ForeignKey <$> withAlwaysS @Arbitrary @fk sfk arbitrary
+    SForeign   sfk -> ForeignKey <$> withAlwaysS @Arbitrary @fk sfk arbitrary
     SUnitType      -> pure Unit
     SProductType sxs@(singInstance -> SingInstance) ->
       scale (\s -> max 0 $ (s - 1) `quot` max 1 (length (fromSing sxs))) $ Product <$> arbitrary
-    SSumType sxs@(x0 :%| xs) ->
-      scale (\s -> max 0 $ (s - 1) `quot` length (fromSing sxs))
-        $   Sum
-        <$> withSingI (x0 `SCons` xs) arbitrary
-    SListType (singInstance -> SingInstance)                               ->
+    SSumType sxs@((singInstance -> SingInstance) :%| (singInstance -> SingInstance)) ->
+      scale (\s -> max 0 $ (s - 1) `quot` length (fromSing sxs)) $ Sum <$> arbitrary
+    SListType (singInstance -> SingInstance) ->
       scale (\s -> floorSqrt $ max 0 $ s - 1) $ List <$> arbitrary
     SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) ->
       scale (\s -> floorSqrt (max 0 (s - 1)) `quot` 2) $ Map <$> arbitrary
@@ -170,8 +163,8 @@ instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
       Unit -> []
     SProductType (singInstance -> SingInstance) -> \case
       Product xs -> map Product $ shrink xs
-    SSumType (sx :%| sxs) -> \case
-      Sum xs -> map Sum $ withSingI (sx `SCons` sxs) shrink xs
+    SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance)) -> \case
+      Sum xs -> map Sum $ shrink xs
     SListType (singInstance -> SingInstance) -> \case
       List xs -> map List $ shrink xs
     SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) -> \case

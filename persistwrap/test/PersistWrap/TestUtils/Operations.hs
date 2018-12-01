@@ -61,15 +61,12 @@ makeOpSchema = go . zip defaultTabNames
     go = \case
       []              -> OpSchema [] (Proxy @'[])
       (name, x) : nxs -> case (toSing name, toSing x, go nxs) of
-        (SomeSing (sname :: SSymbol name), SomeSing (sx :: SStructure x), OpSchema xs (_ :: Proxy
+        (SomeSing (sname :: SSymbol name), SomeSing ((singInstance -> SingInstance) :: SStructure x), OpSchema xs (_ :: Proxy
             rest))
           -> case sname %== sname of
             SFalse -> error "Name does not equal itself!?" -- TODO How to prove unreachable?
             STrue ->
-              withSingI sname
-                $ withSingI sx
-                $ OpSchema (x : xs)
-                $ Proxy @('(name, EntityOf DummyFK x) ': rest)
+              withSingI sname $ OpSchema (x : xs) $ Proxy @('(name, EntityOf DummyFK x) ': rest)
 
 defaultTabNames :: [Text]
 defaultTabNames = [ Text.pack $ "Tab" ++ show i | i <- [(0 :: Int) ..] ]

@@ -1,11 +1,18 @@
+{-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Consin.Some where
 
-import Data.Constraint (Dict)
+import Data.Constraint (Dict(Dict))
 import Data.Function.Pointless ((.:))
+import Data.Kind (type (*))
 import Data.Maybe (isJust)
 import Data.Singletons (Sing, SingI, SingInstance(SingInstance), sing, singInstance)
+import Data.Singletons.Decide
+import Data.Singletons.Prelude.Ord
 
-import Consin.Class (AlwaysS, showsPrec1)
+import Consin.Class (AlwaysS, (==*), compare1, showsPrec1)
 
 data Some f = forall x. SingI x => Some (f x)
 
@@ -17,13 +24,19 @@ data GetSome f = forall x. GetSome (Sing x) (f x)
 getSome :: Some f -> GetSome f
 getSome (Some x) = GetSome sing x
 
-class HEq f where
-  heq :: (SingI x, SingI y) => f x -> f y -> Maybe (Dict (x ~ y))
+class HEq (f :: k -> *) where
+  heq :: forall x y. (SingI x, SingI y) => f x -> f y -> Maybe (Dict (x ~ y))
   (==^) :: (SingI x, SingI y) => f x -> f y -> Bool
   (==^) = isJust .: heq
   (/=^) :: (SingI x, SingI y) => f x -> f y -> Bool
   (/=^) = not .: (==^)
-class HEq f => HOrd f where
+
+instance (SDecide k, AlwaysS Eq f) => HEq (f :: k -> *) where
+  heq :: forall x y. (SingI x, SingI y) => f x -> f y -> Maybe (Dict (x ~ y))
+  heq = case sing @_ @x %~ sing @_ @y of
+    Proved Refl -> \x y -> if x ==* y then Just Dict else Nothing
+    Disproved{} -> \_ _ -> Nothing
+class HEq f => HOrd (f :: k -> *) where
   hcompare :: (SingI x, SingI y) => f x -> f y -> Ordering
   (<^) :: (SingI x, SingI y) => f x -> f y -> Bool
   (<^) x y = hcompare x y < EQ
@@ -37,6 +50,14 @@ class HEq f => HOrd f where
   min1 x y = if y <^ x then Some y else Some x
   max1 :: (SingI x, SingI y) => f x -> f y -> Some f
   max1 x y = if y >^ x then Some y else Some x
+instance (SDecide k, SOrd k, AlwaysS Ord f, HEq f) => HOrd (f :: k -> *) where
+  hcompare :: forall x y. (SingI x, SingI y) => f x -> f y -> Ordering
+  hcompare = case sCompare (sing @_ @x) (sing @_ @y) of
+    SLT -> \_ _ -> LT
+    SEQ -> case sing @_ @x %~ sing @_ @y of
+      Proved Refl -> compare1
+      Disproved{} -> error "Types x and y compare to EQ, but are not (~)"
+    SGT -> \_ _ -> GT
 
 instance HEq f => Eq (Some f) where
   (==) (Some x) (Some y) = x ==^ y

@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module PersistWrap.Table.Schema
-  ( module X
+  ( showPromotedSchema
+  , module X
   ) where
 
 import Data.Singletons (fromSing)
@@ -24,7 +25,10 @@ schShow constrName d (Simple.fromSchema -> (schemaName, schemaCols)) =
 instance Show (Schema Text) where
   showsPrec = schShow "toSchema"
 
+showPromotedSchema :: SSchema (schema :: Schema Symbol) -> ShowS
+showPromotedSchema schema = showString "$" . schShow "schema" 11 (fromSing schema)
+
 instance ShowSing (Schema Symbol) where
-  showsSingPrec _ schema = showString "$" . schShow "schema" 11 (fromSing schema)
+  showsSingPrec d schema = showParen (d > 10) $ showString "sing @_ @" . showPromotedSchema schema
 instance Show (SSchema (schema :: Schema Symbol)) where
   showsPrec = showsSingPrec
