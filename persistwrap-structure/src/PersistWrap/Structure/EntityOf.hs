@@ -1,4 +1,3 @@
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Structure.EntityOf

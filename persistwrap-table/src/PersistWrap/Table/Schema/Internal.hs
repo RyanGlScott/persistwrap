@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveLift #-}
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeInType #-}

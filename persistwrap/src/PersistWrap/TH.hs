@@ -1,4 +1,3 @@
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module PersistWrap.TH

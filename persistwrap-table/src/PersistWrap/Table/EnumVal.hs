@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module PersistWrap.Table.EnumVal

@@ -12,7 +12,27 @@ conf_debug:
   dconf_dump_bridoc_simpl_columns: false
   dconf_dump_ast_full: false
 conf_forward:
-  options_ghc: []
+conf_forward:
+  options_ghc:
+  - -XConstraintKinds
+  - -XDataKinds
+  - -XDefaultSignatures
+  - -XEmptyCase
+  - -XExistentialQuantification
+  - -XFlexibleContexts
+  - -XFunctionalDependencies
+  - -XInstanceSigs
+  - -XLambdaCase
+  - -XMultiParamTypeClasses
+  - -XNamedFieldPuns
+  - -XPolyKinds
+  - -XRecordWildCards
+  - -XScopedTypeVariables
+  - -XTupleSections
+  - -XTypeApplications
+  - -XTypeFamilies
+  - -XTypeOperators
+  - -XViewPatterns
 conf_errorHandling:
   econf_ExactPrintFallback: ExactPrintFallbackModeInline
   econf_Werror: false

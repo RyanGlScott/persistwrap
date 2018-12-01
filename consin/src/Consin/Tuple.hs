@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Consin.Tuple

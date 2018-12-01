@@ -46,7 +46,6 @@ default-extensions:
   DuplicateRecordFields
   EmptyCase
   EmptyDataDeriving
-  ExplicitNamespaces
   FlexibleContexts
   FlexibleInstances
   FunctionalDependencies

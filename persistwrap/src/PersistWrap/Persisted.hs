@@ -1,4 +1,3 @@
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
