@@ -9,9 +9,8 @@ import Data.Kind (type (*))
 import Data.Maybe (isJust)
 import Data.Singletons (Sing, SingI, SingInstance(SingInstance), sing, singInstance)
 import Data.Singletons.Decide
-import Data.Singletons.Prelude.Ord
 
-import Consin.Class (AlwaysS, (==*), compare1, showsPrec1)
+import Consin.Class (AlwaysS, (==*), showsPrec1)
 
 data Some f = forall x. SingI x => Some (f x)
 
@@ -35,40 +34,10 @@ instance (SDecide k, AlwaysS Eq f) => HEq (f :: k -> *) where
   heq = case sing @_ @x %~ sing @_ @y of
     Proved Refl -> \x y -> if x ==* y then Just Dict else Nothing
     Disproved{} -> \_ _ -> Nothing
-class HEq f => HOrd (f :: k -> *) where
-  hcompare :: (SingI x, SingI y) => f x -> f y -> Ordering
-  (<^) :: (SingI x, SingI y) => f x -> f y -> Bool
-  (<^) x y = hcompare x y < EQ
-  (<=^) :: (SingI x, SingI y) => f x -> f y -> Bool
-  (<=^) x y = hcompare x y <= EQ
-  (>^) :: (SingI x, SingI y) => f x -> f y -> Bool
-  (>^) x y = hcompare x y > EQ
-  (>=^) :: (SingI x, SingI y) => f x -> f y -> Bool
-  (>=^) x y = hcompare x y >= EQ
-  min1 :: (SingI x, SingI y) => f x -> f y -> Some f
-  min1 x y = if y <^ x then Some y else Some x
-  max1 :: (SingI x, SingI y) => f x -> f y -> Some f
-  max1 x y = if y >^ x then Some y else Some x
-instance (SDecide k, SOrd k, AlwaysS Ord f, HEq f) => HOrd (f :: k -> *) where
-  hcompare :: forall x y. (SingI x, SingI y) => f x -> f y -> Ordering
-  hcompare = case sCompare (sing @_ @x) (sing @_ @y) of
-    SLT -> \_ _ -> LT
-    SEQ -> case sing @_ @x %~ sing @_ @y of
-      Proved Refl -> compare1
-      Disproved{} -> error "Types x and y compare to EQ, but are not (~)"
-    SGT -> \_ _ -> GT
 
 instance HEq f => Eq (Some f) where
   (==) (Some x) (Some y) = x ==^ y
   (/=) (Some x) (Some y) = x /=^ y
-instance HOrd f => Ord (Some f) where
-  compare (Some x) (Some y) = hcompare x y
-  (<) (Some x) (Some y) = x <^ y
-  (<=) (Some x) (Some y) = x <=^ y
-  (>) (Some x) (Some y) = x >^ y
-  (>=) (Some x) (Some y) = x >=^ y
-  min (Some x) (Some y) = min1 x y
-  max (Some x) (Some y) = max1 x y
 
 instance AlwaysS Show f => Show (Some f) where
   showsPrec d (Some x) = showParen (d > 10) $ showString "Some " . showsPrec1 11 x
