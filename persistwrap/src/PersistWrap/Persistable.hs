@@ -19,6 +19,7 @@ import qualified Data.Text as Text
 import GHC.Stack (HasCallStack)
 
 import PersistWrap.Functor.Extra
+import PersistWrap.Persistable.Delete
 import PersistWrap.Persistable.Get
 import PersistWrap.Persistable.Insert
 import PersistWrap.Persistable.Rep
@@ -84,7 +85,7 @@ instance
   getXs = map (second (fromEntity @fk)) <$> undefined
   getX = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))
   insertX = insert (rep @schemaName @(StructureOf x)) . toEntity @fk
-  deleteX = undefined
+  deleteX = delete (rep @schemaName @(StructureOf x))
   stateX =
     let stateX' = undefined in \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
   modifyX = let modifyX' = undefined in \k fn -> modifyX' k (toEntity @fk . fn . fromEntity @fk)
