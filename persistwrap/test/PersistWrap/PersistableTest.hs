@@ -52,19 +52,24 @@ convertFK :: Member items Identity -> Member items (ConvertFK Proxy)
 convertFK (Member (MemberX name (Identity val))) =
   Member $ MemberX name (ConvertFK $ Structure.fmapFK anyToUnit val)
 
-type LookupResults items = [Maybe (Member items (ConvertFK Proxy))]
+type LookupResults items = [OpResult items]
+
+data OpResult items = Done | Found (Member items (ConvertFK Proxy)) | Modified Bool | NotFound
+  deriving (Eq, Show)
 
 operateModel :: Operations xs -> LookupResults xs
 operateModel (Operations ops) = evalState (mapM go ops) IntMap.empty
   where
-    go :: Operation xs -> State (IntMap (Member xs Identity)) (Maybe (Member xs (ConvertFK Proxy)))
+    go :: Operation xs -> State (IntMap (Member xs Identity)) (OpResult xs)
     go = \case
       Insert i mem -> do
         State.modify (IntMap.insert i mem)
-        pure Nothing
+        pure Done
       Lookup _ i -> do
         x <- State.gets (IntMap.lookup i)
-        pure $ convertFK <$> x
+        pure $ case x of
+          Nothing -> NotFound
+          Just r  -> Found $ convertFK r
 
 data General (xs :: [(Symbol, *)]) (fk :: Symbol -> *)
 type instance Items (General xs fk) = Entities xs fk
@@ -101,12 +106,11 @@ operateActual (Operations ops) = BackEnd.withEmptyTablesItemized @(General xs)
                     x
                   )
                 State.modify $ IntMap.insert i (Some fki)
-                return Nothing
+                return Done
             Lookup (Member (MemberX name (_ :: Proxy x))) j -> do
               Some fkj <- State.gets (IntMap.! j)
               ent <- Persistable.getX @_ @(ConvertFK (ForeignKey (BackEnd.STMTransaction s)) x) fkj
-              return
-                $   (\(ConvertFK x) ->
-                      Member $ MemberX name $ ConvertFK $ Structure.fmapFK anyToUnit x
-                    )
-                <$> ent
+              return $ case ent of
+                Nothing -> NotFound
+                Just (ConvertFK x) ->
+                  Found $ Member $ MemberX name $ ConvertFK $ Structure.fmapFK anyToUnit x

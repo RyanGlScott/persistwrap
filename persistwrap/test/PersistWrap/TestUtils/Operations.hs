@@ -82,7 +82,9 @@ elements :: HasCallStack => [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
-data Operation items = Insert Int (Member items Identity) | Lookup (Member items Proxy) Int
+data Operation items
+  = Insert Int (Member items Identity)
+  | Lookup (Member items Proxy) Int
 
 instance Show (Operation items) where
   showsPrec d = \case
@@ -161,15 +163,15 @@ instance ItemList items => Arbitrary (Operations items) where
       then return $ Operations []
       else do
         mem0@(Member (MemberX n0 _)) <- elements mems
-        firstInsertion     <- Insert 0 . Member . MemberX n0 <$> arbitrary
-        restOps            <- (`evalStateT` [(0, mem0)]) $ forM [1 .. len] $ \i ->
+        firstInsertion               <- Insert 0 . Member . MemberX n0 <$> arbitrary
+        restOps                      <- (`evalStateT` [(0, mem0)]) $ forM [1 .. len] $ \i ->
           lift arbitraryBoundedEnum >>= \case
             InsertC -> do
               memi@(Member (MemberX n _)) <- lift $ elements mems
               State.modify ((i, memi) :)
               lift $ Insert i . Member . MemberX n <$> arbitrary
             LookupC -> do
-              opts <- State.get
+              opts   <- State.get
               (j, m) <- lift $ elements opts
               return $ Lookup m j
         return $ Operations $ firstInsertion : restOps
@@ -177,8 +179,8 @@ instance ItemList items => Arbitrary (Operations items) where
 
 removeOrphanedLookups :: [Operation items] -> [Operation items]
 removeOrphanedLookups ops = (`evalState` Set.empty) $ (`filterM` ops) $ \case
-  (Insert i _) -> State.modify (Set.insert i) >> return True
-  (Lookup _ j) -> State.gets (j `Set.member`)
+  Insert i _ -> State.modify (Set.insert i) >> return True
+  Lookup _ j -> State.gets (j `Set.member`)
 
 shrinkOp :: Operation items -> [Operation items]
 shrinkOp = \case
