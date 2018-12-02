@@ -46,7 +46,6 @@ dependencies:
 - conkin
 - conkin-extra
 - consin
-- constraints
 - containers
 - generic-deriving
 - persistwrap-primitives
