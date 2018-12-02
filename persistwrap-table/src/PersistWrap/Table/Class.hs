@@ -5,7 +5,7 @@ import Data.Proxy (Proxy)
 import Data.Singletons (sing)
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 
-import Consin (AlwaysS, HEq)
+import Consin (AlwaysS)
 import PersistWrap.Table.Schema
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row (ForeignRow(..))
@@ -18,7 +18,7 @@ type Entity m tab = Entity' (Key m tab) (TabRow m tab)
 
 type family ForeignKey (m :: * -> *) :: Symbol -> *
 
-class (HEq (ForeignKey m), AlwaysS Eq (ForeignKey m), AlwaysS Ord (ForeignKey m), Monad m)
+class (AlwaysS Eq (ForeignKey m), AlwaysS Ord (ForeignKey m), Monad m)
     => MonadBaseTransaction m where
   data Table m :: Schema Symbol -> *
   data Key m :: (*,Schema Symbol) -> *
