@@ -3,25 +3,19 @@ module PersistWrap.Persistable.Insert
     ) where
 
 import Conkin (Tagged(..), Tuple(..))
-import Control.Monad (forM_, replicateM_, void)
-import Control.Monad.Reader (ReaderT(ReaderT), runReaderT)
-import Control.Monad.Trans (MonadTrans, lift)
-import Control.Monad.Writer (WriterT, execWriterT)
-import qualified Control.Monad.Writer as Writer
+import Control.Monad (forM_, void)
+import Control.Monad.Trans (lift)
 import Data.Bijection (biFrom)
 import Data.Int (Int64)
-import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Map as Map
-import Data.Semigroup (Semigroup(..))
-import Data.Singletons.Decide
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.List.NonEmpty (SNonEmpty, Sing((:%|)))
+import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits
 import GHC.Stack (HasCallStack)
 
 import Conkin.Extra (mapUncheck, noHere, zipUncheck)
-import qualified Consin.Tuple.StreamWriter as Tuple
 import PersistWrap.Persistable.Columns
+import PersistWrap.Persistable.Insert.Utils
 import PersistWrap.Persistable.Rep
 import PersistWrap.Persistable.Utils
 import PersistWrap.Structure as Structure
@@ -53,20 +47,6 @@ insertRowItems selfSchemaName = \case
       tellX (SColumn SFalse (SEnum tags)) (V (EV $ getSumTag tags xs'))
       insertSumItem selfSchemaName ncrs xs'
 
-getSumTag
-  :: forall name names xs f
-   . SNonEmpty (name ':| names)
-  -> Tagged (xs :: [(Symbol, Structure Symbol)]) f
-  -> EnumVal (name ': names)
-getSumTag (_ :%| names0) = EnumVal . \case
-  Here  _    -> Here Proxy
-  There tag1 -> There $ go names0 tag1
-  where
-    go :: forall (names' :: [Symbol]) xs' . SList names' -> Tagged xs' f -> Tagged names' Proxy
-    go SNil              _         = error "Disparate lengths"
-    go (_ `SCons` _    ) (Here  _) = Here Proxy
-    go (_ `SCons` names) (There x) = There $ go names x
-
 insertSumItem
   :: forall xs m selfSchemaName fk cols
    . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
@@ -88,72 +68,6 @@ insertSumItem selfSchemaName = go
       writeNullNamed ncr
       go rest x'
     go Nil x' = noHere x'
-
-writeNullNamed
-  :: (HasCallStack, Monad m) => NamedColumnRep fk x -> InsertT selfSchemaName cols fk m ()
-writeNullNamed (NamedColumnRep _ cr) = writeNull cr
-
-writeNull :: (HasCallStack, Monad m) => ColumnRep fk x -> InsertT selfSchemaName cols fk m ()
-writeNull = \case
-  UnitRep{}                               -> return ()
-  PrimRep c@(SColumn STrue  _)            -> tellX c (N Nothing)
-  PrimRep (  SColumn SFalse _)            -> error "Non-nullable column"
-  FnRep cr _                              -> writeNull cr
-  ForeignRep{}                            -> error "Non-nullable column"
-  NullForeignRep (NamedSchemaRep fname _) -> tellX (SColumn STrue (SForeignKey fname)) (N Nothing)
-  ListRep{}                               -> return ()
-  MapRep{}                                -> return ()
-
-newtype InsertT selfSchemaName cols fk m x =
-    InsertT (
-        WriterT (NextOperation selfSchemaName fk m ()) (Tuple.StreamWriterT cols (ValueSnd fk) m) x
-      )
-  deriving (Functor, Applicative, Monad)
-instance MonadTrans (InsertT selfSchemaName cols fk) where
-  lift = InsertT . lift . lift
-
-newtype NextOperation (selfSchemaName :: Symbol) fk m x =
-    NextOperation (ReaderT (fk selfSchemaName) m x)
-  deriving (Functor, Applicative, Monad)
-
-withPerformInsert
-  :: forall tabName m
-   . (MonadTransaction m)
-  => SSymbol tabName
-  -> (forall cols . InsertT tabName cols (ForeignKey m) m ())
-  -> m (ForeignKey m tabName)
-withPerformInsert tabName act = withSomeTable tabName (go act)
-  where
-    go
-      :: forall tab
-       . (TabName tab ~ tabName, WithinTable m tab)
-      => InsertT tabName (TabCols tab) (ForeignKey m) m ()
-      -> SList (TabCols tab)
-      -> Proxy tab
-      -> m (ForeignKey m tabName)
-    go (InsertT act') scols proxy = do
-      (NextOperation nextOp, row :: TabRow m tab) <- Tuple.runStreamWriterT (execWriterT act') scols
-      fk <- keyToForeign <$> insertRow proxy row
-      runReaderT nextOp fk
-      return fk
-
-instance Monad m => Semigroup (NextOperation selfSchemaName fk m ()) where
-  (<>) = (>>)
-  sconcat = sequence_
-  stimes = replicateM_ . fromIntegral
-instance Monad m => Monoid (NextOperation selfSchemaName fk m ()) where
-  mempty = pure ()
-  mappend = (>>)
-  mconcat = sequence_
-
-tellX
-  :: (HasCallStack, Monad m) => SColumn col -> Value fk col -> InsertT selfSchemaName cols fk m ()
-tellX cn x = InsertT $ lift $ Tuple.tell $ \(STuple2 _ cn') -> case cn' %~ cn of
-  Proved Refl -> return $ ValueSnd x
-  Disproved{} -> error "Column types don't match"
-
-nextWrite :: Monad m => (fk selfSchemaName -> m ()) -> InsertT selfSchemaName cols fk m ()
-nextWrite act = InsertT $ Writer.tell (NextOperation (ReaderT act))
 
 writeColumnNamed
   :: (MonadTransaction m, fk ~ ForeignKey m)
