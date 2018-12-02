@@ -18,6 +18,7 @@ import Test.QuickCheck
 import Conkin.Extra (All, Always(..))
 import Consin (AlwaysS(..), Some(Some))
 import PersistWrap hiding (fmapFK)
+import PersistWrap.Functor.Extra ((<&>))
 import qualified PersistWrap.Structure as Structure (fmapFK)
 import PersistWrap.BackEnd.Helper (AllEmbed, EmbedPair)
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
@@ -54,7 +55,10 @@ convertFK (Member (MemberX name (Identity val))) =
 
 type LookupResults items = [OpResult items]
 
-data OpResult items = Done | Found (Member items (ConvertFK Proxy)) | Modified Bool | NotFound
+data OpResult items
+  = Done
+  | Found (Member items (ConvertFK Proxy))
+  | NotFound
   deriving (Eq, Show)
 
 operateModel :: Operations xs -> LookupResults xs
@@ -65,11 +69,9 @@ operateModel (Operations ops) = evalState (mapM go ops) IntMap.empty
       Insert i mem -> do
         State.modify (IntMap.insert i mem)
         pure Done
-      Lookup _ i -> do
-        x <- State.gets (IntMap.lookup i)
-        pure $ case x of
-          Nothing -> NotFound
-          Just r  -> Found $ convertFK r
+      Lookup _ i -> State.gets (IntMap.lookup i) <&> \case
+        Nothing -> NotFound
+        Just r  -> Found $ convertFK r
 
 data General (xs :: [(Symbol, *)]) (fk :: Symbol -> *)
 type instance Items (General xs fk) = Entities xs fk
