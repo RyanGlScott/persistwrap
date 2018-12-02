@@ -83,7 +83,8 @@ elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
 data Operation items
-  = Insert Int (Member items Identity)
+  = Delete (Member items Proxy) Int
+  | Insert Int (Member items Identity)
   | Lookup (Member items Proxy) Int
 
 instance Show (Operation items) where
@@ -102,12 +103,19 @@ instance Show (Operation items) where
         . showString ("fk" ++ show j)
         . showString " in "
         . showString (Text.unpack (fromSing name))
+    Delete (Member (MemberX name Proxy)) j ->
+      showParen (d > 10)
+        $ showString "delete "
+        . showString ("fk" ++ show j)
+        . showString " in "
+        . showString (Text.unpack (fromSing name))
 
-data OperationC = InsertC | LookupC
+data OperationC = DeleteC | InsertC | LookupC
   deriving (Eq, Bounded, Enum)
 
 _opConstructor :: Operation items -> OperationC
 _opConstructor = \case
+  Delete{} -> DeleteC
   Insert{} -> InsertC
   Lookup{} -> LookupC
 
@@ -166,6 +174,10 @@ instance ItemList items => Arbitrary (Operations items) where
         firstInsertion               <- Insert 0 . Member . MemberX n0 <$> arbitrary
         restOps                      <- (`evalStateT` [(0, mem0)]) $ forM [1 .. len] $ \i ->
           lift arbitraryBoundedEnum >>= \case
+            DeleteC -> do
+              opts   <- State.get
+              (j, m) <- lift $ elements opts
+              return $ Delete m j
             InsertC -> do
               memi@(Member (MemberX n _)) <- lift $ elements mems
               State.modify ((i, memi) :)
@@ -179,10 +191,12 @@ instance ItemList items => Arbitrary (Operations items) where
 
 removeOrphanedLookups :: [Operation items] -> [Operation items]
 removeOrphanedLookups ops = (`evalState` Set.empty) $ (`filterM` ops) $ \case
+  Delete _ j -> State.gets (j `Set.member`)
   Insert i _ -> State.modify (Set.insert i) >> return True
   Lookup _ j -> State.gets (j `Set.member`)
 
 shrinkOp :: Operation items -> [Operation items]
 shrinkOp = \case
+  Delete{}                        -> empty
   Insert i (Member (MemberX n x)) -> Insert i . Member . MemberX n <$> shrink x
   Lookup{}                        -> empty

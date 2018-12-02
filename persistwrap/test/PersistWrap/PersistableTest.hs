@@ -66,6 +66,9 @@ operateModel (Operations ops) = evalState (mapM go ops) IntMap.empty
   where
     go :: Operation xs -> State (IntMap (Member xs Identity)) (OpResult xs)
     go = \case
+      Delete _ i -> State.gets (IntMap.lookup i) >>= \case
+        Nothing -> pure NotFound
+        Just{}  -> State.modify (IntMap.delete i) >> pure Done
       Insert i mem -> do
         State.modify (IntMap.insert i mem)
         pure Done
@@ -100,6 +103,11 @@ operateActual (Operations ops) = BackEnd.withEmptyTablesItemized @(General xs)
       (`evalStateT` (IntMap.empty :: IntMap (Some (ForeignKey (STMTransaction s)))))
         $ forM ops
         $ \case
+            Delete (Member (MemberX _ (_ :: Proxy x))) j -> do
+              Some fkj <- State.gets (IntMap.! j)
+              result   <-
+                Persistable.deleteX @_ @(ConvertFK (ForeignKey (BackEnd.STMTransaction s)) x) fkj
+              return $ if result then Done else NotFound
             Insert i (Member (MemberX ((singInstance -> SingInstance) :: SSymbol name) (Identity x)))
               -> do
                 fki <- Persistable.insertX @name
