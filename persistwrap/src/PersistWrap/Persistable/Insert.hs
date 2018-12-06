@@ -1,5 +1,6 @@
 module PersistWrap.Persistable.Insert
     ( insert
+    , insertRowItems
     ) where
 
 import Conkin (Tagged(..), Tuple(..))

@@ -1,5 +1,6 @@
 module PersistWrap.Persistable.Delete
     ( delete
+    , deleteDescendants
     ) where
 
 import Control.Monad (void)
@@ -32,6 +33,17 @@ delete (NamedSchemaRep schemaName rep) fk = withSomeTable schemaName $ \cols pro
     Just row ->
       deleteSomeRow (schemaSubDeletion rep) (some (SSchema schemaName cols) (ForeignRow fk row))
         >> pure True
+
+deleteDescendants
+  :: (HasCallStack, MonadTransaction m)
+  => NamedSchemaRep (ForeignKey m) schemaName structure
+  -> ForeignKey m schemaName
+  -> m ()
+deleteDescendants (NamedSchemaRep schemaName rep) fk = withSomeTable schemaName $ \cols proxy ->
+  getRow (foreignToKey proxy fk) >>= \case
+    Nothing -> error "No such row"
+    Just row ->
+      doSubDeletion (schemaSubDeletion rep) (some (SSchema schemaName cols) (ForeignRow fk row))
 
 deleteColumnChildren
   :: forall fk m colName x
@@ -101,14 +113,22 @@ deleteSomeRow
   => (Some fk -> ValueStreamT m ())
   -> Some (ForeignRow fk)
   -> m ()
-deleteSomeRow op (getSome -> GetSome (SSchema schemaName cols) (ForeignRow fk row)) =
-  withSomeTable schemaName $ \_ proxy -> do
-    let someFK :: Some fk
-        someFK = some schemaName fk
-    (`runStreamReaderT` mapUncheckSing cols Some row) (op someFK)
-    deleteRow (foreignToKey proxy fk) >>= \case
-      False -> error "Missing entry"
-      True  -> pure ()
+deleteSomeRow op someFR@(getSome -> GetSome (SSchema schemaName _) (ForeignRow fk _)) = do
+  doSubDeletion op someFR
+  withSomeTable schemaName $ \_ proxy -> deleteRow (foreignToKey proxy fk) >>= \case
+    False -> error "Missing entry"
+    True  -> pure ()
+
+doSubDeletion
+  :: forall fk m
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+  => (Some fk -> ValueStreamT m ())
+  -> Some (ForeignRow fk)
+  -> m ()
+doSubDeletion op (getSome -> GetSome (SSchema schemaName cols) (ForeignRow fk row)) = do
+  let someFK :: Some fk
+      someFK = some schemaName fk
+  (`runStreamReaderT` mapUncheckSing cols Some row) (op someFK)
 
 deleteNamedColumnChildren
   :: (HasCallStack, MonadTransaction m)

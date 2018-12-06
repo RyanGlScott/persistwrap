@@ -4,6 +4,7 @@ module PersistWrap.Persistable.Insert.Utils
     , nextWrite
     , tellX
     , withPerformInsert
+    , withPerformReplace
     , writeNullNamed
     ) where
 
@@ -89,6 +90,30 @@ withPerformInsert tabName act = withSomeTable tabName (go act)
       fk <- keyToForeign <$> insertRow proxy row
       runReaderT nextOp fk
       return fk
+
+withPerformReplace
+  :: forall tabName m
+   . (MonadTransaction m)
+  => SSymbol tabName
+  -> ForeignKey m tabName
+  -> (forall cols . InsertT tabName cols (ForeignKey m) m ())
+  -> m ()
+withPerformReplace tabName fk act = withSomeTable tabName (go act)
+  where
+    go
+      :: forall tab
+       . (TabName tab ~ tabName, WithinTable m tab)
+      => InsertT tabName (TabCols tab) (ForeignKey m) m ()
+      -> SList (TabCols tab)
+      -> Proxy tab
+      -> m ()
+    go (InsertT act') scols proxy = do
+      (NextOperation nextOp, row :: TabRow m tab) <- Tuple.runStreamWriterT (execWriterT act')
+                                                                            scols
+      modifyRow (foreignToKey proxy fk) (const row) >>= \case
+        False -> error "Row missing"
+        True  -> pure ()
+      runReaderT nextOp fk
 
 instance Monad m => Semigroup (NextOperation selfSchemaName fk m ()) where
   (<>) = (>>)

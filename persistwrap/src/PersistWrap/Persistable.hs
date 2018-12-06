@@ -24,6 +24,7 @@ import PersistWrap.Persistable.Get
 import PersistWrap.Persistable.Insert
 import PersistWrap.Persistable.Rep
 import PersistWrap.Persistable.Schemas
+import PersistWrap.Persistable.State
 import PersistWrap.Structure
 import PersistWrap.Table
 
@@ -61,8 +62,9 @@ class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * 
   insertX :: x -> m (ForeignKey m schemaName)
   deleteX :: ForeignKey m schemaName -> m Bool
   stateX :: ForeignKey m schemaName -> (x -> (b,x)) -> m (Maybe b)
-  modifyX :: ForeignKey m schemaName -> (x -> x) -> m Bool
   -- TODO Entity-aware implementations
+  modifyX :: ForeignKey m schemaName -> (x -> x) -> m Bool
+  modifyX fk op = isJust <$> stateX fk (((),) . op)
   getKV :: (x ~ Map k v, Ord k) => ForeignKey m schemaName -> k -> m (Maybe v)
   getKV fk k = runMaybeT $ do
     m <- MaybeT $ getX fk
@@ -87,5 +89,5 @@ instance
   insertX = insert (rep @schemaName @(StructureOf x)) . toEntity @fk
   deleteX = delete (rep @schemaName @(StructureOf x))
   stateX =
-    let stateX' = undefined in \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
-  modifyX = let modifyX' = undefined in \k fn -> modifyX' k (toEntity @fk . fn . fromEntity @fk)
+    let stateX' = state (rep @schemaName @(StructureOf x))
+    in  \k fn -> stateX' k (second (toEntity @fk) . fn . fromEntity @fk)
