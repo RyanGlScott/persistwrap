@@ -37,7 +37,8 @@ tellX s1 x = tell $ \s2 -> case s1 %~ s2 of
   Proved Refl -> return x
   Disproved{} -> error "Unexpected type"
 
-runStreamWriterT :: (HasCallStack, Monad m) => StreamWriterT xs f m x -> SList xs -> m (x, Tuple xs f)
+runStreamWriterT
+  :: (HasCallStack, Monad m) => StreamWriterT xs f m x -> SList xs -> m (x, Tuple xs f)
 runStreamWriterT (StreamWriterT act) sxs = runStateT act (BoxBuilder sxs id) >>= \case
   (res, BoxBuilder srem fn) -> case srem of
     SNil        -> return (res, fn Nil)

@@ -73,10 +73,12 @@ instance Ord SingPrim where
     Proved Refl -> deriveConstraint @Ord sl compare pl pr
     Disproved{} -> compare (fromSing sl) (fromSing sr)
 instance Show SingPrim where
-  showsPrec d (SingPrim s p) = showParen (d > 10) $
-    showString "SingPrim " .
-    showsPrec 11 s . showString " " .
-    deriveConstraint @Show s showsPrec 11 p
+  showsPrec d (SingPrim s p) =
+    showParen (d > 10)
+      $ showString "SingPrim "
+      . showsPrec 11 s
+      . showString " "
+      . deriveConstraint @Show s showsPrec 11 p
 
 instance Arbitrary PrimName where
   arbitrary = arbitraryBoundedEnum
@@ -90,12 +92,12 @@ instance Arbitrary SingPrim where
 deriving instance TH.Lift PrimName
 instance PromotedLift PrimName where
   promotedLift = \case
-    PrimText -> [t| 'PrimText |]
+    PrimText       -> [t| 'PrimText |]
     PrimByteString -> [t| 'PrimByteString |]
-    PrimInt64 -> [t| 'PrimInt64 |]
-    PrimDouble -> [t| 'PrimDouble |]
-    PrimRational -> [t| 'PrimRational |]
-    PrimBool -> [t| 'PrimBool |]
-    PrimDay -> [t| 'PrimDay |]
-    PrimTimeOfDay -> [t| 'PrimTimeOfDay |]
-    PrimUTCTime -> [t| 'PrimUTCTime |]
+    PrimInt64      -> [t| 'PrimInt64 |]
+    PrimDouble     -> [t| 'PrimDouble |]
+    PrimRational   -> [t| 'PrimRational |]
+    PrimBool       -> [t| 'PrimBool |]
+    PrimDay        -> [t| 'PrimDay |]
+    PrimTimeOfDay  -> [t| 'PrimTimeOfDay |]
+    PrimUTCTime    -> [t| 'PrimUTCTime |]

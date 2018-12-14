@@ -13,12 +13,18 @@ import Generics.Deriving.Show (GShow, gshowsPrec)
 class AlwaysS c f where
   withAlwaysS :: forall x y. Sing x -> (c (f x) => y) -> y
 
-instance Eq x => AlwaysS Eq (Const x) where withAlwaysS = const id
-instance Ord x => AlwaysS Ord (Const x) where withAlwaysS = const id
-instance Show x => AlwaysS Show (Const x) where withAlwaysS = const id
-instance AlwaysS Eq Proxy where withAlwaysS = const id
-instance AlwaysS Ord Proxy where withAlwaysS = const id
-instance AlwaysS Show Proxy where withAlwaysS = const id
+instance Eq x => AlwaysS Eq (Const x) where
+  withAlwaysS = const id
+instance Ord x => AlwaysS Ord (Const x) where
+  withAlwaysS = const id
+instance Show x => AlwaysS Show (Const x) where
+  withAlwaysS = const id
+instance AlwaysS Eq Proxy where
+  withAlwaysS = const id
+instance AlwaysS Ord Proxy where
+  withAlwaysS = const id
+instance AlwaysS Show Proxy where
+  withAlwaysS = const id
 
 (==*) :: forall f x . (AlwaysS Eq f, SingI x) => f x -> f x -> Bool
 (==*) = withAlwaysS @Eq @f @x sing (==)

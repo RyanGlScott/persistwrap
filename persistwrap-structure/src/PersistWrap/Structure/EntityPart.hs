@@ -96,7 +96,7 @@ instance EntityPart fk Int where
 instance EntityPart fk Integer where
   type StructureOf Integer = StructureOf Text
   fromEntity = read . Text.unpack . fromEntity
-  toEntity = toEntity . Text.pack . show
+  toEntity   = toEntity . Text.pack . show
 
 instance EntityPart fk v => EntityPart fk [v] where
   type StructureOf [v] = 'ListType (StructureOf v)
@@ -106,11 +106,7 @@ instance (AlwaysS Eq fk, AlwaysS Ord fk, Ord k, EntityPart fk k, EntityPart fk v
     => EntityPart fk (Map k v) where
   type StructureOf (Map k v) = 'MapType (StructureOf k) (StructureOf v)
   fromEntity (Map fk) = Map.fromList $ map (fromEntity @fk *** fromEntity @fk) $ Map.toList fk
-  toEntity fk =
-    Map
-      $ Map.fromList
-      $ map (toEntity @fk *** toEntity @fk)
-      $ Map.toList fk
+  toEntity fk = Map $ Map.fromList $ map (toEntity @fk *** toEntity @fk) $ Map.toList fk
 instance (Ord k, EntityPart fk k) => EntityPart fk (Set k) where
   type StructureOf (Set k) = 'ListType (StructureOf k)
   fromEntity (List s) = Set.fromList $ map (fromEntity @fk) s
@@ -119,7 +115,7 @@ instance (Ord k, EntityPart fk k) => EntityPart fk (Set k) where
 instance SingI structure => EntityPart fk (EntityOf fk structure) where
   type StructureOf (EntityOf fk structure) = structure
   fromEntity = id
-  toEntity = id
+  toEntity   = id
 
 class SingI (GStructureOf f) => GEntityPart (fk :: Symbol -> *) f where
   type GStructureOf f :: Structure Symbol
@@ -143,8 +139,8 @@ instance (GEntityPart fk a) => GenericConsPart fk (C1 ('MetaCons na fa sa) a) wh
   type GenericConsHead (C1 ('MetaCons na fa sa) a) = '(na, GStructureOf a)
   type GenericConsTail (C1 ('MetaCons na fa sa) a) = '[]
   fromTag = \case
-    Here (EntityOfSnd x) -> M1 $ gFromEntity @fk x
-    There x -> case x of {}
+    Here  (EntityOfSnd x) -> M1 $ gFromEntity @fk x
+    There x               -> case x of
   toTag (M1 x) = Here $ EntityOfSnd (gToEntity @fk x)
 
 instance
@@ -157,7 +153,7 @@ instance
   type GenericConsHead (a :+: b) = GenericConsHead a
   type GenericConsTail (a :+: b) = GenericConsTail a ++ GenericConsList b
   fromTag x = case pickSide x of
-    Left l  -> L1 $ fromTag @fk l
+    Left  l -> L1 $ fromTag @fk l
     Right r -> R1 $ fromTag @fk r
   toTag = \case
     L1 l -> leftTag @(GenericConsList a) @(GenericConsList b) $ toTag @fk l
@@ -229,8 +225,10 @@ instance
     )
     => GenericRecPart fk (a :*: b) where
   type GenericRecList (a :*: b) = GenericRecList a ++ GenericRecList b
-  fromField x = uncurry (:*:) . (fromField @fk *** fromField @fk)
-    $ splitTuple @(GenericRecList a) @(GenericRecList b) x
+  fromField x =
+    uncurry (:*:)
+      . (fromField @fk *** fromField @fk)
+      $ splitTuple @(GenericRecList a) @(GenericRecList b) x
   toField (x :*: y) = toField @fk x ++& toField @fk y
 
 instance (SingI (FillInDefaultNames (GenericRecList (a :*: b))), GenericRecPart fk (a :*: b))
@@ -242,12 +240,12 @@ instance (SingI (FillInDefaultNames (GenericRecList (a :*: b))), GenericRecPart 
 instance GEntityPart fk a => GEntityPart fk (M1 i m a) where
   type GStructureOf (M1 i m a) = GStructureOf a
   gFromEntity = M1 . gFromEntity @fk
-  gToEntity = gToEntity @fk . unM1
+  gToEntity   = gToEntity @fk . unM1
 
 instance EntityPart fk a => GEntityPart fk (K1 i a) where
   type GStructureOf (K1 i a) = StructureOf a
   gFromEntity = K1 . fromEntity @fk
-  gToEntity = toEntity @fk . unK1
+  gToEntity   = toEntity @fk . unK1
 
 genericToEntity
   :: forall fk a . (Generic a, GEntityPart fk (Rep a)) => a -> EntityOf fk (GStructureOf (Rep a))

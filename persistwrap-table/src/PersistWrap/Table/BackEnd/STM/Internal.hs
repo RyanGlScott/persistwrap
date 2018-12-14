@@ -55,18 +55,21 @@ data FK s name = forall sch . SchemaName sch ~ name
 
 instance Show (FK s name) where
   show (FK (SSchema schname _) _) = "<foreign key: " ++ Text.unpack (fromSing schname) ++ ">"
-instance AlwaysS Show (FK s) where withAlwaysS = const id
+instance AlwaysS Show (FK s) where
+  withAlwaysS = const id
 
 instance Eq (FK s name) where
   (==) (FK sl l) (FK sr r) = case sl %~ sr of
     Proved Refl -> l == r
     Disproved{} -> False
-instance AlwaysS Eq (FK s) where withAlwaysS = const id
+instance AlwaysS Eq (FK s) where
+  withAlwaysS = const id
 
 instance Ord (FK s name) where
   -- TODO Figure this one out.
   compare _ _ = error "TVars not comparable"
-instance AlwaysS Ord (FK s) where withAlwaysS = const id
+instance AlwaysS Ord (FK s) where
+  withAlwaysS = const id
 
 type Key s = Class.Key (STMTransaction s)
 type Table s = Class.Table (STMTransaction s)
@@ -78,8 +81,8 @@ instance MonadBaseTransaction (STMTransaction s) where
   newtype Key (STMTransaction s) tab = Key {unKey :: TVarMaybeRow s (TabCols tab)}
   getEntities (proxy :: Proxy tab) restriction = liftBase $ do
     let Table refs = getTable proxy
-    (result :: [Entity (STMTransaction s) tab])
-      <- mapMaybeM (\k -> fmap (Entity (Key k)) <$> readTVar k) =<< readTVar refs
+    (result :: [Entity (STMTransaction s) tab]) <-
+      mapMaybeM (\k -> fmap (Entity (Key k)) <$> readTVar k) =<< readTVar refs
     writeTVar refs $ map (unKey . entityKey) result
     return $ case getSchemaSing proxy of
       SSchema _ (singInstance -> SingInstance) -> filter (matches restriction . entityVal) result
@@ -95,8 +98,7 @@ instance MonadBaseTransaction (STMTransaction s) where
   keyToForeign (Key r :: Key s tab) = FK (sing @_ @(TabSchema tab)) r
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
-      -- If the names are the same, then the schemas must be the same.
-      coerceSchema :: forall. TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
+      coerceSchema :: TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
       coerceSchema = case sing @_ @(TabSchema tab) of
         SSchema _ tabCols -> case schCols %~ tabCols of
           Proved Refl -> id

@@ -36,20 +36,20 @@ instance (SingI bc, AlwaysS Show fk) => Show (BaseValue fk bc) where
 instance (AlwaysS Eq fk, SingI bc) => Eq (BaseValue fk bc) where
   (==) = go sing
     where
-      go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
-      go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Eq n (==) pl pr
-      go SEnum{} (EV x) (EV y) = x == y
+      go :: SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
+      go (SPrim n) (PV    pl) (PV    pr) = deriveConstraint @Eq n (==) pl pr
+      go SEnum{}   (EV    x ) (EV    y ) = x == y
       go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = il ==* ir
-      go SJSON (JSONV vl) (JSONV vr) = vl == vr
+      go SJSON     (JSONV vl) (JSONV vr) = vl == vr
 
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI bc) => Ord (BaseValue fk bc) where
   compare = go sing
     where
-      go :: forall. SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Ordering
-      go (SPrim n) (PV pl) (PV pr) = deriveConstraint @Ord n compare pl pr
-      go SEnum{} (EV x) (EV y) = compare x y
+      go :: SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Ordering
+      go (SPrim n) (PV    pl) (PV    pr) = deriveConstraint @Ord n compare pl pr
+      go SEnum{}   (EV    x ) (EV    y ) = compare x y
       go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = compare1 il ir
-      go SJSON (JSONV vl) (JSONV vr) = vl `compare` vr
+      go SJSON     (JSONV vl) (JSONV vr) = vl `compare` vr
 
 
 data Value fk (c :: Column Symbol) where
@@ -63,19 +63,22 @@ instance (AlwaysS Show fk, SingI c) => Show (Value fk c) where
 
 instance (AlwaysS Eq fk, SingI c) => Eq (Value fk c) where
   (==) = case sing @_ @c of
-      SColumn _ (singInstance -> SingInstance) -> go
+    SColumn _ (singInstance -> SingInstance) -> go
     where
-      go :: forall bc n. SingI bc
-        => Value fk ('Column n bc) -> Value fk ('Column n bc) -> Bool
+      go :: forall bc n . SingI bc => Value fk ( 'Column n bc) -> Value fk ( 'Column n bc) -> Bool
       go (N x) (N y) = x == y
       go (V x) (V y) = x == y
 
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI c) => Ord (Value fk c) where
   compare = case sing @_ @c of
-      SColumn _ (singInstance -> SingInstance) -> go
+    SColumn _ (singInstance -> SingInstance) -> go
     where
-      go :: forall bc n. SingI bc
-        => Value fk ('Column n bc) -> Value fk ('Column n bc) -> Ordering
+      go
+        :: forall bc n
+         . SingI bc
+        => Value fk ( 'Column n bc)
+        -> Value fk ( 'Column n bc)
+        -> Ordering
       go (N x) (N y) = compare x y
       go (V x) (V y) = compare x y
 
@@ -92,8 +95,8 @@ instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
   MaybeValueSnd :: Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)
 
-type Row fk (cols :: [(Symbol,Column Symbol)]) = Tuple cols (ValueSnd fk)
-type SubRow fk (cols :: [(Symbol,Column Symbol)]) = Tuple cols (MaybeValueSnd fk)
+type Row fk (cols :: [(Symbol, Column Symbol)]) = Tuple cols (ValueSnd fk)
+type SubRow fk (cols :: [(Symbol, Column Symbol)]) = Tuple cols (MaybeValueSnd fk)
 
 data ForeignRow fk schema where
   ForeignRow :: fk name -> Row fk cols -> ForeignRow fk ('Schema name cols)

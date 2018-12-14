@@ -116,11 +116,11 @@ withPerformReplace tabName fk act = withSomeTable tabName (go act)
       runReaderT nextOp fk
 
 instance Monad m => Semigroup (NextOperation selfSchemaName fk m ()) where
-  (<>) = (>>)
+  (<>)    = (>>)
   sconcat = sequence_
-  stimes = replicateM_ . fromIntegral
+  stimes  = replicateM_ . fromIntegral
 instance Monad m => Monoid (NextOperation selfSchemaName fk m ()) where
-  mempty = pure ()
+  mempty  = pure ()
   mappend = (>>)
   mconcat = sequence_
 

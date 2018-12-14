@@ -92,7 +92,7 @@ instance Arbitrary (Structure Text) where
 newtype Unshrinkable a = Unshrinkable {unUnshrinkable :: a}
 instance Arbitrary (Unshrinkable a) where
   arbitrary = error "Should not be used"
-  shrink = const []
+  shrink    = const []
 
 shrinkValues :: (Functor f, Arbitrary (f (Unshrinkable a, b))) => f (a, b) -> [f (a, b)]
 shrinkValues = map (fmap (first unUnshrinkable)) . shrink . fmap (first Unshrinkable)

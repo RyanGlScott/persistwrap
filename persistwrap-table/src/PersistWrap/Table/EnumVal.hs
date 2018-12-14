@@ -16,7 +16,8 @@ import Data.Text (Text)
 newtype EnumVal (xs :: [Symbol]) = EnumVal (Tagged xs Proxy)
 
 instance SingI xs => Show (EnumVal xs) where
-  showsPrec d val = showParen (d > 10) $ showString "enum @" . showString (show (caseText sing val))
+  showsPrec d val =
+    showParen (d > 10) $ showString "enum @" . showString (show (caseText sing val))
 
 caseText :: SList (xs :: [Symbol]) -> EnumVal xs -> Text
 caseText sxs0 (EnumVal ev0) = go sxs0 ev0
@@ -43,17 +44,17 @@ instance IsMember name xs => IsMemberH 'False name (x ': xs) where
 instance Eq (EnumVal xs) where
   (==) (EnumVal x0) (EnumVal y0) = go x0 y0
     where
-      go :: forall (xs' :: [Symbol]). Tagged xs' Proxy -> Tagged xs' Proxy -> Bool
-      go (Here Proxy) (Here Proxy) = True
-      go (There x) (There y) = go x y
-      go (Here _) (There _) = False
-      go (There _) (Here _) = False
+      go :: forall (xs' :: [Symbol]) . Tagged xs' Proxy -> Tagged xs' Proxy -> Bool
+      go (Here  Proxy) (Here  Proxy) = True
+      go (There x    ) (There y    ) = go x y
+      go (Here  _    ) (There _    ) = False
+      go (There _    ) (Here  _    ) = False
 
 instance Ord (EnumVal xs) where
   compare (EnumVal x0) (EnumVal y0) = go x0 y0
     where
-      go :: forall (xs' :: [Symbol]). Tagged xs' Proxy -> Tagged xs' Proxy -> Ordering
-      go (Here Proxy) (Here Proxy) = EQ
-      go (There x) (There y) = go x y
-      go (Here _) (There _) = LT
-      go (There _) (Here _) = GT
+      go :: forall (xs' :: [Symbol]) . Tagged xs' Proxy -> Tagged xs' Proxy -> Ordering
+      go (Here  Proxy) (Here  Proxy) = EQ
+      go (There x    ) (There y    ) = go x y
+      go (Here  _    ) (There _    ) = LT
+      go (There _    ) (Here  _    ) = GT

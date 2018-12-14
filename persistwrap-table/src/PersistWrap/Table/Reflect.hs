@@ -31,8 +31,8 @@ instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) wh
 instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where
   withAlwaysS (singInstance -> SingInstance) = id
 
-type WithinTableOf (table :: Schema Symbol -> *) tab =
-  (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))
+type WithinTableOf (table :: Schema Symbol -> *) tab
+  = (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))
 
 withinTable
   :: forall table sch y

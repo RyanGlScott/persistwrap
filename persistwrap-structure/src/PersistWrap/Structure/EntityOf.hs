@@ -85,8 +85,8 @@ instance AlwaysS Show fk => AlwaysS Show (EntityOf fk) where
   withAlwaysS (singInstance -> SingInstance) = id
 instance (SingI nx, AlwaysS Show fk) => Show (EntityOfSnd fk nx) where
   showsPrec d (EntityOfSnd x) = case sing @_ @nx of
-    STuple2 _ (singInstance -> SingInstance) -> showParen (d > 10) $
-      showString "EntityOfSnd " . showsPrec 11 x
+    STuple2 _ (singInstance -> SingInstance) ->
+      showParen (d > 10) $ showString "EntityOfSnd " . showsPrec 11 x
 instance AlwaysS Show fk => AlwaysS Show (EntityOfSnd fk) where
   withAlwaysS (singInstance -> SingInstance) = id
 
@@ -98,8 +98,8 @@ instance (AlwaysS Eq fk, SingI struct) => Eq (EntityOf fk struct) where
     (SPrimitive pn) -> deriveConstraint @Eq pn (==) x y
   (==) (ForeignKey x) (ForeignKey y) = case sing @_ @struct of
     (SForeign (singInstance -> SingInstance)) -> x ==* y
-  (==) Unit           Unit           = True
-  (==) (Sum x)        (Sum y)        = case sing @_ @struct of
+  (==) Unit    Unit    = True
+  (==) (Sum x) (Sum y) = case sing @_ @struct of
     (SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance))) ->
       eqAlwaysSTags x y
   (==) (Product x) (Product y) = case sing @_ @struct of
@@ -114,8 +114,8 @@ instance (SingI struct, AlwaysS Eq fk, AlwaysS Ord fk) => Ord (EntityOf fk struc
     (SPrimitive pn) -> deriveConstraint @Ord pn compare x y
   compare (ForeignKey x) (ForeignKey y) = case sing @_ @struct of
     SForeign (singInstance -> SingInstance) -> compare1 x y
-  compare Unit           Unit           = EQ
-  compare (Sum x)        (Sum y)        = case sing @_ @struct of
+  compare Unit    Unit    = EQ
+  compare (Sum x) (Sum y) = case sing @_ @struct of
     (SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance))) ->
       compareAlwaysSTags x y
   compare (Product x) (Product y) = case sing @_ @struct of

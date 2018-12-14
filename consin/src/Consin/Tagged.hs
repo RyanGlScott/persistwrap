@@ -92,9 +92,9 @@ instance SingI xs => Functor (Tagged xs) where
   fmapSing fn = go sing
     where
       go :: forall xs' . SList xs' -> Tagged xs' a -> Tagged xs' b
-      go ((singInstance -> SingInstance) `SCons` _  ) (Here  x) = Here (fn x)
-      go (_                              `SCons` sxs) (There x) = There $ go sxs x
-      go SNil x = noHere x
+      go ((singInstance -> SingInstance) `SCons` _) (Here x) = Here (fn x)
+      go (_ `SCons` sxs) (There x) = There $ go sxs x
+      go SNil x         = noHere x
 
 getTaggedValueS :: forall xs f y . SingI xs => (forall x . SingI x => f x -> y) -> Tagged xs f -> y
 getTaggedValueS fn = go (sing @_ @xs)

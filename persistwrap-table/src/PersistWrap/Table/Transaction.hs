@@ -76,10 +76,7 @@ getEntities
   -> m [Entity m tab]
 getEntities = liftTransaction .: Class.getEntities
 getRow
-  :: forall m tab
-   . (MonadTransaction m, WithinTable m tab)
-  => Key m tab
-  -> m (Maybe (TabRow m tab))
+  :: forall m tab . (MonadTransaction m, WithinTable m tab) => Key m tab -> m (Maybe (TabRow m tab))
 getRow = liftTransaction . Class.getRow
 insertRow
   :: forall m tab
@@ -106,10 +103,7 @@ modifyRow
   -> m Bool
 modifyRow = liftTransaction .: Class.modifyRow
 lookupTable
-  :: forall m name
-   . MonadTransaction m
-  => SSymbol name
-  -> m (Maybe (SomeTableNamed (Table m) name))
+  :: forall m name . MonadTransaction m => SSymbol name -> m (Maybe (SomeTableNamed (Table m) name))
 lookupTable = liftTransaction . Class.lookupTable
 
 getAllEntities

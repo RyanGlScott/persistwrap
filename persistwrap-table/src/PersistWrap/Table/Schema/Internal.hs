@@ -39,10 +39,10 @@ deriving instance TH.Lift (Column Text)
 
 instance PromotedLift (BaseColumn Symbol) where
   promotedLift = \case
-    Prim pn -> [t| 'Prim $(promotedLift pn) |]
-    Enum opts -> [t| 'Enum $(promotedLift opts) |]
-    ForeignKey k -> [t| 'ForeignKey $(promotedLift k) |]
-    JSON -> [t| 'JSON |]
+    Prim       pn   -> [t| 'Prim $(promotedLift pn) |]
+    Enum       opts -> [t| 'Enum $(promotedLift opts) |]
+    ForeignKey k    -> [t| 'ForeignKey $(promotedLift k) |]
+    JSON            -> [t| 'JSON |]
 
 instance PromotedLift (Column Symbol) where
   promotedLift (Column n bc) = [t| 'Column $(promotedLift n) $(promotedLift bc) |]
@@ -50,6 +50,6 @@ instance PromotedLift (Column Symbol) where
 instance PromotedLift (Schema Symbol) where
   promotedLift (Schema n cols) = [t| 'Schema $(promotedLift n) $(promotedLift cols) |]
 
-type TabSchema (tab :: (*,Schema Symbol)) = Snd tab
+type TabSchema (tab :: (*, Schema Symbol)) = Snd tab
 type TabName tab = SchemaName (TabSchema tab)
 type TabCols tab = SchemaCols (TabSchema tab)

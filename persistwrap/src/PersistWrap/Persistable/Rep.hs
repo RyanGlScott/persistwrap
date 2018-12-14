@@ -29,8 +29,8 @@ import PersistWrap.Table as Table
 getSchemaRep :: SSymbol schemaName -> SStructure structure -> NamedSchemaRep fk schemaName structure
 getSchemaRep prefix = NamedSchemaRep prefix . either AtMostOneColumnSchema id . buildRep prefix
 
-type BuildRepResult fk structure =
-  Either (ColumnRep fk (EntityOf fk structure)) (SchemaRep fk structure)
+type BuildRepResult fk structure
+  = Either (ColumnRep fk (EntityOf fk structure)) (SchemaRep fk structure)
 
 buildProductRep
   :: forall fk schemaName xs

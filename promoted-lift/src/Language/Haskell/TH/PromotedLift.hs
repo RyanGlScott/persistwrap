@@ -18,7 +18,7 @@ class SingKind a => PromotedLift a where
 instance PromotedLift Bool where
   promotedLift = \case
     False -> [t| 'False |]
-    True -> [t| 'True |]
+    True  -> [t| 'True |]
 instance PromotedLift Symbol where
   promotedLift = return . LitT . StrTyLit . Text.unpack
 instance PromotedLift a => PromotedLift [a] where

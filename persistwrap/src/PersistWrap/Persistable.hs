@@ -53,7 +53,7 @@ class (SingI schemaName, SingI structure) => HasRep schemaName structure where
   rep :: NamedSchemaRep fk schemaName structure
   entitySchemas :: [Schema Text]
 instance (SingI schemaName, SingI structure) => HasRep schemaName structure where
-  rep = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
+  rep           = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
   entitySchemas = uncurry (:) $ repToSchemas $ rep @schemaName @structure
 
 class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * -> *) where
@@ -84,8 +84,8 @@ class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * 
 instance
     (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, fk ~ ForeignKey m)
     => Persistable schemaName x m where
-  getXs = map (second (fromEntity @fk)) <$> undefined
-  getX = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))
+  getXs   = map (second (fromEntity @fk)) <$> undefined
+  getX    = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))
   insertX = insert (rep @schemaName @(StructureOf x)) . toEntity @fk
   deleteX = delete (rep @schemaName @(StructureOf x))
   stateX =

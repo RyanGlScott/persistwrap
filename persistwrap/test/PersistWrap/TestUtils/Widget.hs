@@ -47,18 +47,20 @@ instance EntityPart fk (Widget fk) where
 -- | To declare `Eq` and `Show` for a continuation kind, we first need a `Conkin.Functor` instance.
 instance Conkin.Functor Widget where
   fmap fn = \case
-    Foo1 x -> Foo1 x
-    Foo2 x -> Foo2 x
-    Blarg x -> Blarg x
+    Foo1    x -> Foo1 x
+    Foo2    x -> Foo2 x
+    Blarg   x -> Blarg x
     Bleeble x -> Bleeble x
-    Glorp x -> Glorp (fn x)
+    Glorp   x -> Glorp (fn x)
 
 -- | To use the `Eq` TH helper for Widget, we first need a `GEq` instance for all of its fields.
-instance GEq Foo where geq = (==)
+instance GEq Foo where
+  geq = (==)
 -- | Declare `Eq` instance using helper from "PersistWrap.Conkin.Extra.TH".
 $(deriveFnEq [t| Widget |])
 
 -- | To use the `Show` TH helper for Widget, we first need a `GShow` instance for all of its fields.
-instance GShow Foo where gshowsPrec = showsPrec
+instance GShow Foo where
+  gshowsPrec = showsPrec
 -- | Declare `Show` instance using helper from "PersistWrap.Conkin.Extra.TH".
 $(deriveFnShow [t| Widget |])
