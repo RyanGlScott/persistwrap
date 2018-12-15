@@ -8,8 +8,6 @@ module PersistWrap.Primitives where
 
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
-import Data.Singletons (withSomeSing)
-import Data.Singletons.Prelude
 import Data.Singletons.TH
 import Data.Text (Text)
 import Data.Time.Calendar (Day)

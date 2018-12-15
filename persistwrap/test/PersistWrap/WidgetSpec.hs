@@ -38,8 +38,8 @@ widgetAssertions = atomicTransaction $ do
   fk3 <- insertX @"abc" 3
   let
     -- Similarly we don't need to explicitly specify the type-parameter for w1, w2, and w3.
-    w1 = Blarg (False, True, BS.pack "hello world")
-    w2 = Glorp fk3
+      w1 = Blarg (False, True, BS.pack "hello world")
+      w2 = Glorp fk3
   fkw1      <- insertX @"widget" w1
   fkw2      <- insertX @"widget" w2
   fkw3      <- insertWidget3
@@ -54,8 +54,8 @@ widgetAssertions = atomicTransaction $ do
     result3 `shouldBe` Just widget3
 
 widget3 :: Widget fk
-widget3 = Foo2
-  [Foo { bar = 10, baz = A 3 4, qux = Just Green }, Foo { bar = 11, baz = B, qux = Nothing }]
+widget3 =
+  Foo2 [Foo { bar = 10, baz = A 3 4, qux = Just Green }, Foo { bar = 11, baz = B, qux = Nothing }]
 
 -- |
 -- We can specify a subset of tables in the persistence layer on which we'll be operating using
