@@ -20,7 +20,7 @@ import PersistWrap.Table.TH.Lift.Orphans ()
 
 $(singletons [d|
   data BaseColumn text = Prim PrimName | Enum (NonEmpty text) | ForeignKey text | JSON
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Show)
   data Column text = Column Bool (BaseColumn text)
     deriving (Eq, Ord)
   data Schema text = Schema text [(text,Column text)]
