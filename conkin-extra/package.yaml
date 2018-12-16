@@ -38,6 +38,7 @@ dependencies:
 - conkin
 - constraints
 - dlist
+- pointless-fun
 - template-haskell
 
 library:

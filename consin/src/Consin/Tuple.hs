@@ -80,7 +80,7 @@ withAlwaysSTupleShow = go (sing @_ @xs)
     go :: forall xs' . SList xs' -> (Show (Tuple xs' f) => y) -> y
     go = \case
       SNil -> id
-      (((singInstance -> SingInstance) :: Sing x) `SCons` xs) ->
+      (singInstance -> SingInstance :: SingInstance x) `SCons` xs ->
         \cont -> withAlwaysS @Show @f @x sing $ go xs cont
 
 instance (SingI xs, AlwaysS Show f) => ConsinShow (Tuple xs f) where

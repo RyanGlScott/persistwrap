@@ -5,6 +5,8 @@ module Conkin.Extra.Tuple where
 import Prelude hiding (unzip)
 
 import Conkin (Tuple(..))
+import Data.Function.Pointless ((.:))
+import Data.Functor.Compose (Compose(Compose), getCompose)
 import Data.List.NonEmpty (NonEmpty(..))
 import GHC.Generics ((:*:)((:*:)))
 
@@ -19,6 +21,21 @@ zipUncheck fn = go
     go :: forall xs' . Tuple xs' a -> Tuple xs' b -> [y]
     go Nil           Nil           = []
     go (x `Cons` xs) (y `Cons` ys) = fn x y : go xs ys
+
+-- Returns Nothing if lengths don't match
+zipWithUncheckedM
+  :: forall f a xs y b
+   . Applicative f
+  => (forall x . a x -> y -> f (b x))
+  -> Tuple xs a
+  -> [y]
+  -> f (Maybe (Tuple xs b))
+zipWithUncheckedM fn = getCompose .: go
+  where
+    go :: forall xs' . Tuple xs' a -> [y] -> Compose f Maybe (Tuple xs' b)
+    go Nil           []       = pure Nil
+    go (x `Cons` xs) (y : ys) = Cons <$> Compose (Just <$> fn x y) <*> go xs ys
+    go _             _        = Compose $ pure Nothing
 
 tail :: Tuple (x ': xs) f -> Tuple xs f
 tail (_ `Cons` xs) = xs
