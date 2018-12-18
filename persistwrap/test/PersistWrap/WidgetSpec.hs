@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# OPTIONS_GHC -Wredundant-constraints #-}
 
 module PersistWrap.WidgetSpec
     ( spec_widget
@@ -6,15 +7,19 @@ module PersistWrap.WidgetSpec
 
 import Control.Monad (join)
 import qualified Data.ByteString.Char8 as BS
+import Debug.Trace
+import GHC.TypeLits (Symbol)
 import Test.Hspec
 
+import Conkin.Extra (Always, withAlways)
 import PersistWrap
+import PersistWrap.BackEnd.Helper (AllEmbed)
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
 import PersistWrap.TestUtils.Widget
-import PersistWrap.TH (declareTables)
 
 -- | We're declaring a new table context which called \"TestTables\".
-$(declareTables "TestTables")
+data TestTables (fk :: Symbol -> *)
+instance Always AllEmbed TestTables where withAlways = const id
 -- |
 -- \"TestTables\" has two primary tables in it: \"abc\" and \"widget\". \"abc\" stores `Int`s and
 -- \"widget\" stores `Widget`s.
@@ -62,4 +67,4 @@ widget3 =
 -- `Persisted` constraints. In this example we claim that the monad we're working
 -- in has a table named "widget" which contains @ Widget fk @ \'s.
 insertWidget3 :: Persisted "widget" (Widget fk) m => m (ForeignKey m "widget")
-insertWidget3 = insertX @"widget" widget3
+insertWidget3 = trace "It's undefined" undefined
