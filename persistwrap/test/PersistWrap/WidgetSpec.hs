@@ -1,20 +1,24 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wredundant-constraints #-}
 
 module PersistWrap.WidgetSpec
     ( spec_widget
     ) where
 
 import Control.Monad (join)
+import Debug.Trace
 import qualified Data.ByteString.Char8 as BS
+import GHC.TypeLits (Symbol)
 import Test.Hspec
 
+import Conkin.Extra (Always, withAlways)
 import PersistWrap
+import PersistWrap.BackEnd.Helper (AllEmbed)
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
 import PersistWrap.TestUtils.Widget
-import PersistWrap.TH (declareTables)
 
 -- | We're declaring a new table context which called \"TestTables\".
-$(declareTables "TestTables")
+data TestTables (fk :: Symbol -> *)
+instance Always AllEmbed TestTables where withAlways = const id
 -- |
 -- \"TestTables\" has two primary tables in it: \"abc\" and \"widget\". \"abc\" stores `Int`s and
 -- \"widget\" stores `Widget`s.
@@ -24,9 +28,11 @@ spec_widget :: Spec
 spec_widget =
   describe "Widget"
     $ it "should get back what you put in"
-    $ join
-    -- Initializes empty tables in `STM` backend.
-    $ BackEnd.withEmptyTablesItemized @TestTables widgetAssertions
+    $ do
+      () <- join
+          -- Initializes empty tables in `STM` backend.
+          $ BackEnd.withEmptyTablesItemized @TestTables widgetAssertions
+      pure ()
 
 -- |
 -- We can declare what the _entire_ persistence layer looks like by wrapping the monad we're working
@@ -43,11 +49,13 @@ widgetAssertions = atomicTransaction $ do
   fkw1      <- insertX @"widget" w1
   fkw2      <- insertX @"widget" w2
   fkw3      <- insertWidget3
+  traceM "Hi"
   resultABC <- getX fk3
   result1   <- getX fkw1
   result2   <- getX fkw2
   result3   <- getX fkw3
   return $ do
+    () <- error "This is an error"
     resultABC `shouldBe` Just 3
     result1 `shouldBe` Just w1
     result2 `shouldBe` Just w2
@@ -62,4 +70,4 @@ widget3 =
 -- `Persisted` constraints. In this example we claim that the monad we're working
 -- in has a table named "widget" which contains @ Widget fk @ \'s.
 insertWidget3 :: Persisted "widget" (Widget fk) m => m (ForeignKey m "widget")
-insertWidget3 = insertX @"widget" widget3
+insertWidget3 = undefined
