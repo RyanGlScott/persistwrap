@@ -14,10 +14,11 @@ import PersistWrap.Persistable.Insert.Utils
 import PersistWrap.Persistable.Rep
 import PersistWrap.Structure
 import PersistWrap.Table as Table
+import PersistWrap.Table.Monad2 (Monad2)
 
 state
   :: forall schemaName structure m b
-   . (HasCallStack, MonadTransaction m, AlwaysS Show (ForeignKey m))
+   . (HasCallStack, MonadTransaction m, Monad2 m, AlwaysS Show (ForeignKey m))
   => NamedSchemaRep (ForeignKey m) schemaName structure
   -> ForeignKey m schemaName
   -> (EntityOf (ForeignKey m) structure -> (b, EntityOf (ForeignKey m) structure))
@@ -30,7 +31,7 @@ state nschr fk op = runMaybeT $ do
 
 replace
   :: forall schemaName structure m
-   . (HasCallStack, MonadTransaction m, AlwaysS Show (ForeignKey m))
+   . (HasCallStack, MonadTransaction m, Monad2 m, AlwaysS Show (ForeignKey m))
   => NamedSchemaRep (ForeignKey m) schemaName structure
   -> ForeignKey m schemaName
   -> EntityOf (ForeignKey m) structure

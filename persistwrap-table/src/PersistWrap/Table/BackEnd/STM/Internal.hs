@@ -36,6 +36,7 @@ import Consin.SingMap (SingMap)
 import qualified Consin.SingMap as SingMap
 import PersistWrap.Table.Class (Entity, MonadBaseTransaction)
 import qualified PersistWrap.Table.Class as Class
+import PersistWrap.Table.Monad2 (Monad2)
 import PersistWrap.Table.Schema
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row
@@ -48,7 +49,7 @@ type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 type TableMap s = SingMap (SomeTableNamed (Table s))
 
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
-  deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
+  deriving (Functor, Applicative, Monad, Monad2, MonadBase STM, MonadReader (TableMap s))
 
 data FK s name = forall sch . SchemaName sch ~ name
   => FK (SSchema sch) (TVarMaybeRow s (SchemaCols sch))

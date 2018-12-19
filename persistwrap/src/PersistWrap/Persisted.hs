@@ -27,6 +27,7 @@ import PersistWrap.Persistable (Persistable)
 import qualified PersistWrap.Persistable as E
 import PersistWrap.Structure (EntityPart)
 import PersistWrap.Table (ForeignKey)
+import PersistWrap.Table.Monad2 (Monad2)
 
 class Persistable schemaName x m => Persisted schemaName x m | schemaName m -> x
 
@@ -76,6 +77,7 @@ instance
   , Persistable schemaName x m
   , KnownSymbol schemaName
   , MapsTo schemaName x items
+  , Monad2 m
   ) => Persisted schemaName x (Itemized items m)
 
 class MapsTo (schemaName :: Symbol) x (items :: [(Symbol, *)]) | schemaName items -> x

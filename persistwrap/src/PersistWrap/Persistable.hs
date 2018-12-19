@@ -28,6 +28,7 @@ import PersistWrap.Persistable.Schemas
 import PersistWrap.Persistable.State
 import PersistWrap.Structure
 import PersistWrap.Table
+import PersistWrap.Table.Monad2 (Monad2)
 
 lookupExpectTable
   :: forall schema m . (HasCallStack, MonadTransaction m) => SSchema schema -> m (Table m schema)
@@ -83,7 +84,7 @@ class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * 
   modifyKV fk k op = isJust <$> stateKV fk k (((),) . op)
 
 instance
-    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
+    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, Monad2 m, fk ~ ForeignKey m, AlwaysS Show fk)
     => Persistable schemaName x m where
   getXs   = map (second (fromEntity @fk)) <$> undefined
   getX    = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))

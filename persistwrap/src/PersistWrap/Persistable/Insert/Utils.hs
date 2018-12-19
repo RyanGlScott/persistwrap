@@ -29,6 +29,7 @@ import PersistWrap.Persistable.Rep
 import PersistWrap.Persistable.Utils
 import PersistWrap.Structure as Structure
 import PersistWrap.Table
+import PersistWrap.Table.Monad2 (Monad2, return2)
 
 getSumTag
   :: forall name names xs f
@@ -45,13 +46,13 @@ getSumTag (_ :%| names0) = EnumVal . \case
     go (_ `SCons` names) (There x) = There $ go names x
 
 writeNullNamed
-  :: (HasCallStack, Monad m, AlwaysS Show fk)
+  :: (HasCallStack, Monad2 m, AlwaysS Show fk)
   => NamedColumnRep fk x
   -> InsertT selfSchemaName cols fk m ()
 writeNullNamed (NamedColumnRep _ cr) = writeNull cr
 
 writeNull
-  :: (HasCallStack, Monad m, AlwaysS Show fk)
+  :: (HasCallStack, Monad2 m, AlwaysS Show fk)
   => ColumnRep fk x
   -> InsertT selfSchemaName cols fk m ()
 writeNull = \case
@@ -132,7 +133,7 @@ instance Monad m => Monoid (NextOperation selfSchemaName fk m ()) where
   mconcat = sequence_
 
 tellX
-  :: (HasCallStack, Monad m, AlwaysS Show fk)
+  :: (HasCallStack, Monad m, Monad2 m, AlwaysS Show fk)
   => SColumn col
   -> Value fk col
   -> InsertT selfSchemaName cols fk m ()
@@ -141,7 +142,7 @@ tellX cn x = InsertT $ lift $ Tuple.tell $ \stup@(STuple2 _ cn') -> case cn' %~ 
     let v = ValueSnd x
     withSingI stup $ do
       traceM $ "Returning 1 (" ++ show v ++ ")"
-      trace ("Returning 2 (" ++ show v ++ ")") $ return $ trace ("Returning 3 (" ++ show v ++ ")") v
+      trace ("Returning 2 (" ++ show v ++ ")") $ return2 $ trace ("Returning 3 (" ++ show v ++ ")") v
   Disproved{} -> error "Column types don't match"
 
 nextWrite :: Monad m => (fk selfSchemaName -> m ()) -> InsertT selfSchemaName cols fk m ()

@@ -14,6 +14,7 @@ import Conkin.Extra (Always, withAlways)
 import PersistWrap
 import PersistWrap.BackEnd.Helper (AllEmbed)
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
+import PersistWrap.Table.Monad2 (Monad2)
 import PersistWrap.TestUtils.Widget
 
 -- | We're declaring a new table context which called \"TestTables\".
@@ -37,7 +38,7 @@ spec_widget =
 -- |
 -- We can declare what the _entire_ persistence layer looks like by wrapping the monad we're working
 -- in with @ Itemized TestTables @. For a more fine-grained approach, see `insertWidget3`.
-widgetAssertions :: (MonadPersist m, ForeignKeysShowable m) => ItemizedIn TestTables m Expectation
+widgetAssertions :: (MonadPersist m, ForeignKeysShowable m, Monad2 (Transaction m)) => ItemizedIn TestTables m Expectation
 widgetAssertions = atomicTransaction $ do
   -- The compiler knows 3 is an `Int` because we're inserting it into the \"abc\" table.
   -- @ fk3 :: FK m "abc" @
