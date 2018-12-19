@@ -20,7 +20,6 @@ import Data.Singletons.Decide
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.List.NonEmpty (SNonEmpty, Sing((:%|)))
 import Data.Singletons.TypeLits
-import Debug.Trace
 import GHC.Stack (HasCallStack)
 
 import Consin (AlwaysS)
@@ -133,16 +132,14 @@ instance Monad m => Monoid (NextOperation selfSchemaName fk m ()) where
   mconcat = sequence_
 
 tellX
-  :: (HasCallStack, Monad m, Monad2 m, AlwaysS Show fk)
+  :: (HasCallStack, Monad2 m, AlwaysS Show fk)
   => SColumn col
   -> Value fk col
   -> InsertT selfSchemaName cols fk m ()
 tellX cn x = InsertT $ lift $ Tuple.tell $ \stup@(STuple2 _ cn') -> case cn' %~ cn of
   Proved Refl -> do
     let v = ValueSnd x
-    withSingI stup $ do
-      traceM $ "Returning 1 (" ++ show v ++ ")"
-      trace ("Returning 2 (" ++ show v ++ ")") $ return2 $ trace ("Returning 3 (" ++ show v ++ ")") v
+    withSingI stup $ return2 v
   Disproved{} -> error "Column types don't match"
 
 nextWrite :: Monad m => (fk selfSchemaName -> m ()) -> InsertT selfSchemaName cols fk m ()
