@@ -15,6 +15,7 @@ import Data.Singletons.TypeLits
 import GHC.Stack (HasCallStack)
 
 import Conkin.Extra (mapUncheck, noHere, zipUncheck)
+import Consin (AlwaysS)
 import PersistWrap.Persistable.Columns
 import PersistWrap.Persistable.Insert.Utils
 import PersistWrap.Persistable.Rep
@@ -23,7 +24,7 @@ import PersistWrap.Structure as Structure
 import PersistWrap.Table
 
 insert
-  :: (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+  :: (HasCallStack, MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
   => NamedSchemaRep fk selfSchemaName structure
   -> EntityOf fk structure
   -> m (ForeignKey m selfSchemaName)
@@ -32,7 +33,7 @@ insert (NamedSchemaRep selfSchemaName rep) x =
 
 insertRowItems
   :: forall m selfSchemaName structure fk cols
-   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
   => SSymbol selfSchemaName
   -> SchemaRep fk structure
   -> EntityOf fk structure
@@ -50,7 +51,7 @@ insertRowItems selfSchemaName = \case
 
 insertSumItem
   :: forall xs m selfSchemaName fk cols
-   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m)
+   . (HasCallStack, MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
   => SSymbol selfSchemaName
   -> Tuple xs (NamedColumnRep fk)
   -> Tagged xs (EntityOfSnd fk)
@@ -71,7 +72,7 @@ insertSumItem selfSchemaName = go
     go Nil x' = noHere x'
 
 writeColumnNamed
-  :: (MonadTransaction m, fk ~ ForeignKey m)
+  :: (MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
   => SSymbol selfSchemaName
   -> NamedColumnRep fk ncr
   -> EntityOfSnd fk ncr
@@ -80,7 +81,7 @@ writeColumnNamed selfSchemaName (NamedColumnRep _ cr) (EntityOfSnd x) =
   writeColumn selfSchemaName cr x
 
 writeColumn
-  :: (MonadTransaction m, fk ~ ForeignKey m)
+  :: (MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
   => SSymbol selfSchemaName
   -> ColumnRep fk x
   -> x

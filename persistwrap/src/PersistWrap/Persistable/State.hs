@@ -6,6 +6,7 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT), runMaybeT)
 import GHC.Stack (HasCallStack)
 
+import Consin (AlwaysS)
 import PersistWrap.Persistable.Delete (deleteDescendants)
 import PersistWrap.Persistable.Get (get)
 import PersistWrap.Persistable.Insert (insertRowItems)
@@ -16,7 +17,7 @@ import PersistWrap.Table as Table
 
 state
   :: forall schemaName structure m b
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransaction m, AlwaysS Show (ForeignKey m))
   => NamedSchemaRep (ForeignKey m) schemaName structure
   -> ForeignKey m schemaName
   -> (EntityOf (ForeignKey m) structure -> (b, EntityOf (ForeignKey m) structure))
@@ -29,7 +30,7 @@ state nschr fk op = runMaybeT $ do
 
 replace
   :: forall schemaName structure m
-   . (HasCallStack, MonadTransaction m)
+   . (HasCallStack, MonadTransaction m, AlwaysS Show (ForeignKey m))
   => NamedSchemaRep (ForeignKey m) schemaName structure
   -> ForeignKey m schemaName
   -> EntityOf (ForeignKey m) structure

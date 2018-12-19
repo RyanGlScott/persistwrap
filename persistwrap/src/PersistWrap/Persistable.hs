@@ -18,6 +18,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Stack (HasCallStack)
 
+import Consin (AlwaysS)
 import PersistWrap.Functor.Extra
 import PersistWrap.Persistable.Delete
 import PersistWrap.Persistable.Get
@@ -82,7 +83,7 @@ class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * 
   modifyKV fk k op = isJust <$> stateKV fk k (((),) . op)
 
 instance
-    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, fk ~ ForeignKey m)
+    (EntityPart fk x, HasRep schemaName (StructureOf x), MonadTransaction m, fk ~ ForeignKey m, AlwaysS Show fk)
     => Persistable schemaName x m where
   getXs   = map (second (fromEntity @fk)) <$> undefined
   getX    = fmap (fmap (fromEntity @fk)) . get (rep @schemaName @(StructureOf x))

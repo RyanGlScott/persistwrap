@@ -21,6 +21,7 @@ import Data.Map (Map)
 import Data.Promotion.Prelude (type (==))
 import GHC.TypeLits (KnownSymbol, Symbol)
 
+import Consin (AlwaysS)
 import PersistWrap.Itemized
 import PersistWrap.Persistable (Persistable)
 import qualified PersistWrap.Persistable as E
@@ -70,7 +71,8 @@ modifyKV
 modifyKV = E.modifyKV
 
 instance
-  ( EntityPart (ForeignKey m) x
+  ( AlwaysS Show (ForeignKey m)
+  , EntityPart (ForeignKey m) x
   , Persistable schemaName x m
   , KnownSymbol schemaName
   , MapsTo schemaName x items
