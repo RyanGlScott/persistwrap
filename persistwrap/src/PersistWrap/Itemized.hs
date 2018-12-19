@@ -13,9 +13,10 @@ import Control.Monad.Writer (MonadWriter)
 import Data.Singletons.TypeLits (Symbol)
 
 import PersistWrap.Table (ForeignKey, MonadPersist(..), MonadTransaction)
+import PersistWrap.Table.Monad2 (Monad2)
 
 newtype Itemized (items :: [(Symbol, *)]) m x = Itemized {runItemized :: m x}
-  deriving ( Functor, Applicative, Monad, MonadTransaction, MonadIO
+  deriving ( Functor, Applicative, Monad, Monad2, MonadTransaction, MonadIO
            , MonadReader r, MonadWriter w, MonadState s, MonadError e
            )
 instance MonadTrans (Itemized items) where

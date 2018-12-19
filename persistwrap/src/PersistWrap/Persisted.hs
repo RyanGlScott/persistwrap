@@ -19,13 +19,17 @@ module PersistWrap.Persisted
 
 import Data.Map (Map)
 import Data.Promotion.Prelude (type (==))
+import Debug.Trace
+import GHC.Stack (HasCallStack)
 import GHC.TypeLits (KnownSymbol, Symbol)
 
+import Consin (AlwaysS)
 import PersistWrap.Itemized
 import PersistWrap.Persistable (Persistable)
 import qualified PersistWrap.Persistable as E
 import PersistWrap.Structure (EntityPart)
 import PersistWrap.Table (ForeignKey)
+import PersistWrap.Table.Monad2
 
 class Persistable schemaName x m => Persisted schemaName x m | schemaName m -> x
 
@@ -33,8 +37,11 @@ getXs :: Persisted schemaName x m => m [(ForeignKey m schemaName, x)]
 getXs = E.getXs
 getX :: Persisted schemaName x m => ForeignKey m schemaName -> m (Maybe x)
 getX = E.getX
-insertX :: Persisted schemaName x m => x -> m (ForeignKey m schemaName)
-insertX = E.insertX
+insertX :: forall schemaName x m . (HasCallStack, Monad2 m, Persisted schemaName x m, Show (ForeignKey m schemaName)) => x -> m (ForeignKey m schemaName)
+insertX x = do
+  res <- E.insertX x
+  traceM $ "Before: " ++ show res
+  return2 res
 deleteX :: forall schemaName x m . Persisted schemaName x m => ForeignKey m schemaName -> m Bool
 deleteX = E.deleteX @_ @x
 stateX :: Persisted schemaName x m => ForeignKey m schemaName -> (x -> (b, x)) -> m (Maybe b)
@@ -70,10 +77,12 @@ modifyKV
 modifyKV = E.modifyKV
 
 instance
-  ( EntityPart (ForeignKey m) x
+  ( AlwaysS Show (ForeignKey m)
+  , EntityPart (ForeignKey m) x
   , Persistable schemaName x m
   , KnownSymbol schemaName
   , MapsTo schemaName x items
+  , Monad2 m
   ) => Persisted schemaName x (Itemized items m)
 
 class MapsTo (schemaName :: Symbol) x (items :: [(Symbol, *)]) | schemaName items -> x
