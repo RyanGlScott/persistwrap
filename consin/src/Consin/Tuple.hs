@@ -8,6 +8,7 @@ module Consin.Tuple
     , mapUncheckSing
     , singToTuple
     , splitTuple
+    , withAlwaysSTupleShow
     , zipUncheckSing
     ) where
 
