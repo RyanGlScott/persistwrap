@@ -1,12 +1,17 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeInType #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
-module PersistWrap.Primitives where
+module PersistWrap.Primitives
+    ( PrimType
+    , SingPrim
+    , deriveConstraint
+    , module X
+    ) where
 
 import Data.ByteString (ByteString)
+import Data.Constraint (Constraint, Dict(Dict))
 import Data.Int (Int64)
 import Data.Singletons.TH
 import Data.Text (Text)
@@ -18,20 +23,7 @@ import Language.Haskell.TH.PromotedLift (PromotedLift(..))
 import Test.QuickCheck (Arbitrary(..), arbitraryBoundedEnum)
 import Test.QuickCheck.Instances ()
 
--- TODO Add list and map. Careful about the Arbitrary instances.
-$(singletons [d|
-  data PrimName
-    = PrimText
-    | PrimByteString
-    | PrimInt64
-    | PrimDouble
-    | PrimRational
-    | PrimBool
-    | PrimDay
-    | PrimTimeOfDay
-    | PrimUTCTime
-    deriving (Eq, Ord, Show, Bounded, Enum)
-  |])
+import PersistWrap.Primitives.Internal as X
 
 type family PrimType p where
   PrimType 'PrimText = Text
@@ -44,22 +36,15 @@ type family PrimType p where
   PrimType 'PrimTimeOfDay = TimeOfDay
   PrimType 'PrimUTCTime = UTCTime
 
-deriveConstraint
-  :: forall c p y
-   . (c Text, c ByteString, c Int64, c Double, c Rational, c Bool, c Day, c TimeOfDay, c UTCTime)
-  => SPrimName p
-  -> (c (PrimType p) => y)
-  -> y
-deriveConstraint p cont = case p of
-  SPrimText       -> cont
-  SPrimByteString -> cont
-  SPrimInt64      -> cont
-  SPrimDouble     -> cont
-  SPrimRational   -> cont
-  SPrimBool       -> cont
-  SPrimDay        -> cont
-  SPrimTimeOfDay  -> cont
-  SPrimUTCTime    -> cont
+type ConstrainsAll (c :: * -> Constraint)
+  = (c Text, c ByteString, c Int64, c Double, c Rational, c Bool, c Day, c TimeOfDay, c UTCTime)
+
+constraintDict :: forall c p . ConstrainsAll c => SPrimName p -> Dict (c (PrimType p))
+constraintDict p = $(sCases ''PrimName [| p |] [| Dict |])
+
+deriveConstraint :: forall c p y . ConstrainsAll c => SPrimName p -> (c (PrimType p) => y) -> y
+deriveConstraint p y = case constraintDict @c p of
+  Dict -> y
 
 data SingPrim = forall (p :: PrimName). SingPrim (SPrimName p) (PrimType p)
 instance Eq SingPrim where
