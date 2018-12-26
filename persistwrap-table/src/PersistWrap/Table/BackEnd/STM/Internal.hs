@@ -10,7 +10,6 @@ module PersistWrap.Table.BackEnd.STM.Internal
     , withEmptyTableProxies
     ) where
 
-
 import Conkin (Tuple)
 import Control.Arrow ((&&&), (***))
 import Control.Concurrent.STM (STM, atomically)
@@ -21,7 +20,6 @@ import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, mapReaderT, runReaderT)
 import Data.Constraint (Dict(Dict))
-import Data.List (group, sort)
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
@@ -32,8 +30,9 @@ import GHC.Stack (HasCallStack)
 
 import Conkin.Extra (htraverse)
 import Consin hiding (Functor(..))
-import Consin.SingMap (SingMap)
 import qualified Consin.SingMap as SingMap
+import qualified PersistWrap.Table.BackEnd.Helper as Helper
+import PersistWrap.Table.BackEnd.Helper (checkForDuplicates, constructMap)
 import PersistWrap.Table.Class (Entity, MonadBaseTransaction)
 import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Schema
@@ -45,7 +44,7 @@ import qualified PersistWrap.Table.Transaction as Transaction
 
 type TVarMaybeRow s xs = TVar (Maybe (Row (FK s) xs))
 
-type TableMap s = SingMap (SomeTableNamed (Table s))
+type TableMap s = Helper.TableMap (Table s)
 
 newtype STMTransaction s x = STMTransaction (ReaderT (TableMap s) STM x)
   deriving (Functor, Applicative, Monad, MonadBase STM, MonadReader (TableMap s))
@@ -130,14 +129,10 @@ unsafeSetupEmptyTables
   => SList (schemas :: [Schema Symbol])
   -> (SingI schemas => Tuple schemas (Table s) -> STMPersist s m x)
   -> m x
-unsafeSetupEmptyTables sschemas action
-  | anyDuplicates (map (\(Schema name _) -> name) (fromSing sschemas))
-  = error $ "Schema names are not distinct: " ++ show (fromSing sschemas)
-  | otherwise
-  = do
-    tables <- liftIO $ htraverse newTable schemasTuple
-    runReaderT (unSTMPersist $ withSingI sschemas action tables) (constructMap sschemas tables)
-  where schemasTuple = singToTuple sschemas
+unsafeSetupEmptyTables sschemas action = checkForDuplicates sschemas $ do
+  let schemasTuple = singToTuple sschemas
+  tables <- liftIO $ htraverse newTable schemasTuple
+  runReaderT (unSTMPersist $ withSingI sschemas action tables) (constructMap sschemas tables)
 
 withEmptyTableProxies
   :: MonadIO m
@@ -145,17 +140,6 @@ withEmptyTableProxies
   -> (forall s . Tuple schemas (SomeTableProxy (Table s)) -> STMPersist s m x)
   -> m x
 withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` action)
-
-anyDuplicates :: Ord x => [x] -> Bool
-anyDuplicates = any (\grp -> length grp > 1) . group . sort
-
-constructMap :: SList schemas -> Tuple schemas (Table s) -> TableMap s
-constructMap schemas = SingMap.fromList . mapUncheckSing schemas tableToMapEntry
-
-tableToMapEntry
-  :: forall s schema . SingI schema => Table s schema -> Some (SomeTableNamed (Table s))
-tableToMapEntry = case sing @_ @schema of
-  SSchema name cols -> some name . SomeTableNamed cols
 
 newTable :: proxy schema -> IO (Table s schema)
 newTable _ = Table <$> newTVarIO []
