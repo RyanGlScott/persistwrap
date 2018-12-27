@@ -1,10 +1,10 @@
 module PersistWrap.Table.Reflect where
 
 import Conkin (Tuple)
-import Data.Promotion.Prelude (Fst, Snd)
 import Data.Proxy (Proxy(Proxy))
 import Data.Reflection (Reifies, reflect, reify)
 import Data.Singletons (SingI, SingInstance(SingInstance), sing, singInstance, withSingI)
+import Data.Singletons.Prelude (Fst, Snd)
 import Data.Singletons.TypeLits (Symbol)
 
 import Consin (AlwaysS(..), fmapSing, showsPrec1)
@@ -24,7 +24,7 @@ instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) wh
     withSingI cols
       $ showParen (d > 10)
       $ showString "someTableNamed "
-      . showsPrec 11 (SSchema (sing @_ @name) cols)
+      . showsPrec 11 (SSchema (sing @name) cols)
       . showString " "
       . showsPrec1 11 tab
 

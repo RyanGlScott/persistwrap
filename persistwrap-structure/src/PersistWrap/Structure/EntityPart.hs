@@ -14,16 +14,15 @@ import Data.Int (Int64)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Promotion.Prelude (type (++), Symbol)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
+import Data.Singletons.Prelude (type (++), SList, Sing(SCons, SNil))
 import Data.Singletons.Prelude.Enum (Succ, sSucc)
-import Data.Singletons.Prelude.List (SList, Sing(SCons, SNil))
 import Data.Singletons.Prelude.Maybe (FromMaybeSym0)
 import Data.Singletons.Prelude.Show (Show_)
 import Data.Singletons.Prelude.Tuple (Sing(STuple2))
-import Data.Singletons.TypeLits (Nat, SNat)
+import Data.Singletons.TypeLits (Nat, SNat, Symbol)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time.Calendar (Day)
@@ -140,7 +139,7 @@ instance (GEntityPart fk a) => GenericConsPart fk (C1 ('MetaCons na fa sa) a) wh
   type GenericConsTail (C1 ('MetaCons na fa sa) a) = '[]
   fromTag = \case
     Here  (EntityOfSnd x) -> M1 $ gFromEntity @fk x
-    There x               -> case x of
+    There x               -> case x of {}
   toTag (M1 x) = Here $ EntityOfSnd (gToEntity @fk x)
 
 instance
@@ -178,7 +177,7 @@ type FillInDefaultNames xs = FillInDefaultNamesFrom 1 xs
 
 fillInDefaultNames
   :: forall xs fk . Tuple xs (EntityMNOfSnd fk) -> Tuple (FillInDefaultNames xs) (EntityOfSnd fk)
-fillInDefaultNames = go $ sing @_ @1
+fillInDefaultNames = go $ sing @1
   where
     go
       :: forall i xs'
@@ -194,7 +193,7 @@ stripOutDefaultNames
    . SingI xs
   => Tuple (FillInDefaultNames xs) (EntityOfSnd fk)
   -> Tuple xs (EntityMNOfSnd fk)
-stripOutDefaultNames = go (sing @_ @1) sing
+stripOutDefaultNames = go (sing @1) sing
   where
     go
       :: forall i xs'

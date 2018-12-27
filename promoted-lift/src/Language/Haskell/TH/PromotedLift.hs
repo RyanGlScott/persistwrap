@@ -11,7 +11,7 @@ import qualified Data.Text as Text
 
 import Language.Haskell.TH (Q, TyLit(..), Type(..))
 
--- | fromSing (sing @_ @ $(promotedLift x) ) == x
+-- | fromSing (sing @ $(promotedLift x) ) == x
 class SingKind a => PromotedLift a where
   promotedLift :: Demote a -> Q Type
 

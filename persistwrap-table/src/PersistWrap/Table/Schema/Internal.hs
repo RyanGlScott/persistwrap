@@ -7,11 +7,10 @@
 
 module PersistWrap.Table.Schema.Internal where
 
-import Data.Kind (type (*))
 import Data.Text (Text)
 import qualified Language.Haskell.TH.Lift as TH
 import Data.List.NonEmpty (NonEmpty)
-import Data.Singletons.Prelude hiding (type (*))
+import Data.Singletons.Prelude
 import Data.Singletons.TH
 
 import Language.Haskell.TH.PromotedLift (PromotedLift(..))

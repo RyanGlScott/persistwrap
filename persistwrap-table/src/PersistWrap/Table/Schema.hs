@@ -6,7 +6,7 @@ module PersistWrap.Table.Schema
   ) where
 
 import Data.Singletons (fromSing)
-import Data.Singletons.ShowSing (ShowSing(..))
+import Data.Singletons.ShowSing (ShowSing)
 import Data.Singletons.TypeLits (Symbol)
 import Data.Text (Text)
 
@@ -29,6 +29,5 @@ showPromotedSchema :: SSchema (schema :: Schema Symbol) -> ShowS
 showPromotedSchema schema = showString "$" . schShow "schema" 11 (fromSing schema)
 
 instance ShowSing (Schema Symbol) where
-  showsSingPrec d schema = showParen (d > 10) $ showString "sing @_ @" . showPromotedSchema schema
 instance Show (SSchema (schema :: Schema Symbol)) where
-  showsPrec = showsSingPrec
+  showsPrec d schema = showParen (d > 10) $ showString "sing @_ @" . showPromotedSchema schema

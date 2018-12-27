@@ -77,7 +77,7 @@ asValue
    . (SingI nullability, BCValue bc)
   => DataType fk bc
   -> Value fk ( 'Column nullability bc)
-asValue = case sing @_ @nullability of
+asValue = case sing @nullability of
   SFalse -> V . asBaseValue
   STrue  -> N . Just . asBaseValue
 

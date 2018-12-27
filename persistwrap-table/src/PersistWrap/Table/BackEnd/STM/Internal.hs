@@ -38,7 +38,6 @@ import qualified PersistWrap.Table.Class as Class
 import PersistWrap.Table.Schema
 import PersistWrap.Table.Reflect
 import PersistWrap.Table.Row
-import PersistWrap.Table.STM.Future (stateTVar)
 import PersistWrap.Table.Transaction (ForeignKey, MonadPersist, MonadTransaction, getAllEntities)
 import qualified PersistWrap.Table.Transaction as Transaction
 
@@ -94,11 +93,11 @@ instance MonadBaseTransaction (STMTransaction s) where
   deleteRow (Key r) = liftBase $ stateTVar r $ isJust &&& const Nothing
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
   lookupTable = asks . SingMap.lookup
-  keyToForeign (Key r :: Key s tab) = FK (sing @_ @(TabSchema tab)) r
+  keyToForeign (Key r :: Key s tab) = FK (sing @(TabSchema tab)) r
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
       coerceSchema :: TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
-      coerceSchema = case sing @_ @(TabSchema tab) of
+      coerceSchema = case sing @(TabSchema tab) of
         SSchema _ tabCols -> case schCols %~ tabCols of
           Proved Refl -> id
           Disproved{} -> case Dict :: Dict (SchemaName sch ~ TabName tab) of

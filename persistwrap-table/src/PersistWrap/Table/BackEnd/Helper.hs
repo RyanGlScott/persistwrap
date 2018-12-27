@@ -32,5 +32,5 @@ constructMap :: SList schemas -> Tuple schemas tab -> TableMap tab
 constructMap schemas = SingMap.fromList . mapUncheckSing schemas tableToMapEntry
 
 tableToMapEntry :: forall tab schema . SingI schema => tab schema -> Some (SomeTableNamed tab)
-tableToMapEntry = case sing @_ @schema of
+tableToMapEntry = case sing @schema of
   SSchema name cols -> some name . SomeTableNamed cols

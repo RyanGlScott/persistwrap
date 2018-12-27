@@ -18,7 +18,7 @@ module PersistWrap.Persisted
     ) where
 
 import Data.Map (Map)
-import Data.Promotion.Prelude (type (==))
+import Data.Singletons.Prelude (type (==))
 import GHC.TypeLits (KnownSymbol, Symbol)
 
 import PersistWrap.Itemized

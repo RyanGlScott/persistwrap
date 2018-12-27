@@ -4,7 +4,6 @@ module PersistWrap.TH
     ( declareTables
     ) where
 
-import Data.Kind (type (*))
 import GHC.TypeLits (Symbol)
 import Language.Haskell.TH (Dec(DataD), Q, TyVarBndr(KindedTV), Type(ConT), mkName)
 
