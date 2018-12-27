@@ -5,7 +5,7 @@ module Consin.Some where
 
 import Data.Singletons (Sing, SingI, SingInstance(SingInstance), sing, singInstance)
 
-import Consin.Class (AlwaysS, showsPrec1)
+import Consin.Class (AlwaysS)
 
 data Some f = forall x. SingI x => Some (f x)
 
@@ -17,5 +17,4 @@ data GetSome f = forall x. GetSome (Sing x) (f x)
 getSome :: Some f -> GetSome f
 getSome (Some x) = GetSome sing x
 
-instance AlwaysS Show f => Show (Some f) where
-  showsPrec d (Some x) = showParen (d > 10) $ showString "Some " . showsPrec1 11 x
+deriving instance AlwaysS Show f => Show (Some f)

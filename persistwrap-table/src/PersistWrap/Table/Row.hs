@@ -11,7 +11,7 @@ import Data.Singletons.Prelude (Fst, SList, Sing(STuple2))
 import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (Symbol)
 
-import Consin (AlwaysS, compare1, showsPrec1, singToTuple, (==*))
+import Consin (AlwaysS, singToTuple)
 import qualified Consin as Tuple (zipUncheckSing)
 import PersistWrap.Primitives (PrimType, deriveConstraint)
 import PersistWrap.Table.Aeson.Orphans ()
@@ -29,7 +29,7 @@ instance (SingI bc, AlwaysS Show fk) => Show (BaseValue fk bc) where
     (SPrim sp, PV p) -> showString "PV " . deriveConstraint @Show sp showsPrec 11 p
     (SEnum ((singInstance -> SingInstance) :%| (singInstance -> SingInstance)), EV ev) ->
       showString "EV " . showsPrec 11 ev
-    (SForeignKey (singInstance -> SingInstance), FKV fk) -> showString "FKV " . showsPrec1 11 fk
+    (SForeignKey (singInstance -> SingInstance), FKV fk) -> showString "FKV " . showsPrec 11 fk
     (SJSON, JSONV v) -> showString "JSONV " . showsPrec 11 v
 
 instance (AlwaysS Eq fk, SingI bc) => Eq (BaseValue fk bc) where
@@ -38,7 +38,7 @@ instance (AlwaysS Eq fk, SingI bc) => Eq (BaseValue fk bc) where
       go :: SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Bool
       go (SPrim n) (PV    pl) (PV    pr) = deriveConstraint @Eq n (==) pl pr
       go SEnum{}   (EV    x ) (EV    y ) = x == y
-      go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = il ==* ir
+      go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = il == ir
       go SJSON     (JSONV vl) (JSONV vr) = vl == vr
 
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI bc) => Ord (BaseValue fk bc) where
@@ -47,7 +47,7 @@ instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI bc) => Ord (BaseValue fk bc) wher
       go :: SBaseColumn bc -> BaseValue fk bc -> BaseValue fk bc -> Ordering
       go (SPrim n) (PV    pl) (PV    pr) = deriveConstraint @Ord n compare pl pr
       go SEnum{}   (EV    x ) (EV    y ) = compare x y
-      go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = compare1 il ir
+      go (SForeignKey (singInstance -> SingInstance)) (FKV il) (FKV ir) = compare il ir
       go SJSON     (JSONV vl) (JSONV vr) = vl `compare` vr
 
 

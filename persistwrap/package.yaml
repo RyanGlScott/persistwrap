@@ -88,7 +88,6 @@ tests:
     dependencies:
     - QuickCheck
     - bytestring
-    - generic-deriving
     - hspec
     - persistwrap
     - pretty-show

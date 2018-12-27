@@ -101,8 +101,7 @@ instance EntityPart fk v => EntityPart fk [v] where
   type StructureOf [v] = 'ListType (StructureOf v)
   fromEntity (List xs) = map (fromEntity @fk) xs
   toEntity xs = List $ map (toEntity @fk) xs
-instance (AlwaysS Eq fk, AlwaysS Ord fk, Ord k, EntityPart fk k, EntityPart fk v)
-    => EntityPart fk (Map k v) where
+instance (AlwaysS Ord fk, Ord k, EntityPart fk k, EntityPart fk v) => EntityPart fk (Map k v) where
   type StructureOf (Map k v) = 'MapType (StructureOf k) (StructureOf v)
   fromEntity (Map fk) = Map.fromList $ map (fromEntity @fk *** fromEntity @fk) $ Map.toList fk
   toEntity fk = Map $ Map.fromList $ map (toEntity @fk *** toEntity @fk) $ Map.toList fk

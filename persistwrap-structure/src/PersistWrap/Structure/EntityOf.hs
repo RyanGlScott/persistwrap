@@ -70,7 +70,7 @@ instance (SingI struct, AlwaysS Show fk) => Show (EntityOf fk struct) where
     SPrimitive pn -> deriveConstraint @Show pn $ \case
       Prim p -> showParen (d > 10) $ showString "Prim " . showsPrec 11 p
     SForeign (singInstance -> SingInstance) -> \case
-      ForeignKey k -> showParen (d > 10) $ showString "ForeignKey " . showsPrec1 11 k
+      ForeignKey k -> showParen (d > 10) $ showString "ForeignKey " . showsPrec 11 k
     SUnitType -> \case
       Unit -> showString "Unit"
     SProductType ((singInstance -> SingInstance) :: SList xs) -> \case
@@ -93,7 +93,7 @@ instance (AlwaysS Eq fk, SingI struct) => Eq (EntityOf fk struct) where
   (==) (Prim x) (Prim y) = case sing @struct of
     (SPrimitive pn) -> deriveConstraint @Eq pn (==) x y
   (==) (ForeignKey x) (ForeignKey y) = case sing @struct of
-    (SForeign (singInstance -> SingInstance)) -> x ==* y
+    (SForeign (singInstance -> SingInstance)) -> x == y
   (==) Unit    Unit    = True
   (==) (Sum x) (Sum y) = case sing @struct of
     (SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance))) ->
@@ -105,11 +105,11 @@ instance (AlwaysS Eq fk, SingI struct) => Eq (EntityOf fk struct) where
   (==) (Map x) (Map y) = case sing @struct of
     SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) -> x == y
 
-instance (SingI struct, AlwaysS Eq fk, AlwaysS Ord fk) => Ord (EntityOf fk struct) where
+instance (SingI struct, AlwaysS Ord fk) => Ord (EntityOf fk struct) where
   compare (Prim x) (Prim y) = case sing @struct of
     (SPrimitive pn) -> deriveConstraint @Ord pn compare x y
   compare (ForeignKey x) (ForeignKey y) = case sing @struct of
-    SForeign (singInstance -> SingInstance) -> compare1 x y
+    SForeign (singInstance -> SingInstance) -> compare x y
   compare Unit    Unit    = EQ
   compare (Sum x) (Sum y) = case sing @struct of
     (SSumType ((singInstance -> SingInstance) :%| (singInstance -> SingInstance))) ->
@@ -134,9 +134,9 @@ instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI x) => Ord (EntityOfSnd fk x) wher
 instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
     => Arbitrary (EntityOf fk structure) where
   arbitrary = case sing @structure of
-    SPrimitive pn  -> Prim <$> deriveConstraint @Arbitrary pn arbitrary
-    SForeign   sfk -> ForeignKey <$> withAlwaysS @Arbitrary @fk sfk arbitrary
-    SUnitType      -> pure Unit
+    SPrimitive pn -> Prim <$> deriveConstraint @Arbitrary pn arbitrary
+    SForeign (singInstance -> SingInstance) -> ForeignKey <$> arbitrary
+    SUnitType -> pure Unit
     SProductType sxs@(singInstance -> SingInstance) ->
       scale (\s -> max 0 $ (s - 1) `quot` max 1 (length (fromSing sxs))) $ Product <$> arbitrary
     SSumType sxs@((singInstance -> SingInstance) :%| (singInstance -> SingInstance)) ->
@@ -148,8 +148,8 @@ instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
   shrink = case sing @structure of
     SPrimitive pn -> \case
       Prim p -> map Prim $ deriveConstraint @Arbitrary pn $ shrink p
-    SForeign sfk -> \case
-      ForeignKey fk -> withAlwaysS @Arbitrary @fk sfk $ map ForeignKey $ shrink fk
+    SForeign (singInstance -> SingInstance) -> \case
+      ForeignKey fk -> map ForeignKey $ shrink fk
     SUnitType -> \case
       Unit -> []
     SProductType (singInstance -> SingInstance) -> \case
@@ -161,8 +161,7 @@ instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
     SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) -> \case
       Map kvm -> map Map $ shrink kvm
 
-instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI nx)
-    => Arbitrary (EntityOfSnd fk nx) where
+instance (AlwaysS Arbitrary fk, AlwaysS Ord fk, SingI nx) => Arbitrary (EntityOfSnd fk nx) where
   arbitrary = case sing @nx of
     STuple2 _ (singInstance -> SingInstance) -> EntityOfSnd <$> arbitrary
   shrink = case sing @nx of
