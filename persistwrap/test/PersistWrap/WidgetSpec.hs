@@ -1,20 +1,18 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module PersistWrap.WidgetSpec
     ( spec_widget
     ) where
 
 import Control.Monad (join)
 import qualified Data.ByteString.Char8 as BS
+import GHC.TypeLits (Symbol)
 import Test.Hspec
 
 import PersistWrap
 import qualified PersistWrap.BackEnd.STM.Itemized as BackEnd
 import PersistWrap.TestUtils.Widget
-import PersistWrap.TH (declareTables)
 
 -- | We're declaring a new table context which called \"TestTables\".
-$(declareTables "TestTables")
+data TestTables (fk :: Symbol -> *)
 -- |
 -- \"TestTables\" has two primary tables in it: \"abc\" and \"widget\". \"abc\" stores `Int`s and
 -- \"widget\" stores `Widget`s.

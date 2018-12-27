@@ -1,4 +1,7 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 
 module PersistWrap.PersistableTest
     ( prop_insert_lookup
@@ -8,6 +11,7 @@ import Conkin (Tuple(..))
 import Control.Monad (forM)
 import qualified Control.Monad.State as State
 import Control.Monad.State (State, evalState, evalStateT)
+import Data.Constraint (Dict(Dict))
 import Data.Functor.Identity
 import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap
@@ -15,7 +19,7 @@ import Data.Singletons
 import Data.Singletons.TypeLits (SSymbol, Symbol)
 import Test.QuickCheck
 
-import Conkin.Extra (All, Always(..))
+import Conkin.Extra (All, Always)
 import Consin (AlwaysS, Some(Some))
 import PersistWrap hiding (fmapFK)
 import PersistWrap.Functor.Extra ((<&>))
@@ -34,7 +38,7 @@ prop_insert_lookup = withMaxSuccess 1000 $ property $ \(OpSchema _ (_ :: Proxy i
     return $ actualRes === operateModel ops
 
 data ConvertFK fk2 x where
-  ConvertFK :: SingI x => EntityOf fk2 x -> ConvertFK fk2 (EntityOf fk1 x)
+  ConvertFK ::SingI x => EntityOf fk2 x -> ConvertFK fk2 (EntityOf fk1 x)
 deriving instance AlwaysS Eq fk2 => Eq (ConvertFK fk2 x)
 deriving instance AlwaysS Show fk2 => Show (ConvertFK fk2 x)
 instance (x ~ EntityOf fk1 struct, EntityPart fk1 x)
@@ -85,22 +89,23 @@ type instance Items (General xs fk) = Entities xs fk
 type family Entities (xs :: [(Symbol, *)]) (fk :: Symbol -> *) where
   Entities '[] fk = '[]
   Entities ('(k,v) ': kvs) fk = '(k, ConvertFK fk v) ': Entities kvs fk
-instance ItemList kvs => Always AllEmbed (General kvs) where
-  withAlways :: forall proxy fk y . proxy fk -> (AllEmbed (General kvs fk) => y) -> y
-  withAlways _ y0 = go y0 members
-    where
-      go
-        :: forall kvs'
-         . (All EmbedPair (Entities kvs' fk) => y)
-        -> Tuple kvs' (MemberX kvs Proxy)
-        -> y
-      go y = \case
-        Nil -> y
-        MemberX (singInstance -> SingInstance) _ `Cons` xs -> go y xs
+
+proveAllEmbed :: forall kvs fk . ItemList kvs => Dict (AllEmbed (General kvs fk))
+proveAllEmbed = case go members of
+  Dict -> Dict
+  where
+    go :: forall kvs' . Tuple kvs' (MemberX kvs Proxy) -> Dict (All EmbedPair (Entities kvs' fk))
+    go tup = case tup of
+      Nil -> Dict
+      MemberX (singInstance -> SingInstance) _ `Cons` xs -> case go xs of
+        Dict -> Dict
+
+proveAlwaysAllEmbed :: forall kvs . ItemList kvs => Dict (Always AllEmbed (General kvs))
+proveAlwaysAllEmbed = undefined (proveAllEmbed @kvs)
 
 operateActual :: forall xs . ItemList xs => Operations xs -> IO (LookupResults xs)
-operateActual (Operations ops) = BackEnd.withEmptyTablesItemized @(General xs)
-  $ atomicTransaction go
+operateActual (Operations ops) = case proveAlwaysAllEmbed @xs of
+  Dict -> BackEnd.withEmptyTablesItemized @(General xs) $ atomicTransaction go
   where
     go :: forall s . ItemizedIn (General xs) (STMTransaction s) (LookupResults xs)
     go =

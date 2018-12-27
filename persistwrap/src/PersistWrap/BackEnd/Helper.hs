@@ -10,7 +10,6 @@ module PersistWrap.BackEnd.Helper
     ) where
 
 import Data.Constraint (Dict(Dict))
-import Data.Proxy (Proxy(Proxy))
 import Data.Singletons.Prelude hiding (All, Map)
 import Data.Text (Text)
 
@@ -30,15 +29,14 @@ instance All EmbedPair (Items x) => AllEmbed x
 
 setupHelper
   :: forall fnitems m n x
-   . Always AllEmbed fnitems
+   . AllEmbed (fnitems (ForeignKey m))
   => (forall (sch :: [Schema Symbol]) . SList sch -> m x -> n x)
   -> Itemized (Items (fnitems (ForeignKey m))) m x
   -> n x
 setupHelper setup action =
-  withAlways @AllEmbed @fnitems (Proxy @(ForeignKey m))
-    $ let schemas =
-            concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems (ForeignKey m))))
-      in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)
+  let schemas =
+        concat $ mapUncheck schemasOf (All.dicts @EmbedPair @(Items (fnitems (ForeignKey m))))
+  in  withSomeSing schemas $ \sschemas -> setup sschemas (runItemized action)
 
 schemasOf :: forall schx . DictC EmbedPair schx -> [Schema Text]
 schemasOf (DictC Dict) = entitySchemas @(Fst schx) @(StructureOf (Snd schx))
