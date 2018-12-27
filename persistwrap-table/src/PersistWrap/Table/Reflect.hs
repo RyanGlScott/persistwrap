@@ -3,11 +3,11 @@ module PersistWrap.Table.Reflect where
 import Conkin (Tuple)
 import Data.Proxy (Proxy(Proxy))
 import Data.Reflection (Reifies, reflect, reify)
-import Data.Singletons (SingI, SingInstance(SingInstance), sing, singInstance, withSingI)
+import Data.Singletons (SingI, sing, withSingI)
 import Data.Singletons.Prelude (Fst, Snd)
 import Data.Singletons.TypeLits (Symbol)
 
-import Consin (AlwaysS(..), fmapSing, showsPrec1)
+import Consin (AlwaysS, fmapSing, showsPrec1)
 import PersistWrap.Table.Schema
 
 data Entity' k v = Entity {entityKey :: k, entityVal :: v}
@@ -27,9 +27,6 @@ instance (AlwaysS Show table, SingI name) => Show (SomeTableNamed table name) wh
       . showsPrec 11 (SSchema (sing @name) cols)
       . showString " "
       . showsPrec1 11 tab
-
-instance AlwaysS Show table => AlwaysS Show (SomeTableNamed table) where
-  withAlwaysS (singInstance -> SingInstance) = id
 
 type WithinTableOf (table :: Schema Symbol -> *) tab
   = (SingI (TabSchema tab), Reifies (Fst tab) (table (Snd tab)))

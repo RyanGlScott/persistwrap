@@ -32,7 +32,6 @@ import Test.QuickCheck hiding (elements)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Conkin.Extra (mapUncheck)
-import Consin (AlwaysS(..))
 import PersistWrap.Persisted (MapsTo)
 import PersistWrap.Structure (EntityOf, SStructure, Structure)
 
@@ -41,14 +40,6 @@ data DummyFK (name :: Symbol)
 instance Arbitrary (DummyFK name) where
   arbitrary = error "Should be unreachable"
   shrink    = \case {}
-instance AlwaysS Eq DummyFK where
-  withAlwaysS = const id
-instance AlwaysS Ord DummyFK where
-  withAlwaysS = const id
-instance AlwaysS Show DummyFK where
-  withAlwaysS = const id
-instance AlwaysS Arbitrary DummyFK where
-  withAlwaysS = const id
 
 dummyToAny :: DummyFK name -> fk name
 dummyToAny = \case {}

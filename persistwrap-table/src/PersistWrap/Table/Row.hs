@@ -12,7 +12,6 @@ import Data.Singletons.Prelude.List.NonEmpty (Sing((:%|)))
 import Data.Singletons.TypeLits (Symbol)
 
 import Consin (AlwaysS, compare1, showsPrec1, singToTuple, (==*))
-import qualified Consin
 import qualified Consin as Tuple (zipUncheckSing)
 import PersistWrap.Primitives (PrimType, deriveConstraint)
 import PersistWrap.Table.Aeson.Orphans ()
@@ -89,8 +88,6 @@ instance (AlwaysS Eq fk, SingI nc) => Eq (ValueSnd fk nc) where
 instance (AlwaysS Show fk, SingI nc) => Show (ValueSnd fk nc) where
   showsPrec d (ValueSnd x) = showParen (d > 10) $ showString "ValueSnd " . case sing @nc of
     STuple2 _ (singInstance -> SingInstance) -> showsPrec 11 x
-instance AlwaysS Show fk => AlwaysS Show (ValueSnd fk) where
-  withAlwaysS (singInstance -> SingInstance) = id
 
 data MaybeValueSnd fk (nc :: (Symbol,Column Symbol)) where
   MaybeValueSnd ::Maybe (Value fk col) -> MaybeValueSnd fk '(name,col)

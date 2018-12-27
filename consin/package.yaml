@@ -32,6 +32,7 @@ default-extensions:
 - LambdaCase
 - MultiParamTypeClasses
 - PolyKinds
+- QuantifiedConstraints
 - RankNTypes
 - ScopedTypeVariables
 - StandaloneDeriving

@@ -16,7 +16,7 @@ import Data.Singletons.TypeLits (SSymbol, Symbol)
 import Test.QuickCheck
 
 import Conkin.Extra (All, Always(..))
-import Consin (AlwaysS(..), Some(Some))
+import Consin (AlwaysS, Some(Some))
 import PersistWrap hiding (fmapFK)
 import PersistWrap.Functor.Extra ((<&>))
 import qualified PersistWrap.Structure as Structure (fmapFK)

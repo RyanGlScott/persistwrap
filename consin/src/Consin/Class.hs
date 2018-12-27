@@ -1,30 +1,19 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Consin.Class where
 
 import Prelude hiding (Functor(..))
 
-import Data.Functor.Const (Const)
-import Data.Proxy (Proxy)
-import Data.Singletons (Sing, SingI, sing)
+import Data.Singletons (Sing, SingI, SingInstance(..), sing, singInstance)
 import Generics.Deriving.Eq (GEq, geq)
 import Generics.Deriving.Show (GShow, gshowsPrec)
 
-class AlwaysS c f where
-  withAlwaysS :: forall x y. Sing x -> (c (f x) => y) -> y
+class (forall x. SingI x => c (f x)) => AlwaysS c f
+instance (forall x. SingI x => c (f x)) => AlwaysS c f
 
-instance Eq x => AlwaysS Eq (Const x) where
-  withAlwaysS = const id
-instance Ord x => AlwaysS Ord (Const x) where
-  withAlwaysS = const id
-instance Show x => AlwaysS Show (Const x) where
-  withAlwaysS = const id
-instance AlwaysS Eq Proxy where
-  withAlwaysS = const id
-instance AlwaysS Ord Proxy where
-  withAlwaysS = const id
-instance AlwaysS Show Proxy where
-  withAlwaysS = const id
+withAlwaysS :: forall c f x y. AlwaysS c f => Sing x -> (c (f x) => y) -> y
+withAlwaysS (singInstance -> SingInstance) y = y
 
 (==*) :: forall f x . (AlwaysS Eq f, SingI x) => f x -> f x -> Bool
 (==*) = withAlwaysS @Eq @f @x sing (==)

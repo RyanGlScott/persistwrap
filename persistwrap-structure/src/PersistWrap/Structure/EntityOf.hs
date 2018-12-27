@@ -81,14 +81,10 @@ instance (SingI struct, AlwaysS Show fk) => Show (EntityOf fk struct) where
       List xs -> showParen (d > 10) $ showString "List " . showsPrec 11 xs
     SMapType (singInstance -> SingInstance) (singInstance -> SingInstance) -> \case
       Map kvs -> showParen (d > 10) $ showString "Map " . showsPrec 11 kvs
-instance AlwaysS Show fk => AlwaysS Show (EntityOf fk) where
-  withAlwaysS (singInstance -> SingInstance) = id
 instance (SingI nx, AlwaysS Show fk) => Show (EntityOfSnd fk nx) where
   showsPrec d (EntityOfSnd x) = case sing @nx of
     STuple2 _ (singInstance -> SingInstance) ->
       showParen (d > 10) $ showString "EntityOfSnd " . showsPrec 11 x
-instance AlwaysS Show fk => AlwaysS Show (EntityOfSnd fk) where
-  withAlwaysS (singInstance -> SingInstance) = id
 
 foreignKey :: SSymbol name -> fk name -> EntityOf fk ( 'Foreign name)
 foreignKey (singInstance -> SingInstance) = ForeignKey
@@ -131,13 +127,9 @@ data EntityOfSnd (fk :: Symbol -> *) (x :: (Symbol, Structure Symbol)) where
 instance (AlwaysS Eq fk, SingI x) => Eq (EntityOfSnd fk x) where
   (==) (EntityOfSnd x) (EntityOfSnd y) = case sing @x of
     STuple2 _ (singInstance -> SingInstance) -> x == y
-instance AlwaysS Eq fk => AlwaysS Eq (EntityOfSnd fk) where
-  withAlwaysS (singInstance -> SingInstance) = id
 instance (AlwaysS Eq fk, AlwaysS Ord fk, SingI x) => Ord (EntityOfSnd fk x) where
   compare (EntityOfSnd x) (EntityOfSnd y) = case sing @x of
     STuple2 _ (singInstance -> SingInstance) -> compare x y
-instance (AlwaysS Eq fk, AlwaysS Ord fk) => AlwaysS Ord (EntityOfSnd fk) where
-  withAlwaysS (singInstance -> SingInstance) = id
 
 instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI structure)
     => Arbitrary (EntityOf fk structure) where
@@ -175,7 +167,3 @@ instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk, SingI nx)
     STuple2 _ (singInstance -> SingInstance) -> EntityOfSnd <$> arbitrary
   shrink = case sing @nx of
     STuple2 _ (singInstance -> SingInstance) -> \(EntityOfSnd x) -> EntityOfSnd <$> shrink x
-
-instance (AlwaysS Arbitrary fk, AlwaysS Eq fk, AlwaysS Ord fk)
-    => AlwaysS Arbitrary (EntityOfSnd fk) where
-  withAlwaysS (singInstance -> SingInstance) = id
