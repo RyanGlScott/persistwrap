@@ -25,18 +25,12 @@ import qualified Data.Text as Text
 
 import Conkin.Extra (Index, tupleLens, uncheckIndex, zipWithUncheckedM)
 import qualified Conkin.Extra as Tuple (findJust)
-import Consin (AlwaysS(..), getTaggedValueS, mapUncheckSing, singToTuple, withAlwaysSTupleShow)
+import Consin (getTaggedValueS, mapUncheckSing, singToTuple)
 import PersistWrap.Primitives
 import PersistWrap.Table
 
 newtype PersistentFK s (name :: Symbol) = PersistentFK (BackendKey SqlBackend)
   deriving (Eq, Ord, Show)
-instance AlwaysS Eq (PersistentFK s) where
-  withAlwaysS = const id
-instance AlwaysS Ord (PersistentFK s) where
-  withAlwaysS = const id
-instance AlwaysS Show (PersistentFK s) where
-  withAlwaysS = const id
 
 newtype JSONValue = JSONValue {unJSONValue :: JSON.Value}
   deriving (FromJSON, ToJSON)
@@ -45,10 +39,6 @@ $(derivePersistFieldJSON "JSONValue")
 newtype NamedRow s schema = NamedRow (Row (PersistentFK s) (SchemaCols schema))
 
 deriving instance Show (Row (PersistentFK s) (SchemaCols schema)) => Show (NamedRow s schema)
-
-instance AlwaysS Show (NamedRow s) where
-  withAlwaysS (SSchema _ (singInstance -> SingInstance :: SingInstance cols)) =
-    withAlwaysSTupleShow @cols @(ValueSnd (PersistentFK s))
 
 typeName :: SqlType -> Text
 typeName = undefined
@@ -112,10 +102,10 @@ instance SingI schema => PersistEntity (NamedRow s schema) where
     [k] -> NamedRowKey <$> fromPersistValue k
     _   -> Left "Unexpected list length"
   persistIdField = PrimKeyField
-  entityDef _ = namedRowEntity $ fromSing $ sing @_ @schema
-  toPersistFields = case sing @_ @schema of
+  entityDef _ = namedRowEntity $ fromSing $ sing @schema
+  toPersistFields = case sing @schema of
     SSchema _ scols -> \(NamedRow r) -> mapUncheckSing scols SomePersistField r
-  fromPersistValues = case sing @_ @schema of
+  fromPersistValues = case sing @schema of
     SSchema _ scols ->
       zipWithUncheckedM (\(singInstance -> SingInstance) -> fromPersistValue) (singToTuple scols)
         >=> maybe (Left "Wrong number of items") (Right . NamedRow)
@@ -133,14 +123,14 @@ instance SingI schema => PersistEntity (NamedRow s schema) where
       (k `BackEnd.Entity`) . NamedRow <$> tupleLens i (\(ValueSnd v) -> ValueSnd <$> vFn v) r
 
 instance SingI bc => PersistField (BaseValue (PersistentFK s) bc) where
-  toPersistValue = case sing @_ @bc of
+  toPersistValue = case sing @bc of
     SPrim pn -> deriveConstraint @PersistField pn $ \(PV v) -> toPersistValue v
     SEnum ((singInstance -> SingInstance) :%| (singInstance -> SingInstance)) ->
       \(EV (EnumVal v)) ->
-        toPersistValue $ getTaggedValueS (\(_ :: Proxy name) -> fromSing (sing @_ @name)) v
+        toPersistValue $ getTaggedValueS (\(_ :: Proxy name) -> fromSing (sing @name)) v
     SForeignKey _ -> \(FKV (PersistentFK k)) -> toPersistValue k
     SJSON         -> \(JSONV v) -> toPersistValue (JSONValue v)
-  fromPersistValue = case sing @_ @bc of
+  fromPersistValue = case sing @bc of
     SPrim pn               -> deriveConstraint @PersistField pn $ fmap PV . fromPersistValue
     SEnum (name :%| names) -> \x -> do
       let listNames = name `SCons` names
@@ -156,19 +146,19 @@ instance SingI bc => PersistField (BaseValue (PersistentFK s) bc) where
     SJSON{}       -> fmap (JSONV . unJSONValue) . fromPersistValue
 
 instance SingI col => PersistField (Value (PersistentFK s) col) where
-  toPersistValue = case sing @_ @col of
+  toPersistValue = case sing @col of
     SColumn SFalse (singInstance -> SingInstance) -> \case
       V bv -> toPersistValue bv
     SColumn STrue (singInstance -> SingInstance) -> \case
       N mbv -> toPersistValue mbv
-  fromPersistValue = case sing @_ @col of
+  fromPersistValue = case sing @col of
     SColumn SFalse (singInstance -> SingInstance) -> fmap V . fromPersistValue
     SColumn STrue  (singInstance -> SingInstance) -> fmap N . fromPersistValue
 
 instance SingI nc => PersistField (ValueSnd (PersistentFK s) nc) where
-  toPersistValue = case sing @_ @nc of
+  toPersistValue = case sing @nc of
     STuple2 _ (singInstance -> SingInstance) -> \(ValueSnd v) -> toPersistValue v
-  fromPersistValue = case sing @_ @nc of
+  fromPersistValue = case sing @nc of
     STuple2 _ (singInstance -> SingInstance) -> fmap ValueSnd . fromPersistValue
 
 baseColSqlType :: BaseColumn Text -> SqlType
@@ -183,11 +173,11 @@ colSqlType :: Column Text -> SqlType
 colSqlType (Column _ bc) = baseColSqlType bc
 
 instance SingI bc => PersistFieldSql (BaseValue (PersistentFK s) bc) where
-  sqlType = const $ baseColSqlType $ fromSing (sing @_ @bc)
+  sqlType = const $ baseColSqlType $ fromSing (sing @bc)
 
 instance SingI c => PersistFieldSql (Value (PersistentFK s) c) where
-  sqlType = const $ colSqlType $ fromSing (sing @_ @c)
+  sqlType = const $ colSqlType $ fromSing (sing @c)
 
 instance SingI nc => PersistFieldSql (ValueSnd (PersistentFK s) nc) where
-  sqlType = const $ case fromSing (sing @_ @nc) of
+  sqlType = const $ case fromSing (sing @nc) of
     (_, c) -> colSqlType c

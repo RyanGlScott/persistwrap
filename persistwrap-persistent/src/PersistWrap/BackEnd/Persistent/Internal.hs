@@ -72,7 +72,7 @@ makeFilters
   => Proxy tab
   -> SubRow (PersistentFK s) (TabCols tab)
   -> [BackEnd.Filter (NamedRow s (TabSchema tab))]
-makeFilters _ = case sing @_ @(TabSchema tab) of
+makeFilters _ = case sing @(TabSchema tab) of
   SSchema _ (singInstance -> SingInstance) ->
     mapMaybe (fmap taggedToFilter . htraverse traverseMaybeValueSnd) . tagCases
 
@@ -84,7 +84,7 @@ taggedToFilter
   => Tagged cols (ValueSnd (PersistentFK s))
   -> BackEnd.Filter (NamedRow s ( 'Schema name cols))
 taggedToFilter (getWithIndexS -> IndexedItemS (i :: Index cols nc) (ValueSnd x)) =
-  case sing @_ @nc of
+  case sing @nc of
     STuple2 _ (singInstance -> SingInstance) -> ColField i ==. x
 
 newtype PersistentT s m a = PersistentT (ReaderT (Pool SqlBackend) (ReaderT (TableMap s) m) a)
