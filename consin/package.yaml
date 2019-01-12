@@ -32,6 +32,7 @@ default-extensions:
 - LambdaCase
 - MultiParamTypeClasses
 - PolyKinds
+- QuantifiedConstraints
 - RankNTypes
 - ScopedTypeVariables
 - StandaloneDeriving
@@ -46,7 +47,6 @@ dependencies:
 - conkin-extra
 - constraints
 - containers
-- generic-deriving
 - mtl
 - pointless-fun
 - singletons

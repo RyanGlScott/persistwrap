@@ -53,22 +53,21 @@ deleteColumnChildren
   -> ColumnRep fk x
   -> ValueStreamT m ()
 deleteColumnChildren selfName selfKey = \case
-  UnitRep _                             -> pure ()
-  PrimRep _                             -> StreamReader.ask $> ()
-  FnRep cr _                            -> deleteColumnChildren selfName selfKey cr
-  ForeignRep nschr@(NamedSchemaRep n _) -> do
-    ValueSnd (V (FKV fk)) <- Tuple.askX (STuple2 selfName (SColumn SFalse (SForeignKey n)))
-    lift (delete nschr fk) >>= \case
-      False -> error "Missing entry"
-      True  -> pure ()
-  NullForeignRep nschr@(NamedSchemaRep n _) -> do
-    ValueSnd (N (mfk :: Maybe (BaseValue fk ( 'Table.ForeignKey schName)))) <- Tuple.askX
-      (STuple2 selfName (SColumn STrue (SForeignKey n)))
-    case mfk of
-      Nothing       -> pure ()
-      Just (FKV fk) -> lift (delete nschr fk) >>= \case
+  UnitRep _  -> pure ()
+  PrimRep _  -> StreamReader.ask $> ()
+  FnRep cr _ -> deleteColumnChildren selfName selfKey cr
+  ForeignRep nschr@(NamedSchemaRep n _) ->
+    Tuple.askX (STuple2 selfName (SColumn SFalse (SForeignKey n))) >>= \case
+      ValueSnd (V (FKV fk)) -> lift (delete nschr fk) >>= \case
         False -> error "Missing entry"
         True  -> pure ()
+  NullForeignRep nschr@(NamedSchemaRep n _) ->
+    Tuple.askX (STuple2 selfName (SColumn STrue (SForeignKey n))) >>= \case
+      ValueSnd (N (mfk :: Maybe (BaseValue fk ( 'Table.ForeignKey schName)))) -> case mfk of
+        Nothing       -> pure ()
+        Just (FKV fk) -> lift (delete nschr fk) >>= \case
+          False -> error "Missing entry"
+          True  -> pure ()
   ListRep (NamedSchemaRep tabName x) -> void $ collectionList (deleteSomeListRow x) selfKey tabName
   MapRep krep (NamedSchemaRep valName vrep) ->
     void $ collectionList (deleteSomeMapRow krep vrep) selfKey valName

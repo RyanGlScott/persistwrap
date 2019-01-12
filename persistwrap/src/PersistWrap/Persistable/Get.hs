@@ -51,9 +51,9 @@ getFromRow selfKey = \case
     case c1 <|> def of
       Just x  -> Sum <$> getIndexed selfKey cols x
       Nothing -> error "All columns null with no default"
-  SumIndexedSchema cols@(getNonEmptyTags -> SomeSing names) -> do
-    ValueSnd (V (EV (EnumVal v))) <- Tuple.askX $ sTagNamedColumn names
-    Sum <$> getIndexed selfKey cols (proxyMatch cols v)
+  SumIndexedSchema cols@(getNonEmptyTags -> SomeSing names) ->
+    Tuple.askX (sTagNamedColumn names) >>= \case
+      ValueSnd (V (EV (EnumVal v))) -> Sum <$> getIndexed selfKey cols (proxyMatch cols v)
 
 getIndexed
   :: forall nxs m
@@ -92,18 +92,17 @@ getColumn
   -> ColumnRep (ForeignKey m) x
   -> ValueStreamT m x
 getColumn colName selfKey = \case
-  UnitRep x                               -> return x
-  FnRep c fn                              -> biTo fn <$> getColumn colName selfKey c
-  PrimRep    c                            -> Tuple.askX (STuple2 colName c) <&> \(ValueSnd v) -> v
-  ForeignRep rep@(NamedSchemaRep sname _) -> do
-    ValueSnd (V (FKV fk)) <- Tuple.askX (STuple2 colName (SColumn SFalse (SForeignKey sname)))
-    lift $ fromJust <$> get rep fk
-  NullForeignRep rep@(NamedSchemaRep sname _) -> do
-    ValueSnd (N (v :: Maybe (BaseValue (ForeignKey m) ( 'Table.ForeignKey ref)))) <- Tuple.askX
-      (STuple2 colName (SColumn STrue (SForeignKey sname)))
-    case v of
-      Nothing       -> return Nothing
-      Just (FKV fk) -> lift $ Just . fromJust <$> get rep fk
+  UnitRep x  -> return x
+  FnRep c fn -> biTo fn <$> getColumn colName selfKey c
+  PrimRep c  -> Tuple.askX (STuple2 colName c) <&> \(ValueSnd v) -> v
+  ForeignRep rep@(NamedSchemaRep sname _) ->
+    Tuple.askX (STuple2 colName (SColumn SFalse (SForeignKey sname))) >>= \case
+      ValueSnd (V (FKV fk)) -> lift $ fromJust <$> get rep fk
+  NullForeignRep rep@(NamedSchemaRep sname _) ->
+    Tuple.askX (STuple2 colName (SColumn STrue (SForeignKey sname))) >>= \case
+      ValueSnd (N (v :: Maybe (BaseValue (ForeignKey m) ( 'Table.ForeignKey ref)))) -> case v of
+        Nothing       -> return Nothing
+        Just (FKV fk) -> lift $ Just . fromJust <$> get rep fk
   ListRep (NamedSchemaRep tabName x) ->
     List . makeList <$> collectionList (getListItem x) selfKey tabName
   MapRep keyRep (NamedSchemaRep tabName valRep) ->
@@ -117,10 +116,11 @@ getListItem
   -> m (ListItem (EntityOf (ForeignKey m) structure))
 getListItem structRep (getSome -> GetSome (SSchema name cols) (ForeignRow fk r)) =
   (`runStreamReaderT` mapUncheckSing cols Some r) $ do
-    _                   <- StreamReader.ask
-    ValueSnd (V (PV i)) <- Tuple.askX sIndexNamedColumn
-    x                   <- getFromRow (some name fk) structRep
-    return $ ListItem (fromIntegral i) x
+    _ <- StreamReader.ask
+    Tuple.askX sIndexNamedColumn >>= \case
+      ValueSnd (V (PV i)) -> do
+        x <- getFromRow (some name fk) structRep
+        return $ ListItem (fromIntegral i) x
 
 getMapItem
   :: forall m keystruct valstruct

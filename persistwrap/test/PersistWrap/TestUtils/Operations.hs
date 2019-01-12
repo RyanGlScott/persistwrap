@@ -32,7 +32,6 @@ import Test.QuickCheck hiding (elements)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Conkin.Extra (mapUncheck)
-import Consin (AlwaysS(..))
 import PersistWrap.Persisted (MapsTo)
 import PersistWrap.Structure (EntityOf, SStructure, Structure)
 
@@ -41,14 +40,6 @@ data DummyFK (name :: Symbol)
 instance Arbitrary (DummyFK name) where
   arbitrary = error "Should be unreachable"
   shrink    = \case {}
-instance AlwaysS Eq DummyFK where
-  withAlwaysS = const id
-instance AlwaysS Ord DummyFK where
-  withAlwaysS = const id
-instance AlwaysS Show DummyFK where
-  withAlwaysS = const id
-instance AlwaysS Arbitrary DummyFK where
-  withAlwaysS = const id
 
 dummyToAny :: DummyFK name -> fk name
 dummyToAny = \case {}
@@ -66,10 +57,7 @@ makeOpSchema = go . zip defaultTabNames
       (name, x) : nxs -> case (toSing name, toSing x, go nxs) of
         (SomeSing (sname :: SSymbol name), SomeSing ((singInstance -> SingInstance) :: SStructure x), OpSchema xs (_ :: Proxy
             rest))
-          -> case sname %== sname of
-            SFalse -> error "Name does not equal itself!?" -- TODO How to prove unreachable?
-            STrue ->
-              withSingI sname $ OpSchema (x : xs) $ Proxy @('(name, EntityOf DummyFK x) ': rest)
+          -> withSingI sname $ OpSchema (x : xs) $ Proxy @('(name, EntityOf DummyFK x) ': rest)
 
 defaultTabNames :: [Text]
 defaultTabNames = [ Text.pack $ "Tab" ++ show i | i <- [(0 :: Int) ..] ]
@@ -135,7 +123,7 @@ _opConstructor = \case
 
 data MemberX items f nx where
   MemberX
-    :: (x ~ EntityOf DummyFK structure, MapsTo name x items, SingI structure, Eq (f x))
+    ::(x ~ EntityOf DummyFK structure, MapsTo name x items, SingI structure, Eq (f x))
     => SSymbol name -> f x -> MemberX items f '(name,x)
 data Member items f = forall nx. Member (MemberX items f nx)
 instance ConvertF f => Show (Member items f) where
@@ -163,7 +151,7 @@ instance Eq (Member items f) where
 
 upMember
   :: forall sym x items f nx . SingI sym => MemberX items f nx -> MemberX ('(sym,x) ': items) f nx
-upMember (MemberX name x) = case name %== sing @_ @sym of
+upMember (MemberX name x) = case name %== sing @sym of
   STrue  -> error "Duplicate names"
   SFalse -> MemberX name x
 
@@ -175,7 +163,7 @@ instance (SingI sym, (sym == sym) ~ 'True
           , x ~ EntityOf DummyFK structure, SingI structure
           , ItemList rest)
     => ItemList ('(sym,x) ': rest) where
-  members = MemberX (sing @_ @sym) (Proxy @x) `Cons` Conkin.fmap upMember (members @rest)
+  members = MemberX (sing @sym) (Proxy @x) `Cons` Conkin.fmap upMember (members @rest)
 
 instance ItemList items => Arbitrary (Operations items) where
   arbitrary = do

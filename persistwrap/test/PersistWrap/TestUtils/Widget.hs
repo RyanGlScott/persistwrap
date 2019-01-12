@@ -4,15 +4,14 @@
 module PersistWrap.TestUtils.Widget where
 
 import qualified Conkin
+import Consin (AlwaysS)
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
-import Generics.Deriving.Eq (GEq(..))
-import Generics.Deriving.Show (GShow(..))
 import GHC.Generics (Generic, Rep)
 
 import PersistWrap.Structure (EntityPart, GStructureOf, StructureOf)
-import PersistWrap.Structure.TH (deriveEntityPart, deriveFnEq, deriveFnShow)
+import PersistWrap.Structure.TH (deriveEntityPart)
 
 data Color = Red | Green | Blue
   deriving (Eq, Show, Generic)
@@ -38,6 +37,11 @@ data Widget fk
   | Bleeble Text
   | Glorp (fk "abc")
   deriving (Generic)
+-- | Eq instances for types parameterized over the foreign key should be declared as
+deriving instance AlwaysS Eq fk => Eq (Widget fk)
+-- | Show instances for types parameterized over the foreign key should be declared as
+deriving instance AlwaysS Show fk => Show (Widget fk)
+
 -- |
 -- There's no TemplateHaskell helper for declaring an `EntityPart` instance for a datastructure
 -- parameterized by the foreign key. Thankfully, it's pretty easy to declare manually.
@@ -52,15 +56,3 @@ instance Conkin.Functor Widget where
     Blarg   x -> Blarg x
     Bleeble x -> Bleeble x
     Glorp   x -> Glorp (fn x)
-
--- | To use the `Eq` TH helper for Widget, we first need a `GEq` instance for all of its fields.
-instance GEq Foo where
-  geq = (==)
--- | Declare `Eq` instance using helper from "PersistWrap.Conkin.Extra.TH".
-$(deriveFnEq [t| Widget |])
-
--- | To use the `Show` TH helper for Widget, we first need a `GShow` instance for all of its fields.
-instance GShow Foo where
-  gshowsPrec = showsPrec
--- | Declare `Show` instance using helper from "PersistWrap.Conkin.Extra.TH".
-$(deriveFnShow [t| Widget |])

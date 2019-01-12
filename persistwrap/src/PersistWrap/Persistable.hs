@@ -46,14 +46,14 @@ withExpectTable
      )
   -> m y
 withExpectTable continuation = do
-  t <- lookupExpectTable (sing @_ @( 'Schema tabname cols))
+  t <- lookupExpectTable (sing @( 'Schema tabname cols))
   withinTable t continuation
 
 class (SingI schemaName, SingI structure) => HasRep schemaName structure where
   rep :: NamedSchemaRep fk schemaName structure
   entitySchemas :: [Schema Text]
 instance (SingI schemaName, SingI structure) => HasRep schemaName structure where
-  rep           = getSchemaRep (sing @_ @schemaName) (sing @_ @structure)
+  rep           = getSchemaRep (sing @schemaName) (sing @structure)
   entitySchemas = uncurry (:) $ repToSchemas $ rep @schemaName @structure
 
 class MonadTransaction m => Persistable (schemaName :: Symbol) (x :: *) (m :: * -> *) where

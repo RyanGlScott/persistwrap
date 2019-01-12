@@ -34,6 +34,7 @@ default-extensions:
 - MultiParamTypeClasses
 - RankNTypes
 - ScopedTypeVariables
+- StandaloneDeriving
 - TypeApplications
 - TypeFamilies
 - TypeOperators
@@ -47,7 +48,6 @@ dependencies:
 - conkin-extra
 - consin
 - containers
-- generic-deriving
 - persistwrap-primitives
 - singletons
 - template-haskell
