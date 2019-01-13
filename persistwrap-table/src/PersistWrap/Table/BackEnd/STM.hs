@@ -5,7 +5,6 @@ module PersistWrap.Table.BackEnd.STM
     ( STMPersist
     , STMTransaction
     , showAllTables
-    , withEmptyTables
     , withEmptyTableProxies
     ) where
 

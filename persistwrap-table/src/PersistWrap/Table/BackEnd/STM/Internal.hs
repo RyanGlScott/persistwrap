@@ -6,7 +6,6 @@ module PersistWrap.Table.BackEnd.STM.Internal
     , STMTransaction
     , showAllTables
     , unsafeSetupEmptyTables
-    , withEmptyTables
     , withEmptyTableProxies
     ) where
 
@@ -117,13 +116,6 @@ instance MonadIO m => MonadPersist (STMPersist s m) where
   type Transaction (STMPersist s m) = STMTransaction s
   atomicTransaction (STMTransaction act) = STMPersist $ mapReaderT (liftIO . atomically) act
 
-withEmptyTables
-  :: MonadIO m
-  => SList (schemas :: [Schema Symbol])
-  -> (forall s . SingI schemas => Tuple schemas (Table s) -> STMPersist s m x)
-  -> m x
-withEmptyTables = unsafeSetupEmptyTables
-
 unsafeSetupEmptyTables
   :: (HasCallStack, MonadIO m)
   => SList (schemas :: [Schema Symbol])
@@ -139,7 +131,7 @@ withEmptyTableProxies
   => SList schemas
   -> (forall s . Tuple schemas (SomeTableProxy (Table s)) -> STMPersist s m x)
   -> m x
-withEmptyTableProxies schemas action = withEmptyTables schemas (`withinTables` action)
+withEmptyTableProxies schemas action = unsafeSetupEmptyTables schemas (`withinTables` action)
 
 newTable :: proxy schema -> IO (Table s schema)
 newTable _ = Table <$> newTVarIO []
