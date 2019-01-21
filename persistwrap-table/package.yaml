@@ -31,6 +31,7 @@ default-extensions:
 - InstanceSigs
 - LambdaCase
 - MultiParamTypeClasses
+- OverloadedStrings
 - RankNTypes
 - ScopedTypeVariables
 - StandaloneDeriving
@@ -41,6 +42,7 @@ default-extensions:
 - ViewPatterns
 
 dependencies:
+- QuickCheck
 - aeson
 - base >= 4.7 && < 5
 - bytestring
