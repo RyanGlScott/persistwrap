@@ -50,5 +50,5 @@ entityToForeign
    . (MonadBaseTransaction m, WithinTable m tab, schema ~ TabSchema tab)
   => Entity m tab
   -> ForeignRow (ForeignKey m) schema
-entityToForeign (Entity k r) = case sing @_ @schema of
+entityToForeign (Entity k r) = case sing @schema of
   SSchema _ _ -> ForeignRow (keyToForeign k) r

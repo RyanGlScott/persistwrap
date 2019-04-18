@@ -1,0 +1,14 @@
+packages:
+ ./conkin-extra
+ ./consin
+ ./persistwrap
+ ./persistwrap-primitives
+ ./persistwrap-structure
+ ./persistwrap-table
+ ./promoted-lift
+ ./stream-reader
+
+source-repository-package
+  type: git
+  location: https://github.com/RyanGlScott/conkin
+  tag: 96bba756cd27144b12b3ead24565cb32364ca723

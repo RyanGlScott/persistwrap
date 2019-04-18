@@ -14,7 +14,7 @@ module PersistWrap.Table.BackEnd.STM.Internal
 import Conkin (Tuple)
 import Control.Arrow ((&&&), (***))
 import Control.Concurrent.STM (STM, atomically)
-import Control.Concurrent.STM.TVar
+import Control.Concurrent.STM.TVar hiding (stateTVar)
 import Control.Monad (forM)
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Extra (mapMaybeM)
@@ -95,11 +95,11 @@ instance MonadBaseTransaction (STMTransaction s) where
   deleteRow (Key r) = liftBase $ stateTVar r $ isJust &&& const Nothing
   stateRow (Key r) fn = liftBase $ stateTVar r $ maybe (Nothing, Nothing) ((Just *** Just) . fn)
   lookupTable = asks . SingMap.lookup
-  keyToForeign (Key r :: Key s tab) = FK (sing @_ @(TabSchema tab)) r
+  keyToForeign (Key r :: Key s tab) = FK (sing @(TabSchema tab)) r
   foreignToKey (_ :: Proxy tab) (FK (SSchema _ schCols :: SSchema sch) r) = Key $ coerceSchema r
     where
       coerceSchema :: TVarMaybeRow s (SchemaCols sch) -> TVarMaybeRow s (TabCols tab)
-      coerceSchema = case sing @_ @(TabSchema tab) of
+      coerceSchema = case sing @(TabSchema tab) of
         SSchema _ tabCols -> case schCols %~ tabCols of
           Proved Refl -> id
           Disproved{} -> case Dict :: Dict (SchemaName sch ~ TabName tab) of
@@ -154,7 +154,7 @@ constructMap schemas = SingMap.fromList . mapUncheckSing schemas tableToMapEntry
 
 tableToMapEntry
   :: forall s schema . SingI schema => Table s schema -> Some (SomeTableNamed (Table s))
-tableToMapEntry = case sing @_ @schema of
+tableToMapEntry = case sing @schema of
   SSchema name cols -> some name . SomeTableNamed cols
 
 newTable :: proxy schema -> IO (Table s schema)

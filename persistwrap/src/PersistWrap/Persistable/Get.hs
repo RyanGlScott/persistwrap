@@ -52,8 +52,10 @@ getFromRow selfKey = \case
       Just x  -> Sum <$> getIndexed selfKey cols x
       Nothing -> error "All columns null with no default"
   SumIndexedSchema cols@(getNonEmptyTags -> SomeSing names) -> do
-    ValueSnd (V (EV (EnumVal v))) <- Tuple.askX $ sTagNamedColumn names
-    Sum <$> getIndexed selfKey cols (proxyMatch cols v)
+    x' <- Tuple.askX $ sTagNamedColumn names
+    case x' of
+     ValueSnd (V (EV (EnumVal v))) ->
+      Sum <$> getIndexed selfKey cols (proxyMatch cols v)
 
 getIndexed
   :: forall nxs m
@@ -96,14 +98,17 @@ getColumn colName selfKey = \case
   FnRep c fn                              -> biTo fn <$> getColumn colName selfKey c
   PrimRep    c                            -> Tuple.askX (STuple2 colName c) <&> \(ValueSnd v) -> v
   ForeignRep rep@(NamedSchemaRep sname _) -> do
-    ValueSnd (V (FKV fk)) <- Tuple.askX (STuple2 colName (SColumn SFalse (SForeignKey sname)))
-    lift $ fromJust <$> get rep fk
+    x' <- Tuple.askX (STuple2 colName (SColumn SFalse (SForeignKey sname)))
+    case x' of
+     ValueSnd (V (FKV fk)) ->
+      lift $ fromJust <$> get rep fk
   NullForeignRep rep@(NamedSchemaRep sname _) -> do
-    ValueSnd (N (v :: Maybe (BaseValue (ForeignKey m) ( 'Table.ForeignKey ref)))) <- Tuple.askX
-      (STuple2 colName (SColumn STrue (SForeignKey sname)))
-    case v of
-      Nothing       -> return Nothing
-      Just (FKV fk) -> lift $ Just . fromJust <$> get rep fk
+    x' <- Tuple.askX (STuple2 colName (SColumn STrue (SForeignKey sname)))
+    case x' of
+     ValueSnd (N (v :: Maybe (BaseValue (ForeignKey m) ( 'Table.ForeignKey ref)))) ->
+      case v of
+        Nothing       -> return Nothing
+        Just (FKV fk) -> lift $ Just . fromJust <$> get rep fk
   ListRep (NamedSchemaRep tabName x) ->
     List . makeList <$> collectionList (getListItem x) selfKey tabName
   MapRep keyRep (NamedSchemaRep tabName valRep) ->
@@ -118,9 +123,11 @@ getListItem
 getListItem structRep (getSome -> GetSome (SSchema name cols) (ForeignRow fk r)) =
   (`runStreamReaderT` mapUncheckSing cols Some r) $ do
     _                   <- StreamReader.ask
-    ValueSnd (V (PV i)) <- Tuple.askX sIndexNamedColumn
-    x                   <- getFromRow (some name fk) structRep
-    return $ ListItem (fromIntegral i) x
+    x' <- Tuple.askX sIndexNamedColumn
+    case x' of
+     ValueSnd (V (PV i))  -> do
+      x                   <- getFromRow (some name fk) structRep
+      return $ ListItem (fromIntegral i) x
 
 getMapItem
   :: forall m keystruct valstruct

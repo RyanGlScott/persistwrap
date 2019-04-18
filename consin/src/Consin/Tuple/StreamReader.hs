@@ -24,7 +24,7 @@ type StreamReader f = StreamReaderT f Identity
 askX :: (HasCallStack, Monad m) => SDecide k => Sing (x :: k) -> StreamReaderT f m (f x)
 askX s = do
   Some (x :: f x') <- List.ask
-  case sing @_ @x' %~ s of
+  case sing @x' %~ s of
     Proved Refl -> return x
     Disproved{} -> error "Unexpected type"
 

@@ -18,7 +18,6 @@ module Consin.SingMap
 
 import Prelude hiding (lookup)
 
-import Data.Kind (type (*))
 import qualified Data.Map as Map
 import Data.Singletons (Sing, SomeSing(SomeSing), sing)
 import Data.Singletons.Decide ((:~:)(Refl), Decision(..), SDecide, (%~))
@@ -53,7 +52,7 @@ delete sx (SingMap m) = SingMap $ Map.delete (SomeSing sx) m
 
 lookup :: forall k (x :: k) v . (SDecide k, SOrd k) => Sing x -> SingMap v -> Maybe (v x)
 lookup k (SingMap m) =
-  (\(Some (v :: v x')) -> case sing @_ @x' %~ k of
+  (\(Some (v :: v x')) -> case sing @x' %~ k of
       Disproved{} -> error "Bad value in Map"
       Proved Refl -> v
     )
@@ -63,7 +62,7 @@ lookup k (SingMap m) =
 (!?) = flip lookup
 
 fromList :: forall k (v :: k -> *) . SOrd k => [Some v] -> SingMap v
-fromList = SingMap . Map.fromList . map (\(Some (v :: v x)) -> (SomeSing $ sing @_ @x, Some v))
+fromList = SingMap . Map.fromList . map (\(Some (v :: v x)) -> (SomeSing $ sing @x, Some v))
 
 toList :: forall v . SingMap v -> [Some v]
 toList (SingMap m) = map snd $ Map.toList m

@@ -12,7 +12,7 @@ import Conkin.Extra (Index(..), noHere)
 data IndexedItemS xs f = forall x. SingI x => IndexedItemS (Index xs x) (f x)
 
 getWithIndexS :: forall xs f . SingI xs => Tagged xs f -> IndexedItemS xs f
-getWithIndexS = go (sing @_ @xs)
+getWithIndexS = go (sing @xs)
   where
     go :: forall xs' . Sing xs' -> Tagged xs' f -> IndexedItemS xs' f
     go = \case

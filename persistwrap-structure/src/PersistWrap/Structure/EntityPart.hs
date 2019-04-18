@@ -14,7 +14,7 @@ import Data.Int (Int64)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Promotion.Prelude (type (++), Symbol)
+import Data.Singletons.Prelude (type (++), Symbol)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Singletons
@@ -178,7 +178,7 @@ type FillInDefaultNames xs = FillInDefaultNamesFrom 1 xs
 
 fillInDefaultNames
   :: forall xs fk . Tuple xs (EntityMNOfSnd fk) -> Tuple (FillInDefaultNames xs) (EntityOfSnd fk)
-fillInDefaultNames = go $ sing @_ @1
+fillInDefaultNames = go $ sing @1
   where
     go
       :: forall i xs'
@@ -194,7 +194,7 @@ stripOutDefaultNames
    . SingI xs
   => Tuple (FillInDefaultNames xs) (EntityOfSnd fk)
   -> Tuple xs (EntityMNOfSnd fk)
-stripOutDefaultNames = go (sing @_ @1) sing
+stripOutDefaultNames = go (sing @1) sing
   where
     go
       :: forall i xs'

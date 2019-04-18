@@ -67,7 +67,7 @@ makeOpSchema = go . zip defaultTabNames
         (SomeSing (sname :: SSymbol name), SomeSing ((singInstance -> SingInstance) :: SStructure x), OpSchema xs (_ :: Proxy
             rest))
           -> case sname %== sname of
-            SFalse -> error "Name does not equal itself!?" -- TODO How to prove unreachable?
+            -- SFalse -> error "Name does not equal itself!?" -- TODO How to prove unreachable?
             STrue ->
               withSingI sname $ OpSchema (x : xs) $ Proxy @('(name, EntityOf DummyFK x) ': rest)
 
@@ -163,7 +163,7 @@ instance Eq (Member items f) where
 
 upMember
   :: forall sym x items f nx . SingI sym => MemberX items f nx -> MemberX ('(sym,x) ': items) f nx
-upMember (MemberX name x) = case name %== sing @_ @sym of
+upMember (MemberX name x) = case name %== sing @sym of
   STrue  -> error "Duplicate names"
   SFalse -> MemberX name x
 
@@ -175,7 +175,7 @@ instance (SingI sym, (sym == sym) ~ 'True
           , x ~ EntityOf DummyFK structure, SingI structure
           , ItemList rest)
     => ItemList ('(sym,x) ': rest) where
-  members = MemberX (sing @_ @sym) (Proxy @x) `Cons` Conkin.fmap upMember (members @rest)
+  members = MemberX (sing @sym) (Proxy @x) `Cons` Conkin.fmap upMember (members @rest)
 
 instance ItemList items => Arbitrary (Operations items) where
   arbitrary = do

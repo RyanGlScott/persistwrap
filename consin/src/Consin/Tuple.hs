@@ -28,7 +28,7 @@ import Consin.Class (AlwaysS, ConsinShow(..), Functor(..), compare1, (==*), with
 (++&) (Cons x xs) ys = Cons x (xs ++& ys)
 
 splitTuple :: forall xs ys f . SingI xs => Tuple (xs ++ ys) f -> (Tuple xs f, Tuple ys f)
-splitTuple t = case sing @_ @xs of
+splitTuple t = case sing @xs of
   SNil -> (Nil, t)
   SCons _ ((singInstance -> SingInstance) :: SList xs') -> case t of
     (v `Cons` vs) -> case splitTuple @xs' @ys vs of
@@ -75,7 +75,7 @@ eqAlwaysSTuples :: (SingI xs, AlwaysS Eq f) => Tuple xs f -> Tuple xs f -> Bool
 eqAlwaysSTuples x y = and $ zipUncheckSing (==*) x y
 
 withAlwaysSTupleShow :: forall xs f y . (SingI xs, AlwaysS Show f) => (Show (Tuple xs f) => y) -> y
-withAlwaysSTupleShow = go (sing @_ @xs)
+withAlwaysSTupleShow = go (sing @xs)
   where
     go :: forall xs' . SList xs' -> (Show (Tuple xs' f) => y) -> y
     go = \case
@@ -90,8 +90,8 @@ instance (SingI xs, AlwaysS Arbitrary f) => Arbitrary (Tuple xs f) where
   arbitrary =
     htraverse
         (\((singInstance -> SingInstance) :: Sing x) -> withAlwaysS @Arbitrary @f @x sing arbitrary)
-      $ singToTuple (sing @_ @xs)
-  shrink = go (sing @_ @xs)
+      $ singToTuple (sing @xs)
+  shrink = go (sing @xs)
     where
       go :: forall xs' . SList xs' -> Tuple xs' f -> [Tuple xs' f]
       go SNil Nil = []
